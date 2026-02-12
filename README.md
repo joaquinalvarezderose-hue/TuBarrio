@@ -1,14 +1,20 @@
-# TuBarrio App 🚀
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-Plataforma integral para conectar vecinos, prestadores de servicios y deportistas de la zona.
+# Run and deploy your AI Studio app
 
-## 🛠️ Funcionalidades Clave
-- **Torneos Deportivos:** Gestión de inscripciones, generación de fixtures dinámicos y rankings en tiempo real.
-- **Marketplace Local:** Conexión entre vecinos y prestadores de servicios con sistema de reputación.
-- **Gestión de Roles:** Perfiles diferenciados para Administradores, Jugadores y Vecinos.
+This contains everything you need to run your app locally.
 
-## ⚙️ Stack Tecnológico
-- **Frontend:** HTML/JS/CSS (Diseño personalizado)
-- **Backend/Auth:** Supabase
-- **Hosting:** Vercel
-- **Inteligencia de Datos:** Google AI Studio (Gemini)
+View your app in AI Studio: https://ai.studio/apps/drive/1Swl0SmnOHQFX690voAIaJuF55cDg9m32
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
