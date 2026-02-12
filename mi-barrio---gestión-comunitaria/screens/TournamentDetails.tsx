@@ -1,0 +1,152 @@
+
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const TournamentDetails: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const tournament = location.state?.tournament || {
+    id: 1,
+    title: "Abierto de Tenis TuBarrio",
+    subtitle: "Singles Damas y Caballeros",
+    date: "15 de Julio - 20 de Julio, 2024"
+  };
+
+  return (
+    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-background-light text-gray-900 font-display transition-colors duration-200 antialiased selection:bg-primary selection:text-black pb-28">
+      <div className="sticky top-0 z-30 flex items-center justify-between bg-background-light/95 backdrop-blur-md p-4 pb-2 transition-colors duration-200">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex size-10 items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-900 group"
+        >
+          <span className="material-symbols-outlined group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+        </button>
+        <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Detalles del Torneo</h2>
+      </div>
+
+      <div className="w-full">
+        <div className="px-0 sm:px-4 sm:py-3">
+          <div className="relative flex flex-col justify-end overflow-hidden bg-gray-200 sm:rounded-xl min-h-[260px] shadow-sm">
+            <div 
+              className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" 
+              role="img" 
+              style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAVx1WQP7vZEiH8vKxHErY6qX5YFqmrDQUB9rEk_ll74Py9T8DIc2L8ycxTgz4bU4Nbw_zOIQpN_Xslyr0DjQPLL8AbtD1E8qHGdoaleJsH06qvESuPUyjZ36C6Xfdexr91gskv9GQ-vu1ETAdJ_Y0Q-6ZO-QFdbyliEsQY0fp6Ovrk3-5GZNgiNn82ZwmQTDpkMNign_zqT57NAxEMIOf9w_uCCGYx5yPsSBs0FNN6mZJQuWz_7InHrmdy4Gb3DR_t0ZTobexNG9E")' }}
+            ></div>
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+            <div className="relative z-20 flex flex-col p-5 gap-2">
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#6dec13] px-2.5 py-0.5 text-xs font-bold text-black uppercase tracking-wider">
+                INSCRIPCIONES ABIERTAS
+              </span>
+              <h1 className="text-white tracking-tight text-3xl font-bold leading-tight drop-shadow-sm">
+                {tournament.title}
+              </h1>
+              <div className="flex items-center gap-2 text-gray-200 text-sm">
+                <span className="material-symbols-outlined text-[18px]">group</span>
+                <span>{tournament.subtitle || "Singles Damas y Caballeros"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[40px_1fr] gap-x-2 px-5 mt-4">
+        <div className="flex flex-col items-center gap-1 pt-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 text-[#6dec13]">
+            <span className="material-symbols-outlined">calendar_today</span>
+          </div>
+          <div className="w-[2px] bg-gray-200 h-full grow rounded-full"></div>
+        </div>
+        <div className="flex flex-1 flex-col py-2 pb-6">
+          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">FECHAS DEL TORNEO</p>
+          <p className="text-gray-900 text-lg font-medium leading-normal">{tournament.date}</p>
+          <p className="text-xs text-gray-400 mt-1">El primer partido arranca a las 9:00 AM</p>
+        </div>
+
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-[2px] bg-gray-200 h-6 rounded-full"></div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 text-[#6dec13]">
+            <span className="material-symbols-outlined">location_on</span>
+          </div>
+        </div>
+        <div className="flex flex-1 flex-col py-2">
+          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">UBICACIÓN</p>
+          <p className="text-gray-900 text-lg font-medium leading-normal">Canchas del Barrio</p>
+          <div className="mt-3 h-24 w-full overflow-hidden rounded-xl relative border border-gray-200">
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-80" 
+              style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZFkqBmThhKQvkFpbT4fetiHM-5Qwb1EB49RzxQMvybIvdYS0-_rV_YwFhARurSeiEAyaiyb8CEZYChh8S1sMwDq73wrqUEZw0IpTJdJeUjgnKygNggWdxujsI92y0Rw-KXIV9aw7H-t5cwPlGYmpB29c1apBELhOwLOEOTos3uSczGbjazrRVXg9DHZzby-STciMc403zow0oXWSLOmalfjEqulvdscR-_X9rO2xyOQIqKpe9RVexjMcoef7MWNOvC9pEnweOuro")' }}
+            ></div>
+            <div className="absolute inset-0 bg-black/10 flex items-center justify-center cursor-pointer">
+              <span className="bg-white/90 px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm">Ver en el Mapa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 px-5 py-6">
+        <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 size-20 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
+          <div className="relative z-10 flex items-center gap-2 text-gray-500 mb-1">
+            <span className="material-symbols-outlined text-[20px]">payments</span>
+            <span className="text-sm font-medium">Inscripción</span>
+          </div>
+          <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$25</p>
+        </div>
+        <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 size-20 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
+          <div className="relative z-10 flex items-center gap-2 text-gray-500 mb-1">
+            <span className="material-symbols-outlined text-[20px]">emoji_events</span>
+            <span className="text-sm font-medium">Premios</span>
+          </div>
+          <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$500</p>
+        </div>
+      </div>
+
+      <div className="px-5 pb-8">
+        <h3 className="text-lg font-bold leading-tight text-gray-900 mb-4 flex items-center gap-2">
+          Requisitos
+          <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">OBLIGATORIO</span>
+        </h3>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-4 rounded-xl bg-white p-4 border border-gray-100">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#6dec13]/20 text-green-700">
+              <span className="material-symbols-outlined">verified_user</span>
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-gray-900">Residente Verificado</p>
+              <p className="text-xs text-gray-500">Debe tener dirección verificada en TuBarrio.</p>
+            </div>
+            <div className="ml-auto">
+              <span className="material-symbols-outlined text-green-500 text-[20px] filled">check_circle</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 rounded-xl bg-white p-4 border border-gray-100">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#6dec13]/20 text-green-700">
+              <span className="material-symbols-outlined">water_drop</span>
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-gray-900">Liquid Rank 3.5+</p>
+              <p className="text-xs text-gray-500">Nivel mínimo requerido.</p>
+            </div>
+            <div className="ml-auto">
+              <span className="material-symbols-outlined text-green-500 text-[20px] filled">check_circle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8 bg-background-light/80 backdrop-blur-lg border-t border-gray-200/50 max-w-md mx-auto shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
+        <button 
+          onClick={() => navigate('/payment', { state: { tournament } })}
+          className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
+        >
+          <span>Inscribirme al Torneo</span>
+          <span className="material-symbols-outlined font-black">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default TournamentDetails;
