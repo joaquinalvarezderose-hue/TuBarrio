@@ -34,12 +34,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
       }
 
       const result = await verifyAddress(address, location);
-      // If grounding metadata is available, we prioritize it
-      if (result.grounding) {
-         setVerifiedAddress(result.text);
-      } else {
-         setVerifiedAddress(result.text);
-      }
+      setVerifiedAddress(result.text);
     } catch (err) {
       setError("No pudimos verificar la dirección. Intenta ser más específico.");
     } finally {
@@ -57,7 +52,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     setError(null);
 
     try {
-      // 1. Crear usuario en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -68,7 +62,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
       const user = authData.user;
 
       if (user) {
-        // 2. Insertar en tabla perfiles
         const { error: profileError } = await supabase
           .from('perfiles')
           .insert([
@@ -172,45 +165,17 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
               </span>
             </button>
           </div>
-          <p className="mt-2 text-[10px] text-gray-400 ml-1 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">map</span>
-            Verificación impulsada por Google Maps Grounding.
-          </p>
         </div>
 
         {verifiedAddress && (
-          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-primary font-bold">verified</span>
-              <div className="flex-1">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">DIRECCIÓN ENCONTRADA</p>
-                <p className="text-sm font-bold text-secondary mt-1">{verifiedAddress}</p>
-              </div>
-            </div>
-            
-            {/* Visual feedback mimicking a map location */}
-            <div className="mt-4 h-32 w-full bg-gray-100 rounded-xl overflow-hidden relative border border-primary/10 shadow-inner">
-               <img 
-                 src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=200&fit=crop" 
-                 className="w-full h-full object-cover grayscale opacity-40" 
-                 alt="map mockup" 
-                 referrerPolicy="no-referrer"
-               />
-               <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="relative">
-                    <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping"></div>
-                    <span className="material-symbols-outlined text-primary text-5xl filled relative z-10">location_on</span>
-                 </div>
-               </div>
-               <div className="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded text-[8px] font-black text-gray-500 uppercase">
-                 Google Maps Grounding Active
-               </div>
-            </div>
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4">
+            <p className="text-[10px] font-black text-primary uppercase tracking-widest">DIRECCIÓN ENCONTRADA</p>
+            <p className="text-sm font-bold text-secondary mt-1">{verifiedAddress}</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 animate-shake">
+          <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3">
             <span className="material-symbols-outlined text-red-500">error</span>
             <p className="text-xs text-red-600 font-bold">{error}</p>
           </div>
@@ -219,15 +184,13 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
         <button
           onClick={handleRegister}
           disabled={!name || !verifiedAddress || !email || !password || !whatsapp || loading}
-          className="w-full py-5 bg-primary text-secondary font-black text-lg rounded-2xl shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all disabled:opacity-50 active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
+          className="w-full py-5 bg-primary text-secondary font-black text-lg rounded-2xl shadow-xl shadow-primary/30 mt-4"
         >
           {loading ? 'Procesando...' : 'Finalizar Registro'}
-          {!loading && <span className="material-symbols-outlined font-black">arrow_forward</span>}
         </button>
 
         <div className="text-center mt-4">
-          <p className="text-sm text-gray-500">¿Ya tenés una cuenta?</p>
-          <Link to="/login" className="text-primary font-bold hover:underline mt-1 inline-block">
+          <Link to="/login" className="text-primary font-bold hover:underline">
             Iniciar sesión
           </Link>
         </div>
