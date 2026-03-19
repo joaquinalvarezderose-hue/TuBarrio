@@ -19,6 +19,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailRegistered, setEmailRegistered] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const handleVerify = async () => {
@@ -63,69 +64,42 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
         const { data: authData, error: authError } = await (supabase as any).auth.signUp({ email, password });
         console.log('supabase signUp result', { authData, authError });
 
-        // If the user already exists in Auth, try signing in with the provided password
+        // Si el mail ya está registrado, mostramos mensaje y sugerimos iniciar sesión
         if (authError && /already registered/i.test(authError.message || '')) {
-          console.log('Usuario ya registrado en Auth, intentando signInWithPassword...');
-          const { data: signInData, error: signInError } = await (supabase as any).auth.signInWithPassword({ email, password });
-          console.log('supabase signIn result', { signInData, signInError });
-          if (signInError) throw signInError;
+          setEmailRegistered(true);
+          setError('Este correo ya está registrado.');
+          setLoading(false);
+          return;
+        }
 
-          if (signInData?.user) {
-            const insertResponse = await supabase
+        if (authError) throw authError;
+
+        if (authData?.user) {
+          const insertResponse = await supabase
+            .from('perfiles')
+            .insert([
+              {
+                id: authData.user.id,
+                nombre_completo: name,
+                whatsapp: whatsapp || null,
+                direccion: verifiedAddress || address,
+                creado_en: new Date().toISOString(),
+              },
+            ])
+            .select();
+          console.log('supabase insert response', insertResponse);
+          const dbError = (insertResponse as any).error;
+          if (dbError) throw dbError;
+          if (!(insertResponse as any).data) {
+            const { data: fetched, error: fetchErr } = await supabase
               .from('perfiles')
-              .insert([
-                {
-                  id: signInData.user.id,
-                  nombre_completo: name,
-                  whatsapp: whatsapp || null,
-                  direccion: verifiedAddress || address,
-                  creado_en: new Date().toISOString(),
-                },
-              ])
-              .select();
-            console.log('supabase insert response', insertResponse);
-            const dbError = (insertResponse as any).error;
-            if (dbError) throw dbError;
-            // If server returned no data, try to fetch the row by id to confirm
-            if (!(insertResponse as any).data) {
-              const { data: fetched, error: fetchErr } = await supabase
-                .from('perfiles')
-                .select('*')
-                .eq('id', signInData.user.id)
-                .single();
-              console.log('fetched profile after insert (signin path)', { fetched, fetchErr });
-            }
+              .select('*')
+              .eq('id', authData.user.id)
+              .single();
+            console.log('fetched profile after insert (signup path)', { fetched, fetchErr });
           }
         } else {
-          if (authError) throw authError;
-
-          if (authData?.user) {
-            const insertResponse = await supabase
-              .from('perfiles')
-              .insert([
-                {
-                  id: authData.user.id,
-                  nombre_completo: name,
-                  whatsapp: whatsapp || null,
-                  direccion: verifiedAddress || address,
-                  creado_en: new Date().toISOString(),
-                },
-              ])
-              .select();
-            console.log('supabase insert response', insertResponse);
-            const dbError = (insertResponse as any).error;
-            if (dbError) throw dbError;
-            if (!(insertResponse as any).data) {
-              const { data: fetched, error: fetchErr } = await supabase
-                .from('perfiles')
-                .select('*')
-                .eq('id', authData.user.id)
-                .single();
-              console.log('fetched profile after insert (signup path)', { fetched, fetchErr });
-            }
-          } else {
-            console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
-          }
+          console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
         }
       } else {
         // Fallback: persist minimal user locally
@@ -212,9 +186,14 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                     className="w-full pl-11 pr-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
                     placeholder="usuario@ejemplo.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setEmailRegistered(false); }}
                   />
                   {fieldErrors.email && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.email}</p>}
+                  {emailRegistered && (
+                    <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                      Este correo ya está registrado. ¿Querés <Link to="/login" className="font-bold text-red-800">iniciar sesión</Link>?
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -301,26 +280,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
             </div>
           </form>
 
-          <div className="mt-10">
-            <div className="relative mb-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-outline"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase tracking-widest">
-                <span className="bg-white px-4 text-on-surface-variant">O continuar con</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <button className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-outline rounded-xl hover:bg-surface transition-colors shadow-sm">
-                <img alt="Google" className="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFFPCKxti-8bFF8pc3IPzMTTUmkPCa9Xy1ntUE17CM4105dl3I9c62pkgRiKZHUigEzhWL9nL2C6fpYy-2Hg1Z4o4yvFeiGLQaHIC6qiMRFy69NYH9oH5eni9FLs-YAbUDzo1xtT8e_wo9h3QizD5jB3yFjSWM-SRW3J0hfTwv-CEm7GtIXuT-VZ57fTKld3tQ_jbdo4z43kvn8SohEKtk0ipdKisSRwrz5k_HES5BIWUFMwyWlU9ra1YdEjOwJvaMyiw-Xwl9jT8" />
-                <span className="text-sm font-medium">Google</span>
-              </button>
-              <button className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-outline rounded-xl hover:bg-surface transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-xl text-blue-600">social_leaderboard</span>
-                <span className="text-sm font-medium">Facebook</span>
-              </button>
-            </div>
-          </div>
+          {/* Social login buttons removed for MVP */}
         </div>
       </main>
 
