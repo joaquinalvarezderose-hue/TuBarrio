@@ -1,17 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Barrio</title>
-    <!-- Color de tema para navegadores y previsualizaciones al compartir -->
+    
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.symbols.google.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             darkMode: 'class', 
@@ -33,10 +33,6 @@
                         "card-dark": "#1a3322",
                         "text-light": "#111813",
                         "text-dark": "#e0e6e2",
-                        "secondary-text-light": "#61896b",
-                        "secondary-text-dark": "#8fac96",
-                        "accent-bg-light": "#f0f4f1",
-                        "accent-bg-dark": "#1c3825",
                     },
                     fontFamily: {
                         sans: ['Manrope', 'sans-serif'],
@@ -46,6 +42,7 @@
             }
         }
     </script>
+
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -53,30 +50,15 @@
             font-family: 'Lexend', sans-serif; 
             background-color: #f6f8f6; 
             color: #111813;
+            margin: 0;
         }
-        
         .liquid-ring {
             background: conic-gradient(#6dec13 92%, #e5e7eb 92%);
         }
-        .material-symbols-outlined.filled {
-            font-variation-settings: 'FILL' 1;
-        }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="text-secondary overflow-x-hidden antialiased selection:bg-[#6dec13] selection:text-black">
     <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/index.tsx"></script>
 </body>
 </html>
