@@ -62,25 +62,51 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
       if (supabase && typeof (supabase as any).auth?.signUp === 'function') {
         const { data: authData, error: authError } = await (supabase as any).auth.signUp({ email, password });
         console.log('supabase signUp result', { authData, authError });
-        if (authError) throw authError;
 
-        if (authData?.user) {
-          const insertResponse = await supabase
-            .from('perfiles')
-            .insert([
-              {
-                id: authData.user.id,
-                nombre_completo: name,
-                whatsapp: whatsapp || null,
-                direccion: verifiedAddress || address,
-                creado_en: new Date().toISOString(),
-              },
-            ]);
-          console.log('supabase insert response', insertResponse);
-          const dbError = (insertResponse as any).error;
-          if (dbError) throw dbError;
+        // If the user already exists in Auth, try signing in with the provided password
+        if (authError && /already registered/i.test(authError.message || '')) {
+          console.log('Usuario ya registrado en Auth, intentando signInWithPassword...');
+          const { data: signInData, error: signInError } = await (supabase as any).auth.signInWithPassword({ email, password });
+          console.log('supabase signIn result', { signInData, signInError });
+          if (signInError) throw signInError;
+
+          if (signInData?.user) {
+            const insertResponse = await supabase
+              .from('perfiles')
+              .insert([
+                {
+                  id: signInData.user.id,
+                  nombre_completo: name,
+                  whatsapp: whatsapp || null,
+                  direccion: verifiedAddress || address,
+                  creado_en: new Date().toISOString(),
+                },
+              ]);
+            console.log('supabase insert response', insertResponse);
+            const dbError = (insertResponse as any).error;
+            if (dbError) throw dbError;
+          }
         } else {
-          console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
+          if (authError) throw authError;
+
+          if (authData?.user) {
+            const insertResponse = await supabase
+              .from('perfiles')
+              .insert([
+                {
+                  id: authData.user.id,
+                  nombre_completo: name,
+                  whatsapp: whatsapp || null,
+                  direccion: verifiedAddress || address,
+                  creado_en: new Date().toISOString(),
+                },
+              ]);
+            console.log('supabase insert response', insertResponse);
+            const dbError = (insertResponse as any).error;
+            if (dbError) throw dbError;
+          } else {
+            console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
+          }
         }
       } else {
         // Fallback: persist minimal user locally
