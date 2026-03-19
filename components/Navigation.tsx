@@ -54,13 +54,7 @@ const Navigation: React.FC = () => {
         })}
       </div>
 
-      <div className="hidden md:flex mt-auto px-4 pb-4">
-        <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl p-4 w-full border border-primary/20">
-          <p className="text-xs font-bold text-primary mb-1">TuBarrio Premium</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-3">Accede a descuentos exclusivos en servicios.</p>
-          <button className="w-full py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-sm">Ver Planes</button>
-        </div>
-      </div>
+      {/* Premium card removed for MVP */}
     </nav>
   );
 };
