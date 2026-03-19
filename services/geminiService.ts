@@ -1,31 +1,17 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// @ts-ignore
-// El comentario de arriba es VITAL para que Vercel ignore el error de tipos en el build
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(apiKey);
-
+// Llama a un endpoint serverless que envuelve la llamada al SDK de Gemini.
+// Esto evita que el bundler incluya `@google/generative-ai` en el frontend
+// (causa común de fallos en `npm run build` en Vercel).
 export const verifyAddress = async (addressQuery: string, location?: { lat: number; lng: number }) => {
-  try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash", 
-    });
+  const res = await fetch('/api/verify-address', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address: addressQuery, location }),
+  });
 
-    const prompt = `Verifica si la siguiente dirección existe y es válida en un contexto de barrio: ${addressQuery}`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    return {
-      text: text,
-      grounding: null 
-    };
-  } catch (error) {
-    console.error("Error verifying address:", error);
-    return {
-        text: addressQuery, 
-        grounding: null
-    };
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(txt || 'Error verificando dirección');
   }
+
+  return res.json();
 };

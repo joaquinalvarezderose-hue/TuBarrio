@@ -9,10 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.99.3",
     "react": "^19.2.4",
-    "@google/generative-ai": "^0.24.1"
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -21,4 +22,3 @@
     "vite": "^6.2.0"
   }
 }
-
