@@ -22,6 +22,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const handleVerify = async () => {
+    console.log('handleVerify called', { address });
     if (!address) return;
     setLoading(true);
     setError(null);
@@ -36,6 +37,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   };
 
   const handleRegister = async () => {
+    console.log('handleRegister called', { name, email, password, confirmPassword, address, whatsapp, terms });
     // Client-side validation
     setError(null);
     setFieldErrors({});
