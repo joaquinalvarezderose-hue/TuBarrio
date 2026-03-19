@@ -14,6 +14,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [verifiedAddress, setVerifiedAddress] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [terms, setTerms] = useState(false);
+  const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     if (!confirmPassword || confirmPassword !== password) errors.confirmPassword = 'Las contraseñas no coinciden.';
     if (!terms) errors.terms = 'Debes aceptar los términos y condiciones.';
     if (!address || address.trim().length < 5) errors.address = 'Ingresa una dirección válida.';
+    if (whatsapp && !/^[+0-9()\s-]{7,}$/.test(whatsapp)) errors.whatsapp = 'Ingresa un número de WhatsApp válido.';
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -57,21 +59,26 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
       // Intentar registrar con Supabase; si falla (config), usar fallback local (MVP)
       if (supabase && typeof (supabase as any).auth?.signUp === 'function') {
         const { data: authData, error: authError } = await (supabase as any).auth.signUp({ email, password });
+        console.log('supabase signUp result', { authData, authError });
         if (authError) throw authError;
 
         if (authData?.user) {
-          const { error: dbError } = await supabase
-            .from('profiles')
+          const insertResponse = await supabase
+            .from('perfiles')
             .insert([
               {
                 id: authData.user.id,
-                full_name: name,
-                address: verifiedAddress || address,
-                updated_at: new Date(),
+                nombre_completo: name,
+                whatsapp: whatsapp || null,
+                direccion: verifiedAddress || address,
+                creado_en: new Date().toISOString(),
               },
             ]);
-
+          console.log('supabase insert response', insertResponse);
+          const dbError = (insertResponse as any).error;
           if (dbError) throw dbError;
+        } else {
+          console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
         }
       } else {
         // Fallback: persist minimal user locally
@@ -82,15 +89,19 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
       if (onComplete) onComplete();
       navigate('/');
     } catch (err: any) {
-      // If supabase failed because of missing config, fallback to local user
+      // Surface error message for debugging
       console.error('register error', err);
+      const msg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
+      setError(msg || 'Error al registrarse');
+
+      // If supabase not configured or insertion failed, still offer fallback
       try {
         const localUser = { id: `local-${Date.now()}`, email, name, address: verifiedAddress || address };
         localStorage.setItem('app_user', JSON.stringify(localUser));
         if (onComplete) onComplete();
         navigate('/');
       } catch (e) {
-        setError(err?.message || 'Error al registrarse');
+        console.error('fallback error', e);
       }
     } finally {
       setLoading(false);
@@ -159,6 +170,22 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                   {fieldErrors.email && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.email}</p>}
                 </div>
               </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">WhatsApp</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-xl">call</span>
+                    <input
+                      id="whatsapp"
+                      type="tel"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
+                      placeholder="+54 9 11 1234-5678"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                    />
+                    {fieldErrors.whatsapp && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.whatsapp}</p>}
+                  </div>
+                </div>
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Contraseña</label>
