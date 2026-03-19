@@ -1,5 +1,5 @@
 {
-  "name": "mi-barrio---gestión-comunitaria",
+  "name": "mi-barrio-gestion-comunitaria",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,7 +12,7 @@
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.0",
     "react": "^19.2.4",
-    "@google/genai": "^1.40.0"
+    "@google/generative-ai": "^0.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -20,7 +20,5 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
-}   
-
-
+}
 
