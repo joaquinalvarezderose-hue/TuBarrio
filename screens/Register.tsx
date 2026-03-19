@@ -178,8 +178,8 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Email</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-xl">mail</span>
+                <div className="relative h-12">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-xl pointer-events-none">mail</span>
                   <input
                     id="email"
                     type="email"

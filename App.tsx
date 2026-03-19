@@ -3,6 +3,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
+import Login from './screens/Login';
 import Services from './screens/Services';
 import Profile from './screens/Profile';
 import Navigation from './components/Navigation';
@@ -19,6 +20,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={user ? <Dashboard /> : <Navigate to="/register" replace />} />
             <Route path="/register" element={<Register onComplete={() => {}} />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/services" element={<Services />} />
             <Route path="/profile" element={<Profile />} />
             {/* Agregá acá el resto de tus rutas siguiendo el mismo formato */}
