@@ -1,13 +1,18 @@
-
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { verifyAddress } from '../services/geminiService';
+import { supabase } from '../services/supabaseClient';
 
 interface RegisterProps {
-  onComplete: () => void;
+  onComplete?: () => void;
 }
 
 const Register: React.FC<RegisterProps> = ({ onComplete }) => {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [verifiedAddress, setVerifiedAddress] = useState<string | null>(null);
@@ -42,10 +47,53 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     }
   };
 
-  const handleRegister = () => {
-    if (name && verifiedAddress) {
-      localStorage.setItem('app_user', JSON.stringify({ name, address: verifiedAddress }));
-      onComplete();
+  const handleRegister = async () => {
+    if (!name || !verifiedAddress || !email || !password || !whatsapp) {
+      setError("Por favor completa todos los campos y verifica tu dirección.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Crear usuario en Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      const user = authData.user;
+
+      if (user) {
+        // 2. Insertar en tabla perfiles
+        const { error: profileError } = await supabase
+          .from('perfiles')
+          .insert([
+            {
+              id: user.id,
+              nombre_completo: name,
+              whatsapp: whatsapp,
+              rol: 'vecino',
+            },
+          ]);
+
+        if (profileError) throw profileError;
+
+        localStorage.setItem('app_user', JSON.stringify({ name, address: verifiedAddress }));
+        
+        if (onComplete) {
+          onComplete();
+        } else {
+          navigate('/login');
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Error al registrar usuario.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,6 +116,39 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
             onChange={(e) => setName(e.target.value)}
             className="w-full bg-gray-50 border-gray-200 rounded-xl focus:ring-primary focus:border-primary text-sm p-4 font-medium transition-all"
             placeholder="Ej: Mateo Rossi"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">WhatsApp</label>
+          <input
+            type="tel"
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            className="w-full bg-gray-50 border-gray-200 rounded-xl focus:ring-primary focus:border-primary text-sm p-4 font-medium transition-all"
+            placeholder="+54 9 11 1234-5678"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Correo Electrónico</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-gray-50 border-gray-200 rounded-xl focus:ring-primary focus:border-primary text-sm p-4 font-medium transition-all"
+            placeholder="nombre@ejemplo.com"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Contraseña</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-gray-50 border-gray-200 rounded-xl focus:ring-primary focus:border-primary text-sm p-4 font-medium transition-all"
+            placeholder="••••••••"
           />
         </div>
 
@@ -113,6 +194,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                  src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=200&fit=crop" 
                  className="w-full h-full object-cover grayscale opacity-40" 
                  alt="map mockup" 
+                 referrerPolicy="no-referrer"
                />
                <div className="absolute inset-0 flex items-center justify-center">
                  <div className="relative">
@@ -136,12 +218,19 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
 
         <button
           onClick={handleRegister}
-          disabled={!name || !verifiedAddress}
+          disabled={!name || !verifiedAddress || !email || !password || !whatsapp || loading}
           className="w-full py-5 bg-primary text-secondary font-black text-lg rounded-2xl shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all disabled:opacity-50 active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
         >
-          Finalizar Registro
-          <span className="material-symbols-outlined font-black">arrow_forward</span>
+          {loading ? 'Procesando...' : 'Finalizar Registro'}
+          {!loading && <span className="material-symbols-outlined font-black">arrow_forward</span>}
         </button>
+
+        <div className="text-center mt-4">
+          <p className="text-sm text-gray-500">¿Ya tenés una cuenta?</p>
+          <Link to="/login" className="text-primary font-bold hover:underline mt-1 inline-block">
+            Iniciar sesión
+          </Link>
+        </div>
       </div>
     </div>
   );
