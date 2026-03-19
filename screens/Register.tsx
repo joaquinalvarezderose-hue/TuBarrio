@@ -81,10 +81,20 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                   direccion: verifiedAddress || address,
                   creado_en: new Date().toISOString(),
                 },
-              ]);
+              ])
+              .select();
             console.log('supabase insert response', insertResponse);
             const dbError = (insertResponse as any).error;
             if (dbError) throw dbError;
+            // If server returned no data, try to fetch the row by id to confirm
+            if (!(insertResponse as any).data) {
+              const { data: fetched, error: fetchErr } = await supabase
+                .from('perfiles')
+                .select('*')
+                .eq('id', signInData.user.id)
+                .single();
+              console.log('fetched profile after insert (signin path)', { fetched, fetchErr });
+            }
           }
         } else {
           if (authError) throw authError;
@@ -100,10 +110,19 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                   direccion: verifiedAddress || address,
                   creado_en: new Date().toISOString(),
                 },
-              ]);
+              ])
+              .select();
             console.log('supabase insert response', insertResponse);
             const dbError = (insertResponse as any).error;
             if (dbError) throw dbError;
+            if (!(insertResponse as any).data) {
+              const { data: fetched, error: fetchErr } = await supabase
+                .from('perfiles')
+                .select('*')
+                .eq('id', authData.user.id)
+                .single();
+              console.log('fetched profile after insert (signup path)', { fetched, fetchErr });
+            }
           } else {
             console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
           }
