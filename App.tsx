@@ -13,6 +13,8 @@ import Standings from './screens/Standings';
 import MatchResult from './screens/MatchResult';
 import Rules from './screens/Rules';
 import Profile from './screens/Profile';
+import Payment from './screens/Payment';
+import Confirmation from './screens/Confirmation';
 import Navigation from './components/Navigation';
 
 interface AppContentProps {
@@ -42,6 +44,8 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
           <Route path="/match-result" element={user ? <MatchResult /> : <Navigate to="/login" replace />} />
           <Route path="/rules" element={user ? <Rules /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" replace />} />
+          <Route path="/payment" element={user ? <Payment /> : <Navigate to="/login" replace />} />
+          <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           {/* Agregá acá el resto de tus rutas siguiendo el mismo formato */}
         </Routes>

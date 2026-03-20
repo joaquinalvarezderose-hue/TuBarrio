@@ -13,17 +13,6 @@ const TournamentDetails: React.FC = () => {
     date: "15 de Julio - 20 de Julio, 2024"
   };
 
-  const autoProceedToPayment = location.state?.autoProceedToPayment ?? false;
-
-  React.useEffect(() => {
-    if (autoProceedToPayment && tournament) {
-      const timer = setTimeout(() => {
-        navigate('/payment', { state: { tournament } });
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [autoProceedToPayment, navigate, tournament]);
-
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-background-light text-gray-900 font-display transition-colors duration-200 antialiased selection:bg-primary selection:text-black pb-28">
       <div className="sticky top-0 z-30 flex items-center justify-between bg-background-light/95 backdrop-blur-md p-4 pb-2 transition-colors duration-200">
@@ -148,9 +137,6 @@ const TournamentDetails: React.FC = () => {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8 bg-background-light/80 backdrop-blur-lg border-t border-gray-200/50 max-w-md mx-auto shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
-        {autoProceedToPayment && (
-          <p className="text-sm text-center text-gray-600 mb-2">Redirigiendo a pago...</p>
-        )}
         <button 
           onClick={() => navigate('/payment', { state: { tournament } })}
           className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"

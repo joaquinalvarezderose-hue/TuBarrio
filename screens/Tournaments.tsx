@@ -73,8 +73,8 @@ const Tournaments: React.FC = () => {
 
   const myRegisteredTournaments = allTournaments.filter(t => registeredIds.includes(t.id));
 
-  const goToTournamentDetails = (tournament: any, autoPayment = false) => {
-    navigate('/tournament-details', { state: { tournament, autoProceedToPayment: autoPayment } });
+  const goToTournamentDetails = (tournament: any) => {
+    navigate('/tournament-details', { state: { tournament } });
   };
 
   // AVAILABLE TOURNAMENTS VIEW
@@ -103,8 +103,7 @@ const Tournaments: React.FC = () => {
             {allTournaments.map((tournament) => (
               <div 
                 key={tournament.id}
-                className="flex flex-col rounded-xl bg-white dark:bg-[#1a2e1f] shadow-[0_2px_8px_rgba(0,0,0,0.08)] overflow-hidden transition-all hover:scale-[1.01] hover:shadow-lg group cursor-pointer"
-                onClick={() => goToTournamentDetails(tournament, true)}
+                className="flex flex-col rounded-xl bg-white dark:bg-[#1a2e1f] shadow-[0_2px_8px_rgba(0,0,0,0.08)] overflow-hidden transition-all hover:scale-[1.01] hover:shadow-lg group"
               >
                 <div className="relative h-48 w-full bg-gray-100 dark:bg-gray-700">
                   <div 
@@ -135,10 +134,7 @@ const Tournaments: React.FC = () => {
                       )}
                     </div>
                     <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goToTournamentDetails(tournament, false);
-                      }}
+                      onClick={() => goToTournamentDetails(tournament)}
                       className="bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-bold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-1 shadow-md shadow-[#4a9c40]/20"
                     >
                       Ver detalles
