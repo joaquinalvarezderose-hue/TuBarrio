@@ -1,15 +1,21 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const TournamentPanel: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const tournament = location.state?.tournament || { 
+  const savedTournament = localStorage.getItem('active_tournament');
+  const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : { 
     title: "Abierto de Tenis TuBarrio",
+    id: 1,
     subtitle: "2da Categoría - Singles",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE"
-  };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('active_tournament', JSON.stringify(tournament));
+  }, [tournament]);
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-background-light dark:bg-background-dark transition-colors duration-300 font-display no-scrollbar overflow-y-auto">
@@ -49,7 +55,7 @@ const TournamentPanel: React.FC = () => {
         {/* Quick Action Grid 2x2 */}
         <section className="grid grid-cols-2 gap-4">
           <button 
-            onClick={() => navigate('/fixture')}
+            onClick={() => navigate('/fixture', { state: { tournament } })}
             className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition-transform group"
           >
             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
@@ -59,7 +65,7 @@ const TournamentPanel: React.FC = () => {
           </button>
           
           <button 
-            onClick={() => navigate('/standings')}
+            onClick={() => navigate('/standings', { state: { tournament } })}
             className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition-transform group"
           >
             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
@@ -69,7 +75,7 @@ const TournamentPanel: React.FC = () => {
           </button>
           
           <button 
-            onClick={() => navigate('/match-result')}
+            onClick={() => navigate('/match-result', { state: { tournament } })}
             className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition-transform group"
           >
             <div className="size-12 rounded-full bg-[#4a9c40] flex items-center justify-center text-white group-hover:bg-[#3d8b33] transition-colors shadow-md">

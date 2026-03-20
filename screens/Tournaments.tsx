@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
 const Tournaments: React.FC = () => {
   const navigate = useNavigate();
@@ -12,10 +13,41 @@ const Tournaments: React.FC = () => {
   const [registeredIds, setRegisteredIds] = useState<number[]>([]);
   
   useEffect(() => {
-    const saved = localStorage.getItem('registered_tournaments');
-    if (saved) {
-      setRegisteredIds(JSON.parse(saved));
-    }
+    const loadRegistrations = async () => {
+      const saved = localStorage.getItem('registered_tournaments');
+      const localIds: number[] = saved ? JSON.parse(saved) : [];
+
+      try {
+        const userId = user?.id;
+        if (!userId) {
+          setRegisteredIds(localIds);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('torneo_jugadores')
+          .select('grupo')
+          .eq('perfil_id', userId);
+
+        if (error) throw error;
+
+        const remoteIds = (data || [])
+          .map((row: any) => {
+            const match = typeof row.grupo === 'string' ? row.grupo.match(/^TORNEO_(\d+)$/) : null;
+            return match ? Number(match[1]) : null;
+          })
+          .filter((id: number | null): id is number => id !== null);
+
+        const merged = Array.from(new Set([...localIds, ...remoteIds]));
+        setRegisteredIds(merged);
+        localStorage.setItem('registered_tournaments', JSON.stringify(merged));
+      } catch (err) {
+        console.error('Error cargando inscripciones desde Supabase', err);
+        setRegisteredIds(localIds);
+      }
+    };
+
+    loadRegistrations();
   }, []);
 
   const allTournaments = [

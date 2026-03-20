@@ -1,10 +1,20 @@
 
-import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { calculateStandings, getBestSecondsAverage, PlayerStats } from '../utils/tournamentLogic';
+import { supabase } from '../services/supabaseClient';
 
 const Standings: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [dbRows, setDbRows] = useState<any[] | null>(null);
+
+  const savedTournament = localStorage.getItem('active_tournament');
+  const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
+    id: 1,
+    title: 'Abierto de Tenis TuBarrio',
+    subtitle: 'Singles Caballeros',
+  });
 
   const initialPlayers: PlayerStats[] = [
     { id: "bautista_a", name: "Bautista Agut", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDHfbgVb1as76bznMk8AgOwnA4wJXhREJt0cq666FwY5636ALaXCIlfyyG8H3C6HG2rA0y2kUToYJQD-uuKfikN15kf5JK_vTR7MLdQqpBcLH011OzRyXw71qZ-0DEeDwAi0kZyEe-o4Vn2JTZALzM8-Rq_35_Nu29Dd_bMeEQXTHqi01cBwcIxffnLHzmMymnnZHRonCieyKwTzJtwnIDz-4n3kw8QC0AjsyK94hE2Bec9dUf2bD40QeCLu4x2TN_ZIigeYgjIQgk", matches: [] },
@@ -14,11 +24,92 @@ const Standings: React.FC = () => {
     { id: "juan_m", name: "Juan M.", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop", matches: [] },
   ];
 
+  const loadDbStandings = useCallback(async () => {
+    try {
+      const grupo = `TORNEO_${tournament.id}`;
+      const categoria = tournament.subtitle || 'General';
+
+      const { data, error } = await supabase
+        .from('torneo_jugadores')
+        .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+        .eq('categoria', categoria)
+        .eq('grupo', grupo);
+
+      if (error || !data) {
+        setDbRows([]);
+        return;
+      }
+
+      const profileIds = data.map((row: any) => row.perfil_id).filter(Boolean);
+      const { data: perfiles } = await supabase
+        .from('perfiles')
+        .select('id, nombre_completo')
+        .in('id', profileIds);
+
+      const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+
+      const mapped = data.map((row: any, idx: number) => ({
+        id: row.perfil_id || `db-player-${idx}`,
+        name: nameById[row.perfil_id] || 'Jugador',
+        img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop',
+        pj: Number(row.partidos_jugados || 0),
+        pts: Number(row.puntos || 0),
+        setsWon: Number(row.sets_ganados || 0),
+        setsLost: 0,
+        gamesWon: 0,
+        gamesLost: 0,
+        matches: [],
+      }));
+
+      mapped.sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        return b.setsWon - a.setsWon;
+      });
+
+      setDbRows(mapped);
+    } catch (err) {
+      console.error('No se pudo cargar la tabla desde Supabase', err);
+      setDbRows([]);
+    }
+  }, [tournament.id, tournament.subtitle]);
+
+  useEffect(() => {
+    loadDbStandings();
+
+    const channel = supabase
+      .channel(`standings-live-${tournament.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'torneo_jugadores' },
+        () => {
+          loadDbStandings();
+        }
+      )
+      .subscribe();
+
+    // Fallback defensivo por si Realtime no está habilitado en Supabase.
+    const intervalId = window.setInterval(() => {
+      loadDbStandings();
+    }, 15000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
+  }, [loadDbStandings, tournament.id]);
+
   const calculatedStandings = useMemo(() => {
+    if (dbRows && dbRows.length > 0) {
+      return dbRows.map((p: any) => ({
+        ...p,
+        average: p.pj > 0 ? (p.pts / p.pj).toFixed(2) : '0.00',
+      }));
+    }
+
     const results = JSON.parse(localStorage.getItem('tournament_results') || '[]');
     const stats = calculateStandings(initialPlayers, results);
     return getBestSecondsAverage(stats);
-  }, []);
+  }, [dbRows]);
 
   return (
     <div className="relative flex h-full min-h-full w-full flex-col bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 max-w-4xl mx-auto pb-24 md:pb-12 no-scrollbar overflow-y-auto">
@@ -31,9 +122,9 @@ const Standings: React.FC = () => {
         <div className="px-4 pb-4 pt-2">
           <div className="flex items-baseline gap-2">
             <h3 className="text-2xl font-bold">Grupo A</h3>
-            <span className="text-slate-500 font-medium text-lg">- Segunda</span>
+            <span className="text-slate-500 font-medium text-lg">- {tournament.subtitle || 'General'}</span>
           </div>
-          <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mt-1">Torneo Clausura 2024</p>
+          <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mt-1">{tournament.title || 'Torneo TuBarrio'}</p>
         </div>
       </div>
 

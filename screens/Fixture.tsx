@@ -1,11 +1,85 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
 const Fixture: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [category, setCategory] = useState<'Segunda' | 'Intermedia'>('Segunda');
   const [activeFecha, setActiveFecha] = useState(1);
+  const [playersStats, setPlayersStats] = useState<any[]>([]);
+
+  const savedTournament = localStorage.getItem('active_tournament');
+  const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
+    id: 1,
+    title: 'Abierto de Tenis TuBarrio',
+    subtitle: 'Singles Caballeros',
+  });
+
+  const loadFixtureStats = useCallback(async () => {
+    try {
+      const grupo = `TORNEO_${tournament.id}`;
+      const categoria = tournament.subtitle || 'General';
+
+      const { data, error } = await supabase
+        .from('torneo_jugadores')
+        .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+        .eq('categoria', categoria)
+        .eq('grupo', grupo);
+
+      if (error || !data) return;
+
+      const profileIds = data.map((row: any) => row.perfil_id).filter(Boolean);
+      const { data: perfiles } = await supabase
+        .from('perfiles')
+        .select('id, nombre_completo')
+        .in('id', profileIds);
+
+      const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+
+      const mapped = data.map((row: any) => ({
+        nombre: nameById[row.perfil_id] || 'Jugador',
+        puntos: Number(row.puntos || 0),
+        partidos_jugados: Number(row.partidos_jugados || 0),
+        sets_ganados: Number(row.sets_ganados || 0),
+      }));
+
+      mapped.sort((a, b) => {
+        if (b.puntos !== a.puntos) return b.puntos - a.puntos;
+        return b.sets_ganados - a.sets_ganados;
+      });
+
+      setPlayersStats(mapped);
+    } catch (err) {
+      console.error('No se pudo cargar el estado del fixture', err);
+    }
+  }, [tournament.id, tournament.subtitle]);
+
+  useEffect(() => {
+    loadFixtureStats();
+
+    const channel = supabase
+      .channel(`fixture-live-${tournament.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'torneo_jugadores' },
+        () => {
+          loadFixtureStats();
+        }
+      )
+      .subscribe();
+
+    // Fallback defensivo por si Realtime no está habilitado en Supabase.
+    const intervalId = window.setInterval(() => {
+      loadFixtureStats();
+    }, 15000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
+  }, [loadFixtureStats, tournament.id]);
 
   const fechas = [1, 2, 3, 4, 5];
 
@@ -65,6 +139,35 @@ const Fixture: React.FC = () => {
       {/* Content Area */}
       <main className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark pb-8 no-scrollbar">
         <div className="px-4 py-4">
+          <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Estado en vivo</h3>
+              <span className="text-[10px] text-[#61896b] font-bold">Supabase</span>
+            </div>
+            {playersStats.length === 0 ? (
+              <p className="text-sm text-[#61896b]">Todavía no hay estadísticas cargadas para este torneo.</p>
+            ) : (
+              <div className="space-y-2">
+                {playersStats.slice(0, 4).map((p, idx) => (
+                  <div key={`${p.nombre}-${idx}`} className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-sm">
+                    <span className="font-bold text-[#4a9c40]">{idx + 1}</span>
+                    <span className="font-semibold truncate text-[#111813] dark:text-white">{p.nombre}</span>
+                    <span className="text-center font-bold">{p.puntos}</span>
+                    <span className="text-center">{p.partidos_jugados}</span>
+                    <span className="text-center">{p.sets_ganados}</span>
+                  </div>
+                ))}
+                <div className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-[10px] uppercase tracking-wider text-[#61896b] pt-1 border-t border-[#dbe6de] dark:border-[#2a3c2e]">
+                  <span></span>
+                  <span>Jugador</span>
+                  <span className="text-center">Pts</span>
+                  <span className="text-center">PJ</span>
+                  <span className="text-center">Sets</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <h3 className="text-[#111813] dark:text-white text-base font-bold uppercase tracking-wider mb-3">Sábado 14 de Octubre</h3>
           <div className="flex flex-col gap-4">
             {/* Match Card 1 (Scheduled) */}

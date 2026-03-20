@@ -1,6 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
 const Confirmation: React.FC = () => {
   const navigate = useNavigate();
@@ -16,13 +17,66 @@ const Confirmation: React.FC = () => {
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
 
   useEffect(() => {
-    const saved = localStorage.getItem('registered_tournaments');
-    let registeredIds: number[] = saved ? JSON.parse(saved) : [];
-    
-    if (!registeredIds.includes(tournament.id)) {
-      registeredIds.push(tournament.id);
-      localStorage.setItem('registered_tournaments', JSON.stringify(registeredIds));
-    }
+    const registerTournament = async () => {
+      const saved = localStorage.getItem('registered_tournaments');
+      let registeredIds: number[] = saved ? JSON.parse(saved) : [];
+
+      if (!registeredIds.includes(tournament.id)) {
+        registeredIds.push(tournament.id);
+        localStorage.setItem('registered_tournaments', JSON.stringify(registeredIds));
+      }
+
+      try {
+        const userId = user?.id;
+        if (!userId) return;
+
+        const grupoTorneo = `TORNEO_${tournament.id}`;
+        const categoriaTorneo = tournament.subtitle || 'General';
+
+        const existing = await supabase
+          .from('torneo_jugadores')
+          .select('id')
+          .eq('perfil_id', userId)
+          .eq('categoria', categoriaTorneo)
+          .eq('grupo', grupoTorneo)
+          .maybeSingle();
+
+        if (existing.error) throw existing.error;
+        if (existing.data) return;
+
+        const fullInsert = await supabase
+          .from('torneo_jugadores')
+          .insert([
+            {
+              perfil_id: userId,
+              categoria: categoriaTorneo,
+              grupo: grupoTorneo,
+              puntos: 0,
+              partidos_jugados: 0,
+              sets_ganados: 0,
+            },
+          ]);
+
+        if (fullInsert.error) {
+          // Fallback si tu tabla no tiene todas las columnas numéricas o nombres esperados.
+          const minimalInsert = await supabase
+            .from('torneo_jugadores')
+            .insert([
+              {
+                perfil_id: userId,
+                categoria: categoriaTorneo,
+                grupo: grupoTorneo,
+              },
+            ]);
+
+          if (minimalInsert.error) throw minimalInsert.error;
+        }
+      } catch (err) {
+        console.error('Error al registrar jugador en torneo_jugadores', err);
+      }
+    };
+
+    registerTournament();
   }, [tournament.id]);
 
   return (
