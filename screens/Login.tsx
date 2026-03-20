@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
-const Login: React.FC = () => {
+interface LoginProps {
+  onSuccess?: () => void;
+}
+
+const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +30,7 @@ const Login: React.FC = () => {
         } else {
           localStorage.setItem('app_user', JSON.stringify({ id: data.user.id, email }));
         }
+        if (onSuccess) onSuccess();
         navigate('/');
       }
     } catch (err: any) {

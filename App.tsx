@@ -8,7 +8,12 @@ import Services from './screens/Services';
 import Profile from './screens/Profile';
 import Navigation from './components/Navigation';
 
-const AppContent: React.FC<{ user: boolean }> = ({ user }) => {
+interface AppContentProps {
+  user: boolean;
+  setUser: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register';
 
@@ -19,10 +24,10 @@ const AppContent: React.FC<{ user: boolean }> = ({ user }) => {
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
         <Routes>
           <Route path="/" element={user ? <Dashboard /> : <Navigate to="/register" replace />} />
-          <Route path="/register" element={<Register onComplete={() => {}} />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
+          <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
+          <Route path="/services" element={user ? <Services /> : <Navigate to="/login" replace />} />
+          <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" replace />} />
           {/* Agregá acá el resto de tus rutas siguiendo el mismo formato */}
         </Routes>
       </main>
@@ -31,11 +36,11 @@ const AppContent: React.FC<{ user: boolean }> = ({ user }) => {
 };
 
 const App: React.FC = () => {
-  const user = !!localStorage.getItem('app_user');
+  const [user, setUser] = React.useState<boolean>(!!localStorage.getItem('app_user'));
 
   return (
     <Router>
-      <AppContent user={user} />
+      <AppContent user={user} setUser={setUser} />
     </Router>
   );
 };
