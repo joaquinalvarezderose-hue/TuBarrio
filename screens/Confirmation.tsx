@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
+import { registerParticipant } from '../utils/tournamentLogic';
 
 const Confirmation: React.FC = () => {
   const navigate = useNavigate();
@@ -33,46 +33,17 @@ const Confirmation: React.FC = () => {
         const grupoTorneo = `TORNEO_${tournament.id}`;
         const categoriaTorneo = tournament.subtitle || 'General';
 
-        const existing = await supabase
-          .from('torneo_jugadores')
-          .select('id')
-          .eq('perfil_id', userId)
-          .eq('categoria', categoriaTorneo)
-          .eq('grupo', grupoTorneo)
-          .maybeSingle();
+        const maxFromTournament = Number((tournament as any).maxParticipants || 8);
 
-        if (existing.error) throw existing.error;
-        if (existing.data) return;
-
-        const fullInsert = await supabase
-          .from('torneo_jugadores')
-          .insert([
-            {
-              perfil_id: userId,
-              categoria: categoriaTorneo,
-              grupo: grupoTorneo,
-              puntos: 0,
-              partidos_jugados: 0,
-              sets_ganados: 0,
-            },
-          ]);
-
-        if (fullInsert.error) {
-          // Fallback si tu tabla no tiene todas las columnas numéricas o nombres esperados.
-          const minimalInsert = await supabase
-            .from('torneo_jugadores')
-            .insert([
-              {
-                perfil_id: userId,
-                categoria: categoriaTorneo,
-                grupo: grupoTorneo,
-              },
-            ]);
-
-          if (minimalInsert.error) throw minimalInsert.error;
-        }
+        await registerParticipant({
+          tournamentId: Number(tournament.id),
+          userId: String(userId),
+          categoria: categoriaTorneo,
+          grupo: grupoTorneo,
+          maxParticipants: maxFromTournament,
+        });
       } catch (err) {
-        console.error('Error al registrar jugador en torneo_jugadores', err);
+        console.error('Error al registrar jugador en ciclo de torneo', err);
       }
     };
 

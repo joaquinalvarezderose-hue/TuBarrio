@@ -11,6 +11,8 @@ const Tournaments: React.FC = () => {
   const user = userStr ? JSON.parse(userStr) : { name: "Usuario" };
   
   const [registeredIds, setRegisteredIds] = useState<number[]>([]);
+  const [statusByTournamentId, setStatusByTournamentId] = useState<Record<number, string>>({});
+  const [capacityByTournamentId, setCapacityByTournamentId] = useState<Record<number, { current: number; max: number }>>({});
   
   useEffect(() => {
     const loadRegistrations = async () => {
@@ -50,6 +52,37 @@ const Tournaments: React.FC = () => {
     loadRegistrations();
   }, []);
 
+  useEffect(() => {
+    const loadTournamentLifecycle = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('torneo_estado')
+          .select('torneo_id, estado, current_participantes, max_participantes');
+
+        if (error) throw error;
+
+        const nextStatus: Record<number, string> = {};
+        const nextCapacity: Record<number, { current: number; max: number }> = {};
+
+        (data || []).forEach((row: any) => {
+          const id = Number(row.torneo_id);
+          nextStatus[id] = String(row.estado || 'RECRUITING');
+          nextCapacity[id] = {
+            current: Number(row.current_participantes || 0),
+            max: Number(row.max_participantes || 0),
+          };
+        });
+
+        setStatusByTournamentId(nextStatus);
+        setCapacityByTournamentId(nextCapacity);
+      } catch (err) {
+        console.error('No se pudo cargar el estado de torneos desde Supabase', err);
+      }
+    };
+
+    loadTournamentLifecycle();
+  }, []);
+
   const allTournaments = [
     {
       id: 1,
@@ -57,6 +90,7 @@ const Tournaments: React.FC = () => {
       subtitle: "Singles Caballeros",
       date: "10 - 15 Mar",
       count: "24 Inscriptos",
+      maxParticipants: 24,
       image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE",
       avatars: ["https://i.pravatar.cc/150?u=1", "https://i.pravatar.cc/150?u=2", "https://i.pravatar.cc/150?u=3"],
       extra: "+21"
@@ -67,6 +101,7 @@ const Tournaments: React.FC = () => {
       subtitle: "Singles Caballeros",
       date: "12 - 18 Mar",
       count: "16 Inscriptos",
+      maxParticipants: 16,
       image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCJdWlacuqkDcu2Q0AVWRtpMog2NYZKB_m6UbjJ9vAC_kOGuh3mbwI_BfJPc5hG9H6gqtvses85VMCYm4RTvxbYb6u7SC9pOoGFf3WcsoMUQNe785z1Z9ALzLdDpndsM0Y81awbpbqwZfJ218iwcyKvs3lpN8yYLn0KLwu_XvTME6ukU9OGSrJbMbx4VyVL0raJpjrrJJz0BXQwhVWHnrVZLJ3R6KHBmMZbtCrZfvYj9AD5b57emWAExThw4FcoUkLlUnWtV4b9gbw",
       avatars: ["https://i.pravatar.cc/150?u=4", "https://i.pravatar.cc/150?u=5"],
       extra: "+14"
@@ -77,6 +112,7 @@ const Tournaments: React.FC = () => {
       subtitle: "Singles Caballeros",
       date: "20 - 25 Mar",
       count: "8 Inscriptos",
+      maxParticipants: 8,
       image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBuAVvQAMpWs1A9RwmoapmwZFYSYckJHuLnfshuYRf6nvdqffLuXkcMR81eVmc0q1dFQmvZIZ5J374TuBT7jPOc_F4CubG2eUlnWfwdL2rq3p5mpkSHKJxyjfWsXWQJ5OFnKEh3bD9ClhfY9c9iVENVc5kwGn0FoBuDU99Ep6wEDCKsBDlsCpyzr035p9WEN5KHl-25VBGQ7jirkd7xecbOFfw4WFisYaNRwRdYpqrPUFNV9dxcf8a0WbXGjADZx3z4zpwTHO-6dZA",
       avatars: ["https://i.pravatar.cc/150?u=6"],
       extra: "+7"
@@ -87,6 +123,7 @@ const Tournaments: React.FC = () => {
       subtitle: "Dobles Mixtos",
       date: "01 - 05 Abr",
       count: "12 Parejas",
+      maxParticipants: 24,
       image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD822xk3Z5UFXimD5jaQ65Pnav_h7KOLdQhGDXtI3BeM9pnk_Tt7U_DZ5S9em63Fv8_cmz6E0VSlWflf_IBpjHT4Wz3Xya44BAQa03zjSYZbofwQPZYe4j4iBLfRaHTKdPAu15lgCnuwsHZFrJagJNeKFqZcUxjbSt6yMTfcKpyfClnNxYaroLk8-yrFr5PKz_sruS2a2IJRKHsKhiv9EzWf43769G7WPg8cubAvG5_UXnpRvdzdUdcBrUC8rBeyJD6gUzuwaRV_A8",
       avatars: ["https://i.pravatar.cc/150?u=7", "https://i.pravatar.cc/150?u=8"],
       extra: "+22"
@@ -97,6 +134,7 @@ const Tournaments: React.FC = () => {
       subtitle: "Singles Damas",
       date: "08 - 14 Abr",
       count: "32 Inscriptas",
+      maxParticipants: 32,
       image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDxjuplDHRtHd-OUwF9Wwm5vPaBjuJZjHY8AvJejxsz0vrfcVLBOxqADQ76jP5vZAekynJhedQty64BTK8MDV3qzGosWwiEh7pXTKvx42CIvBNVHf8eziGbWpAGDVguikTH8Uena9SbZ4riqBdijv_eW4jffLPebFJ-NPHWRaFjJrPofF6isZ5DXtu-TIzHxMkKw3jdO-I0jdBxgrq7t9SZF7mD-KSZTRCsDROfxNYnleiVj0IbvOYw7jkZsmAOaioxUSes-yG8X0M",
       avatars: ["https://i.pravatar.cc/150?u=9", "https://i.pravatar.cc/150?u=10"],
       extra: "+30"
@@ -104,6 +142,11 @@ const Tournaments: React.FC = () => {
   ];
 
   const myRegisteredTournaments = allTournaments.filter(t => registeredIds.includes(t.id));
+  const availableTournaments = allTournaments.filter((t) => {
+    const status = statusByTournamentId[t.id];
+    if (!status) return true;
+    return status === 'RECRUITING';
+  });
 
   const goToTournamentDetails = (tournament: any) => {
     navigate('/tournament-details', { state: { tournament } });
@@ -131,8 +174,16 @@ const Tournaments: React.FC = () => {
         <div className="max-w-7xl mx-auto w-full">
           <h1 className="text-[#111813] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 md:px-8 text-left pb-3 pt-4">Torneos Disponibles</h1>
 
+          {availableTournaments.length === 0 && (
+            <div className="px-4 md:px-8 pb-4">
+              <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 border border-gray-100 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-300">
+                No hay torneos en estado de inscripcion abierta en este momento.
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-8 pt-0">
-            {allTournaments.map((tournament) => (
+            {availableTournaments.map((tournament) => (
               <div 
                 key={tournament.id}
                 className="flex flex-col rounded-xl bg-white dark:bg-[#1a2e1f] shadow-[0_2px_8px_rgba(0,0,0,0.08)] overflow-hidden transition-all hover:scale-[1.01] hover:shadow-lg group"
@@ -151,7 +202,13 @@ const Tournaments: React.FC = () => {
                     <p className="text-[#111813] dark:text-white text-xl font-bold leading-tight">{tournament.title}</p>
                     <div className="flex items-center gap-2 text-secondary-text dark:text-gray-400 text-sm">
                       <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                      <span>{tournament.date} • {tournament.count}</span>
+                      <span>
+                        {tournament.date} • {
+                          capacityByTournamentId[tournament.id]
+                            ? `${capacityByTournamentId[tournament.id].current}/${capacityByTournamentId[tournament.id].max} Inscriptos`
+                            : tournament.count
+                        }
+                      </span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center mt-auto pt-4">

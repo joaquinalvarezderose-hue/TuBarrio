@@ -1,4 +1,6 @@
 
+import { supabase } from '../services/supabaseClient';
+
 export interface MatchScore {
   player1Id: string;
   player2Id: string;
@@ -109,4 +111,120 @@ export const getBestSecondsAverage = (standings: any[]) => {
     ...player,
     average: player.pj > 0 ? (player.pts / player.pj).toFixed(2) : "0.00"
   }));
+};
+
+export type TournamentStatus = 'RECRUITING' | 'LOCKED' | 'IN_PROGRESS';
+
+export type RegisterParticipantResult = {
+  tournamentId: number;
+  userId: string;
+  alreadyRegistered: boolean;
+  statusBefore: TournamentStatus;
+  statusAfter: TournamentStatus;
+  currentParticipants: number;
+  maxParticipants: number;
+  drawTriggered: boolean;
+  createdMatches: number;
+  byes: string[];
+};
+
+type RegisterParticipantRpcRow = {
+  torneo_id: number;
+  perfil_id: string;
+  ya_inscripto: boolean;
+  estado_antes: TournamentStatus;
+  estado_despues: TournamentStatus;
+  participantes_actuales: number;
+  max_participantes: number;
+  sorteo_disparado: boolean;
+  partidos_creados: number;
+  byes: string[] | null;
+};
+export const registerParticipant = async (params: {
+  tournamentId: number;
+  userId: string;
+  categoria: string;
+  grupo: string;
+  maxParticipants: number;
+}): Promise<RegisterParticipantResult> => {
+  const { tournamentId, userId, categoria, grupo, maxParticipants } = params;
+
+  if (!tournamentId || !userId || !categoria || !grupo) {
+    throw new Error('registerParticipant requiere tournamentId, userId, categoria y grupo');
+  }
+
+  const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_participante_y_sortear_si_lleno', {
+    p_torneo_id: tournamentId,
+    p_perfil_id: userId,
+    p_categoria: categoria,
+    p_grupo: grupo,
+    p_max_participantes: Math.max(2, Number(maxParticipants || 8)),
+  });
+
+  if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+    const row = rpcData[0] as RegisterParticipantRpcRow;
+    return {
+      tournamentId: Number(row.torneo_id),
+      userId: String(row.perfil_id),
+      alreadyRegistered: Boolean(row.ya_inscripto),
+      statusBefore: row.estado_antes,
+      statusAfter: row.estado_despues,
+      currentParticipants: Number(row.participantes_actuales || 0),
+      maxParticipants: Number(row.max_participantes || 0),
+      drawTriggered: Boolean(row.sorteo_disparado),
+      createdMatches: Number(row.partidos_creados || 0),
+      byes: row.byes || [],
+    };
+  }
+
+  if (rpcError) {
+    console.warn('RPC registrar_participante_y_sortear_si_lleno no disponible. Se usa fallback cliente.', rpcError.message);
+  }
+
+  const existing = await supabase
+    .from('torneo_jugadores')
+    .select('id')
+    .eq('perfil_id', userId)
+    .eq('categoria', categoria)
+    .eq('grupo', grupo)
+    .maybeSingle();
+
+  if (existing.error) throw new Error(existing.error.message);
+
+  let alreadyRegistered = Boolean(existing.data);
+  if (!alreadyRegistered) {
+    const insert = await supabase
+      .from('torneo_jugadores')
+      .insert([{ perfil_id: userId, categoria, grupo, puntos: 0, partidos_jugados: 0, sets_ganados: 0 }]);
+
+    if (insert.error) {
+      const duplicateError = (insert.error as any).code === '23505';
+      if (!duplicateError) throw new Error(insert.error.message);
+      alreadyRegistered = true;
+    }
+  }
+
+  const countRes = await supabase
+    .from('torneo_jugadores')
+    .select('perfil_id', { count: 'exact', head: true })
+    .eq('categoria', categoria)
+    .eq('grupo', grupo);
+
+  if (countRes.error) throw new Error(countRes.error.message);
+
+  const current = Number(countRes.count || 0);
+  const max = Math.max(2, Number(maxParticipants || 8));
+
+  return {
+    tournamentId,
+    userId,
+    alreadyRegistered,
+    statusBefore: 'RECRUITING',
+    statusAfter: current >= max ? 'LOCKED' : 'RECRUITING',
+    currentParticipants: current,
+    maxParticipants: max,
+    drawTriggered: false,
+    createdMatches: 0,
+    byes: [],
+  };
 };
