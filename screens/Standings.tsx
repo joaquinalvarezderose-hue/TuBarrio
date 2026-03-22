@@ -1,7 +1,7 @@
 
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { calculateStandings, getBestSecondsAverage, PlayerStats } from '../utils/tournamentLogic';
+import { PlayerStats } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
 
 const Standings: React.FC = () => {
@@ -16,13 +16,7 @@ const Standings: React.FC = () => {
     subtitle: 'Singles Caballeros',
   });
 
-  const initialPlayers: PlayerStats[] = [
-    { id: "bautista_a", name: "Bautista Agut", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDHfbgVb1as76bznMk8AgOwnA4wJXhREJt0cq666FwY5636ALaXCIlfyyG8H3C6HG2rA0y2kUToYJQD-uuKfikN15kf5JK_vTR7MLdQqpBcLH011OzRyXw71qZ-0DEeDwAi0kZyEe-o4Vn2JTZALzM8-Rq_35_Nu29Dd_bMeEQXTHqi01cBwcIxffnLHzmMymnnZHRonCieyKwTzJtwnIDz-4n3kw8QC0AjsyK94hE2Bec9dUf2bD40QeCLu4x2TN_ZIigeYgjIQgk", matches: [] },
-    { id: "diego_s", name: "D. Schwartzman", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDggIqRERDHsEKpeH1km_clgD_leYKrd26oaAdXwfscp9hIK0DUzfHmqvY6zCwtUG_zGKFrALL3oegOkcnXNF7sQ7tpdWHeKLpGE8wKEwJjYGxAA-ICXfORGaoyYQGukeUAyKQjeQd1G3TjPcpOA_ZBx5LEJUqcWTvVUsKi6EXatDxBqQ5Qy4wVYEyklSxnDEaWRXPDGfwfMhK3gnDJtmwUzZVkP4Os-qisY47_ejirPdI_QfvfdTFE2v5aYxGv0V0dT7DYeVB1saQ", matches: [] },
-    { id: "fran_c", name: "F. Cerúndolo", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDxXjcoh7OmsIb-SZUGMZ5Oe5MSyWMtwPOmPd_xjIg2DlkbrbcwV6C8IJQAiOou-4YCKlqjRLu5gyhcNGhrhefaAJo8Eu7oyirL0khg0o9GPvYeaZlPi2CmbPhKmklZRsqozY18Btoqa7XBoZOPgSSgR_3gUu_ytIe-f8FqEqjZ4lx9CT1woWGRinumHqsB1ikt5IA0_Nj3Clhk1AK1s9uKfZnDG--HJ6Ek5unOqDBvG_CBA_c0fPGY4RXVJoT-MKA34Vq3zKWe2hw", matches: [] },
-    { id: "alex_r", name: "Alex R.", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop", matches: [] },
-    { id: "juan_m", name: "Juan M.", pj: 0, pts: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0, img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop", matches: [] },
-  ];
+  const initialPlayers: PlayerStats[] = [];
 
   const loadDbStandings = useCallback(async () => {
     try {
@@ -105,10 +99,7 @@ const Standings: React.FC = () => {
         average: p.pj > 0 ? (p.pts / p.pj).toFixed(2) : '0.00',
       }));
     }
-
-    const results = JSON.parse(localStorage.getItem('tournament_results') || '[]');
-    const stats = calculateStandings(initialPlayers, results);
-    return getBestSecondsAverage(stats);
+    return initialPlayers;
   }, [dbRows]);
 
   return (
@@ -157,6 +148,13 @@ const Standings: React.FC = () => {
                   <td className="px-3 py-4 text-center text-sm font-bold text-primary">{p.average}</td>
                 </tr>
               ))}
+              {calculatedStandings.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                    Todavia no hay jugadores inscriptos o no se pudo leer la tabla del torneo en Supabase.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           <div className="absolute top-0 left-[212px] bottom-0 w-4 bg-gradient-to-r from-black/5 to-transparent pointer-events-none z-30"></div>

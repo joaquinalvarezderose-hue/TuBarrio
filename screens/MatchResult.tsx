@@ -16,8 +16,8 @@ const MatchResult: React.FC = () => {
   });
 
   const [players, setPlayers] = useState([
-    { id: '', perfil_id: 'alex_r', name: 'Alex R.', puntos: 0, partidos_jugados: 0, sets_ganados: 0 },
-    { id: '', perfil_id: 'juan_m', name: 'Juan M.', puntos: 0, partidos_jugados: 0, sets_ganados: 0 },
+    { id: '', perfil_id: '', name: 'Jugador 1', puntos: 0, partidos_jugados: 0, sets_ganados: 0 },
+    { id: '', perfil_id: '', name: 'Jugador 2', puntos: 0, partidos_jugados: 0, sets_ganados: 0 },
   ]);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

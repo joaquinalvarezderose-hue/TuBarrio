@@ -1,7 +1,90 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+
+type FixturePlayer = {
+  perfil_id: string;
+  nombre: string;
+  puntos: number;
+  partidos_jugados: number;
+  sets_ganados: number;
+};
+
+type FixtureMatch = {
+  p1: FixturePlayer;
+  p2: FixturePlayer;
+};
+
+const hashString = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const createSeededRandom = (seed: number) => {
+  let t = seed || 1;
+  return () => {
+    t += 0x6d2b79f5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const drawPlayersOrder = (players: FixturePlayer[], seedBase: string) => {
+  const ids = players.map((p) => p.perfil_id).filter(Boolean).sort();
+  const playerById = Object.fromEntries(players.map((p) => [p.perfil_id, p]));
+  const shuffled = [...ids];
+  const random = createSeededRandom(hashString(seedBase));
+
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled.map((id) => playerById[id]).filter(Boolean);
+};
+
+const buildPairKey = (p1Id: string, p2Id: string) => [p1Id || '', p2Id || ''].sort().join('|');
+
+const buildRoundRobin = (players: FixturePlayer[]): FixtureMatch[][] => {
+  if (players.length < 2) return [];
+
+  const working: Array<FixturePlayer | null> = [...players];
+  if (working.length % 2 === 1) working.push(null);
+
+  const rounds: FixtureMatch[][] = [];
+  const totalRounds = working.length - 1;
+
+  for (let round = 0; round < totalRounds; round += 1) {
+    const matches: FixtureMatch[] = [];
+    const half = working.length / 2;
+
+    for (let i = 0; i < half; i += 1) {
+      const left = working[i];
+      const right = working[working.length - 1 - i];
+      if (left && right) {
+        matches.push({ p1: left, p2: right });
+      }
+    }
+
+    rounds.push(matches);
+
+    const fixed = working[0];
+    const rest = working.slice(1);
+    const last = rest.pop();
+    if (last !== undefined) {
+      rest.unshift(last);
+    }
+    working.splice(0, working.length, fixed, ...rest);
+  }
+
+  return rounds;
+};
 
 const Fixture: React.FC = () => {
   const navigate = useNavigate();
@@ -9,6 +92,8 @@ const Fixture: React.FC = () => {
   const [category, setCategory] = useState<'Segunda' | 'Intermedia'>('Segunda');
   const [activeFecha, setActiveFecha] = useState(1);
   const [playersStats, setPlayersStats] = useState<any[]>([]);
+  const [playersByTournament, setPlayersByTournament] = useState<FixturePlayer[]>([]);
+  const [resultByPair, setResultByPair] = useState<Record<string, { sets_jugador1: number; sets_jugador2: number; ganador_perfil_id: string | null }>>({});
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -22,11 +107,22 @@ const Fixture: React.FC = () => {
       const grupo = `TORNEO_${tournament.id}`;
       const categoria = tournament.subtitle || 'General';
 
-      const { data, error } = await supabase
-        .from('torneo_jugadores')
-        .select('perfil_id, puntos, partidos_jugados, sets_ganados')
-        .eq('categoria', categoria)
-        .eq('grupo', grupo);
+      const [jugadoresResp, historialResp] = await Promise.all([
+        supabase
+          .from('torneo_jugadores')
+          .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+          .eq('categoria', categoria)
+          .eq('grupo', grupo),
+        supabase
+          .from('torneo_partidos_historial')
+          .select('jugador1_perfil_id, jugador2_perfil_id, sets_jugador1, sets_jugador2, ganador_perfil_id, cargado_en')
+          .eq('torneo_id', tournament.id)
+          .eq('categoria', categoria)
+          .eq('grupo', grupo)
+          .order('cargado_en', { ascending: false }),
+      ]);
+
+      const { data, error } = jugadoresResp;
 
       if (error || !data) return;
 
@@ -38,23 +134,63 @@ const Fixture: React.FC = () => {
 
       const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
 
-      const mapped = data.map((row: any) => ({
+      const mapped: FixturePlayer[] = data.map((row: any) => ({
+        perfil_id: row.perfil_id,
         nombre: nameById[row.perfil_id] || 'Jugador',
         puntos: Number(row.puntos || 0),
         partidos_jugados: Number(row.partidos_jugados || 0),
         sets_ganados: Number(row.sets_ganados || 0),
       }));
 
-      mapped.sort((a, b) => {
+      const statsSorted = [...mapped].sort((a, b) => {
         if (b.puntos !== a.puntos) return b.puntos - a.puntos;
         return b.sets_ganados - a.sets_ganados;
       });
 
-      setPlayersStats(mapped);
+      const seedBase = `${tournament.id}|${categoria}|${mapped.map((p) => p.perfil_id).sort().join('|')}`;
+      const drawnOrder = drawPlayersOrder(mapped, seedBase);
+
+      setPlayersStats(statsSorted);
+      setPlayersByTournament(drawnOrder);
+
+      const historyRows = historialResp.data || [];
+      const byPair: Record<string, { sets_jugador1: number; sets_jugador2: number; ganador_perfil_id: string | null }> = {};
+      historyRows.forEach((row: any) => {
+        const key = buildPairKey(row.jugador1_perfil_id, row.jugador2_perfil_id);
+        if (!byPair[key]) {
+          byPair[key] = {
+            sets_jugador1: Number(row.sets_jugador1 || 0),
+            sets_jugador2: Number(row.sets_jugador2 || 0),
+            ganador_perfil_id: row.ganador_perfil_id || null,
+          };
+        }
+      });
+      setResultByPair(byPair);
     } catch (err) {
       console.error('No se pudo cargar el estado del fixture', err);
     }
   }, [tournament.id, tournament.subtitle]);
+
+  const roundRobinFechas = useMemo(() => {
+    return buildRoundRobin(playersByTournament);
+  }, [playersByTournament]);
+
+  const fechas = useMemo(() => roundRobinFechas.map((_, idx) => idx + 1), [roundRobinFechas]);
+
+  const fixtureMatches = useMemo(() => {
+    if (fechas.length === 0) return [];
+    return roundRobinFechas[activeFecha - 1] || [];
+  }, [activeFecha, fechas.length, roundRobinFechas]);
+
+  useEffect(() => {
+    if (fechas.length === 0) {
+      setActiveFecha(1);
+      return;
+    }
+    if (activeFecha > fechas.length) {
+      setActiveFecha(1);
+    }
+  }, [activeFecha, fechas.length]);
 
   useEffect(() => {
     loadFixtureStats();
@@ -64,6 +200,13 @@ const Fixture: React.FC = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'torneo_jugadores' },
+        () => {
+          loadFixtureStats();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'torneo_partidos_historial' },
         () => {
           loadFixtureStats();
         }
@@ -81,8 +224,6 @@ const Fixture: React.FC = () => {
     };
   }, [loadFixtureStats, tournament.id]);
 
-  const fechas = [1, 2, 3, 4, 5];
-
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white dark:bg-background-dark font-display text-[#111813] dark:text-white transition-colors duration-200 pb-24">
       {/* Header Section */}
@@ -94,7 +235,7 @@ const Fixture: React.FC = () => {
           >
             <span className="material-symbols-outlined">arrow_back_ios_new</span>
           </button>
-          <h1 className="text-[#111813] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Fixture y Calendario</h1>
+          <h1 className="text-[#111813] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Fixture por Jornadas</h1>
         </div>
 
         {/* Category Selector */}
@@ -119,7 +260,7 @@ const Fixture: React.FC = () => {
         {/* Date/Round Horizontal Scroll */}
         <div className="overflow-x-auto no-scrollbar">
           <div className="flex px-4 gap-6 min-w-max">
-            {fechas.map((f) => (
+            {(fechas.length === 0 ? [1] : fechas).map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveFecha(f)}
@@ -129,7 +270,7 @@ const Fixture: React.FC = () => {
                     : 'border-transparent text-[#61896b]'
                 }`}
               >
-                <p className={`text-sm tracking-wide ${activeFecha === f ? 'font-bold' : 'font-semibold'}`}>FECHA {f}</p>
+                <p className={`text-sm tracking-wide ${activeFecha === f ? 'font-bold' : 'font-semibold'}`}>JORNADA {f}</p>
               </button>
             ))}
           </div>
@@ -168,119 +309,68 @@ const Fixture: React.FC = () => {
             )}
           </div>
 
-          <h3 className="text-[#111813] dark:text-white text-base font-bold uppercase tracking-wider mb-3">Sábado 14 de Octubre</h3>
+          <h3 className="text-[#111813] dark:text-white text-base font-bold uppercase tracking-wider mb-3">Partidos del torneo</h3>
           <div className="flex flex-col gap-4">
-            {/* Match Card 1 (Scheduled) */}
-            <div className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div className="flex flex-col gap-3 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#111813] dark:text-white font-bold text-lg">G. Coria</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#111813] dark:text-white font-bold text-lg">D. Nalbandian</span>
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[#4a9c40]" title="Provee las pelotas">
-                      <span className="text-[10px] font-black italic">P</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">PROGRAMADO</span>
-                  <div className="flex items-center gap-1 text-[#61896b] text-sm font-medium">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
-                    <span>14:00</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[#61896b] text-xs">
-                    <span className="material-symbols-outlined text-sm">sports_tennis</span>
-                    <span>Cancha 3</span>
-                  </div>
-                </div>
+            {fixtureMatches.length === 0 ? (
+              <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e]">
+                <p className="text-sm text-[#61896b]">Aun no hay suficientes jugadores inscriptos para armar cruces (minimo 2).</p>
               </div>
-              <div className="flex gap-2">
-                <button className="flex-1 h-10 rounded-lg bg-background-light dark:bg-[#2e4a35] text-[#111813] dark:text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                  <span className="material-symbols-outlined text-lg">info</span>
-                  Ver Detalle
-                </button>
-                <button className="w-12 h-10 rounded-lg bg-[#4a9c40] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm">
-                  <span className="material-symbols-outlined font-bold">location_on</span>
-                </button>
-              </div>
-            </div>
+            ) : (
+              fixtureMatches.map((match, idx) => (
+                <div key={`${match.p1.perfil_id}-${match.p2.perfil_id}-${idx}`} className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] hover:shadow-md transition-shadow">
+                  {(() => {
+                    const result = resultByPair[buildPairKey(match.p1.perfil_id, match.p2.perfil_id)];
+                    const isFinal = Boolean(result);
+                    const p1Sets = result?.sets_jugador1 ?? 0;
+                    const p2Sets = result?.sets_jugador2 ?? 0;
+                    const p1Won = result?.ganador_perfil_id === match.p1.perfil_id;
+                    const p2Won = result?.ganador_perfil_id === match.p2.perfil_id;
 
-            {/* Match Card 2 (Completed) */}
-            <div className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] opacity-90">
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col gap-3 flex-1">
-                  <div className="flex items-center justify-between pr-4">
-                    <span className="text-[#111813] dark:text-white font-bold text-lg">J.M. Del Potro</span>
-                    <div className="flex gap-2 font-black text-[#4a9c40]">
-                      <span>6</span>
-                      <span>6</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pr-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#61896b] font-medium text-lg">G. Gaudio</span>
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[#4a9c40]">
-                        <span className="text-[10px] font-black italic">P</span>
+                    return (
+                      <>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-3 flex-1">
+                      <div className="flex items-center justify-between pr-4">
+                        <span className={`${p1Won ? 'text-[#111813] dark:text-white font-bold' : 'text-[#111813] dark:text-white font-medium'} text-lg`}>{match.p1.nombre}</span>
+                        {isFinal && <span className={`text-lg ${p1Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p1Sets}</span>}
+                      </div>
+                      <div className="flex items-center justify-between pr-4">
+                        <span className={`${p2Won ? 'text-[#111813] dark:text-white font-bold' : 'text-[#111813] dark:text-white font-medium'} text-lg`}>{match.p2.nombre}</span>
+                        {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[#4a9c40]" title="Provee las pelotas">
+                          <span className="text-[10px] font-black italic">P</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 font-bold text-[#61896b]">
-                      <span>4</span>
-                      <span>2</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">{isFinal ? 'FINAL' : activeFecha === 1 ? 'PROGRAMADO' : 'PRÓXIMO'}</span>
+                      <div className="flex items-center gap-1 text-[#61896b] text-sm font-medium">
+                        <span className="material-symbols-outlined text-sm">event</span>
+                        <span>Jornada {activeFecha}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[#61896b] text-xs">
+                        <span className="material-symbols-outlined text-sm">handshake</span>
+                        <span>Dia y horario a coordinar</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    <button className="flex-1 h-10 rounded-lg bg-background-light dark:bg-[#2e4a35] text-[#111813] dark:text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                      <span className="material-symbols-outlined text-lg">info</span>
+                      {isFinal ? 'Ver Resultado' : 'Ver Detalle'}
+                    </button>
+                    <button className="w-12 h-10 rounded-lg bg-[#4a9c40] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm">
+                      <span className="material-symbols-outlined font-bold">location_on</span>
+                    </button>
+                  </div>
+                      </>
+                    );
+                  })()}
                 </div>
-                <div className="border-l border-[#dbe6de] dark:border-[#2a3c2e] pl-4 flex flex-col items-center">
-                  <span className="text-[#61896b] text-[10px] font-bold uppercase mb-1">Final</span>
-                  <div className="size-8 rounded-full bg-[#f0f4f1] dark:bg-[#2e4a35] flex items-center justify-center text-[#4a9c40]">
-                    <span className="material-symbols-outlined">check_circle</span>
-                  </div>
-                </div>
-              </div>
-              <div className="h-[1px] bg-[#dbe6de] dark:bg-[#2a3c2e]"></div>
-              <div className="flex justify-between items-center text-[#61896b] text-xs font-medium">
-                <p>Jugado en Cancha Central</p>
-                <p>12 Oct 2023</p>
-              </div>
-            </div>
-          </div>
-
-          <h3 className="text-[#111813] dark:text-white text-base font-bold uppercase tracking-wider mb-3 mt-8">Domingo 15 de Octubre</h3>
-          <div className="flex flex-col gap-4">
-            {/* Match Card 3 (Scheduled) */}
-            <div className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div className="flex flex-col gap-3 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#111813] dark:text-white font-bold text-lg">M. Vilas</span>
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[#4a9c40]">
-                      <span className="text-[10px] font-black italic">P</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#111813] dark:text-white font-bold text-lg">G. Vilas</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">PRÓXIMO</span>
-                  <div className="flex items-center gap-1 text-[#61896b] text-sm font-medium">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
-                    <span>10:30</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[#61896b] text-xs">
-                    <span className="material-symbols-outlined text-sm">sports_tennis</span>
-                    <span>Cancha 1</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button className="flex-1 h-10 rounded-lg bg-background-light dark:bg-[#2e4a35] text-[#111813] dark:text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                  <span className="material-symbols-outlined text-lg">info</span>
-                  Ver Detalle
-                </button>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
 
