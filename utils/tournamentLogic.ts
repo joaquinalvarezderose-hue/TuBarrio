@@ -184,6 +184,7 @@ export const registerParticipant = async (params: {
   const existing = await supabase
     .from('torneo_jugadores')
     .select('id')
+    .eq('torneo_id', tournamentId)
     .eq('perfil_id', userId)
     .eq('categoria', categoria)
     .eq('grupo', grupo)
@@ -195,7 +196,7 @@ export const registerParticipant = async (params: {
   if (!alreadyRegistered) {
     const insert = await supabase
       .from('torneo_jugadores')
-      .insert([{ perfil_id: userId, categoria, grupo, puntos: 0, partidos_jugados: 0, sets_ganados: 0 }]);
+      .insert([{ torneo_id: tournamentId, perfil_id: userId, categoria, grupo, puntos: 0, partidos_jugados: 0, sets_ganados: 0 }]);
 
     if (insert.error) {
       const duplicateError = (insert.error as any).code === '23505';
@@ -207,6 +208,7 @@ export const registerParticipant = async (params: {
   const countRes = await supabase
     .from('torneo_jugadores')
     .select('perfil_id', { count: 'exact', head: true })
+    .eq('torneo_id', tournamentId)
     .eq('categoria', categoria)
     .eq('grupo', grupo);
 

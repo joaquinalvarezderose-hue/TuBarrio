@@ -28,17 +28,14 @@ const Tournaments: React.FC = () => {
 
         const { data, error } = await supabase
           .from('torneo_jugadores')
-          .select('grupo')
+          .select('torneo_id')
           .eq('perfil_id', userId);
 
         if (error) throw error;
 
         const remoteIds = (data || [])
-          .map((row: any) => {
-            const match = typeof row.grupo === 'string' ? row.grupo.match(/^TORNEO_(\d+)$/) : null;
-            return match ? Number(match[1]) : null;
-          })
-          .filter((id: number | null): id is number => id !== null);
+          .map((row: any) => Number(row.torneo_id || 0))
+          .filter((id: number) => id > 0);
 
         const merged = Array.from(new Set([...localIds, ...remoteIds]));
         setRegisteredIds(merged);

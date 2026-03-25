@@ -26,6 +26,7 @@ const Standings: React.FC = () => {
       const { data, error } = await supabase
         .from('torneo_jugadores')
         .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+        .eq('torneo_id', tournament.id)
         .eq('categoria', categoria)
         .eq('grupo', grupo);
 
