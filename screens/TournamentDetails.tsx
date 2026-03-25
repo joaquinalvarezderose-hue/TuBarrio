@@ -1,17 +1,50 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
 const TournamentDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const [isRegistered, setIsRegistered] = useState(false);
+
   const tournament = location.state?.tournament || {
     id: 1,
     title: "Abierto de Tenis TuBarrio",
     subtitle: "Singles Damas y Caballeros",
     date: "15 de Julio - 20 de Julio, 2024"
   };
+
+  useEffect(() => {
+    const checkRegistration = async () => {
+      // Chequeo rápido en localStorage
+      const saved = localStorage.getItem('registered_tournaments');
+      const localIds: number[] = saved ? JSON.parse(saved) : [];
+      if (localIds.includes(Number(tournament.id))) {
+        setIsRegistered(true);
+        return;
+      }
+      // Si no está en local, verificar en Supabase
+      const userStr = localStorage.getItem('app_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      if (!user?.id) return;
+      try {
+        const { data, error } = await supabase
+          .from('torneo_jugadores')
+          .select('torneo_id')
+          .eq('perfil_id', user.id)
+          .eq('torneo_id', Number(tournament.id))
+          .maybeSingle();
+        if (!error && data) {
+          setIsRegistered(true);
+          // Sincronizar localStorage
+          const merged = Array.from(new Set([...localIds, Number(tournament.id)]));
+          localStorage.setItem('registered_tournaments', JSON.stringify(merged));
+        }
+      } catch (_) {}
+    };
+    checkRegistration();
+  }, [tournament.id]);
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-background-light text-gray-900 font-display transition-colors duration-200 antialiased selection:bg-primary selection:text-black pb-28">
@@ -137,13 +170,32 @@ const TournamentDetails: React.FC = () => {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8 bg-background-light/80 backdrop-blur-lg border-t border-gray-200/50 max-w-md mx-auto shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
-        <button 
-          onClick={() => navigate('/payment', { state: { tournament } })}
-          className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
-        >
-          <span>Inscribirme al Torneo</span>
-          <span className="material-symbols-outlined font-black">arrow_forward</span>
-        </button>
+        {isRegistered ? (
+          <div className="flex flex-col gap-3">
+            <div className="w-full flex items-center justify-center gap-3 bg-primary/10 border-2 border-primary/30 rounded-xl py-4 px-5">
+              <span className="material-symbols-outlined text-primary text-[24px] font-black">check_circle</span>
+              <div className="flex flex-col">
+                <span className="text-secondary font-black text-base leading-tight">¡Ya estás inscripto!</span>
+                <span className="text-slate-500 text-xs font-bold">Tu lugar está reservado en este torneo</span>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/tournament-panel', { state: { tournament } })}
+              className="w-full bg-secondary hover:bg-secondary/90 active:scale-[0.98] transition-all text-white font-black text-lg h-14 rounded-xl shadow-lg flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined font-black">sports_tennis</span>
+              <span>Ir a mi Panel</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/payment', { state: { tournament } })}
+            className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
+          >
+            <span>Inscribirme al Torneo</span>
+            <span className="material-symbols-outlined font-black">arrow_forward</span>
+          </button>
+        )}
       </div>
     </div>
   );
