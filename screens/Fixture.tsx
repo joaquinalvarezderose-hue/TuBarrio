@@ -31,6 +31,7 @@ const Fixture: React.FC = () => {
   const [activeFecha, setActiveFecha] = useState(1);
   const [playersStats, setPlayersStats] = useState<FixturePlayer[]>([]);
   const [matches, setMatches] = useState<FixtureMatch[]>([]);
+  const [torneoFinalizado, setTorneoFinalizado] = useState(false);
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -46,7 +47,12 @@ const Fixture: React.FC = () => {
       const grupo = `TORNEO_${tournament.id}`;
       const categoria = tournament.subtitle || 'General';
 
-      const [jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
+      const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
+        supabase
+          .from('torneo_estado')
+          .select('estado')
+          .eq('torneo_id', tournament.id)
+          .maybeSingle(),
         supabase
           .from('torneo_jugadores')
           .select('perfil_id, puntos, partidos_jugados, sets_ganados')
@@ -79,6 +85,9 @@ const Fixture: React.FC = () => {
       if (partidosResp.error) throw partidosResp.error;
       if (historialResp.error) throw historialResp.error;
       if (propuestasResp.error) throw propuestasResp.error;
+
+      const estadoNormalizado = String(estadoResp.data?.estado || '').trim().toUpperCase();
+      setTorneoFinalizado(estadoNormalizado === 'FINALIZADO');
 
       const jugadores = jugadoresResp.data || [];
       const partidos = partidosResp.data || [];
@@ -191,6 +200,7 @@ const Fixture: React.FC = () => {
   };
 
   const canReportMatch = (match: FixtureMatch) => {
+    if (torneoFinalizado) return false;
     return currentUserId !== '' && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId) && match.estado !== 'finalizado';
   };
 
@@ -305,7 +315,7 @@ const Fixture: React.FC = () => {
                         className="flex-1 h-10 rounded-lg bg-background-light dark:bg-[#2e4a35] text-[#111813] dark:text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
                       >
                         <span className="material-symbols-outlined text-lg">sports_tennis</span>
-                        {isFinal ? 'Ver Resultado' : canReportMatch(match) ? 'Cargar Resultado' : 'Ver Detalle'}
+                        {isFinal ? 'Ver Resultado' : canReportMatch(match) ? 'Cargar Resultado' : torneoFinalizado ? 'Solo historial' : 'Ver Detalle'}
                       </button>
                       <button className="w-12 h-10 rounded-lg bg-[#4a9c40] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm">
                         <span className="material-symbols-outlined font-bold">location_on</span>

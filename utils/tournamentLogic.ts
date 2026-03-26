@@ -113,7 +113,17 @@ export const getBestSecondsAverage = (standings: any[]) => {
   }));
 };
 
-export type TournamentStatus = 'RECRUITING' | 'LOCKED' | 'IN_PROGRESS';
+export type TournamentStatus =
+  | 'RECRUITING'
+  | 'LOCKED'
+  | 'IN_PROGRESS'
+  | 'INSCRIPCION_ABIERTA'
+  | 'INSCRIPCION_CERRADA'
+  | 'ARMADO_FIXTURE'
+  | 'ACTIVO'
+  | 'EN_CURSO'
+  | 'PLAYOFFS'
+  | 'FINALIZADO';
 
 export type RegisterParticipantResult = {
   tournamentId: number;

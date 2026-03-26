@@ -39,6 +39,8 @@ const Payment: React.FC = () => {
         monto: 27,
         moneda: 'ARS',
         metodo_pago: 'transferencia_alias',
+        categoria: tournament.subtitle || null,
+        grupo: null,
         alias_destino: aliasDestino,
         whatsapp_destino: whatsappDestino,
         referencia_manual: reference || null,

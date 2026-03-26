@@ -1,6 +1,30 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
+
+const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
+const PANEL_READY_STATUSES = new Set([
+  'INSCRIPCION_CERRADA',
+  'ARMADO_FIXTURE',
+  'ACTIVO',
+  'EN_CURSO',
+  'IN_PROGRESS', // legacy inglés — mismo concepto que EN_CURSO
+  'LOCKED',      // legacy inglés — cupo lleno, sorteo pendiente
+  'PLAYOFFS',
+  'FINALIZADO',
+]);
+const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
+
+type NextMatch = {
+  id: string;
+  jornada: number;
+  estado: string;
+  fecha_programada: string | null;
+  rivalId: string;
+  rivalName: string;
+  rivalWhatsapp: string | null;
+};
 
 const TournamentPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -12,10 +36,153 @@ const TournamentPanel: React.FC = () => {
     subtitle: "2da Categoría - Singles",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE"
   });
+  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
+  const currentUserId = String(appUser?.id || '');
+
+  const [loadingData, setLoadingData] = useState(true);
+  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
+  const [nextMatch, setNextMatch] = useState<NextMatch | null>(null);
 
   useEffect(() => {
     localStorage.setItem('active_tournament', JSON.stringify(tournament));
   }, [tournament]);
+
+  useEffect(() => {
+    const loadPanelData = async () => {
+      setLoadingData(true);
+      try {
+        const { data: statusRow } = await supabase
+          .from('torneo_estado')
+          .select('estado')
+          .eq('torneo_id', tournament.id)
+          .maybeSingle();
+
+        const resolvedStatus = normalizeStatus(statusRow?.estado);
+        setTournamentStatus(resolvedStatus);
+
+        if (!isTournamentReadyForPanel(resolvedStatus) || !currentUserId) {
+          setNextMatch(null);
+          return;
+        }
+
+        const { data: matchRows, error: matchError } = await supabase
+          .from('partidos')
+          .select('id, jornada, estado, fecha_programada, jugador1_id, jugador2_id')
+          .eq('torneo_id', tournament.id)
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .in('estado', ['programado', 'en_curso'])
+          .order('fecha_programada', { ascending: true })
+          .limit(1);
+
+        if (matchError) throw matchError;
+
+        const next = Array.isArray(matchRows) ? matchRows[0] : null;
+        if (!next) {
+          setNextMatch(null);
+          return;
+        }
+
+        const rivalId = String(next.jugador1_id) === currentUserId ? String(next.jugador2_id) : String(next.jugador1_id);
+        const { data: rivalProfile } = await supabase
+          .from('perfiles')
+          .select('id, nombre_completo, whatsapp')
+          .eq('id', rivalId)
+          .maybeSingle();
+
+        setNextMatch({
+          id: String(next.id),
+          jornada: Number(next.jornada || 1),
+          estado: String(next.estado || 'programado'),
+          fecha_programada: next.fecha_programada || null,
+          rivalId,
+          rivalName: String(rivalProfile?.nombre_completo || 'Rival por confirmar'),
+          rivalWhatsapp: rivalProfile?.whatsapp || null,
+        });
+      } catch (error) {
+        console.error('No se pudo cargar el panel del torneo', error);
+        setNextMatch(null);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    loadPanelData();
+  }, [currentUserId, tournament.id]);
+
+  const isReady = isTournamentReadyForPanel(tournamentStatus);
+
+  const tournamentPhaseLabel = useMemo(() => {
+    switch (tournamentStatus) {
+      case 'RECRUITING':
+      case 'INSCRIPCION_ABIERTA':
+        return 'En preparación';
+      case 'INSCRIPCION_CERRADA':
+        return 'Inscripción cerrada';
+      case 'ARMADO_FIXTURE':
+        return 'Armando fixture';
+      case 'ACTIVO':
+        return 'Activo';
+      case 'EN_CURSO':
+      case 'IN_PROGRESS':
+        return 'En curso';
+      case 'LOCKED':
+        return 'Cupo completo';
+      case 'PLAYOFFS':
+        return 'Playoffs';
+      case 'FINALIZADO':
+        return 'Finalizado';
+      default:
+        return 'En curso';
+    }
+  }, [tournamentStatus]);
+
+  const estaFinalizado = tournamentStatus === 'FINALIZADO';
+
+  const rivalWaLink = useMemo(() => {
+    if (!nextMatch?.rivalWhatsapp) return null;
+    const digits = String(nextMatch.rivalWhatsapp).replace(/[^\d]/g, '');
+    if (!digits) return null;
+    return `https://wa.me/${digits}`;
+  }, [nextMatch?.rivalWhatsapp]);
+
+  const nextMatchDateLabel = useMemo(() => {
+    if (!nextMatch?.fecha_programada) return 'Fecha a confirmar por la organización';
+    const date = new Date(nextMatch.fecha_programada);
+    if (Number.isNaN(date.getTime())) return 'Fecha a confirmar por la organización';
+    return date.toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }, [nextMatch?.fecha_programada]);
+
+  if (!loadingData && !isReady) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark font-display">
+        <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-[#111813] dark:text-white hover:bg-black/5 dark:hover:bg-white/5 p-1 rounded-full transition-colors"
+          >
+            <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
+          </button>
+          <h1 className="text-lg font-bold tracking-tight text-[#111813] dark:text-white">Panel del Torneo</h1>
+          <div className="w-8"></div>
+        </header>
+
+        <main className="flex-1 p-4 flex items-center">
+          <div className="w-full rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 p-6 text-center">
+            <span className="material-symbols-outlined text-amber-500 text-4xl">schedule</span>
+            <h2 className="mt-3 text-xl font-bold text-amber-800 dark:text-amber-200">Torneo en preparación</h2>
+            <p className="mt-2 text-sm text-amber-700 dark:text-amber-300 font-medium">
+              Este torneo todavía no está listo para ver detalle deportivo. Volvé cuando la organización lo marque como activo.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-background-light dark:bg-background-dark transition-colors duration-300 font-display no-scrollbar overflow-y-auto">
@@ -41,11 +208,11 @@ const TournamentPanel: React.FC = () => {
             ></div>
             <div className="p-5">
               <div className="flex flex-col gap-1">
-                <span className="text-primary text-xs font-bold uppercase tracking-widest">En curso</span>
+                <span className="text-primary text-xs font-bold uppercase tracking-widest">{tournamentPhaseLabel}</span>
                 <h2 className="text-xl font-bold leading-tight text-[#111813] dark:text-white">{tournament.title}</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="bg-primary/10 text-[#4a9c40] dark:bg-primary/20 px-2 py-0.5 rounded text-xs font-semibold">Categoría: Segunda</span>
-                  <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-semibold">Grupo C</span>
+                  <span className="bg-primary/10 text-[#4a9c40] dark:bg-primary/20 px-2 py-0.5 rounded text-xs font-semibold">{tournament.subtitle || 'Categoría general'}</span>
+                  <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-semibold">{tournamentStatus}</span>
                 </div>
               </div>
             </div>
@@ -78,10 +245,16 @@ const TournamentPanel: React.FC = () => {
             onClick={() => navigate('/match-result', { state: { tournament } })}
             className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition-transform group"
           >
-            <div className="size-12 rounded-full bg-[#4a9c40] flex items-center justify-center text-white group-hover:bg-[#3d8b33] transition-colors shadow-md">
-              <span className="material-symbols-outlined text-3xl">sports_tennis</span>
+            <div className={`size-12 rounded-full flex items-center justify-center transition-colors shadow-md ${
+              estaFinalizado
+                ? 'bg-gray-400 dark:bg-gray-600 text-white'
+                : 'bg-[#4a9c40] text-white group-hover:bg-[#3d8b33]'
+            }`}>
+              <span className="material-symbols-outlined text-3xl">{estaFinalizado ? 'history' : 'sports_tennis'}</span>
             </div>
-            <span className="text-sm font-semibold text-center text-[#111813] dark:text-white">Cargar Resultado</span>
+            <span className="text-sm font-semibold text-center text-[#111813] dark:text-white">
+              {estaFinalizado ? 'Ver Historial' : 'Cargar Resultado'}
+            </span>
           </button>
           
           <button 
@@ -104,25 +277,31 @@ const TournamentPanel: React.FC = () => {
             
             <div className="flex justify-between items-start mb-4">
               <div className="space-y-1">
-                <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">Fecha 4</p>
-                <h4 className="text-lg font-bold text-[#111813] dark:text-white">vs. Mariano Rodríguez</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Jugar antes del 15/10</p>
+                <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">{nextMatch ? `Fecha ${nextMatch.jornada}` : 'Sin partido'}</p>
+                <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rivalName}` : 'Rival por definir'}</h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>
               </div>
               <div className="size-12 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0 border-2 border-white dark:border-gray-700 shadow-sm">
                 <img 
-                  alt="Mariano Rodríguez" 
+                  alt={nextMatch?.rivalName || 'Rival'} 
                   className="w-full h-full object-cover" 
-                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop"
+                  src={`https://i.pravatar.cc/120?u=${nextMatch?.rivalId || 'rival'}`}
                 />
               </div>
             </div>
             
             <div className="flex flex-col gap-3">
-              <button className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] text-white rounded-lg font-bold shadow-md hover:bg-[#20bd5a] transition-all active:scale-[0.98]">
+              <button
+                onClick={() => {
+                  if (rivalWaLink) window.open(rivalWaLink, '_blank', 'noopener,noreferrer');
+                }}
+                disabled={!rivalWaLink}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] text-white rounded-lg font-bold shadow-md hover:bg-[#20bd5a] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <svg className="size-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path>
                 </svg>
-                WhatsApp del Rival
+                {rivalWaLink ? 'WhatsApp del Rival' : 'Rival sin WhatsApp'}
               </button>
               
               <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">

@@ -68,6 +68,9 @@ const MatchResult: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [proposalState, setProposalState] = useState<'idle' | 'pendiente' | 'confirmado' | 'discrepancia'>('idle');
+  const [enrolledCount, setEnrolledCount] = useState(0);
+  const [blockReason, setBlockReason] = useState<string | null>(null);
+  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
 
   const getSetWinner = (p1: number, p2: number) => {
     if ((p1 === 6 && p2 <= 4) || (p1 === 7 && (p2 === 5 || p2 === 6))) return 1;
@@ -95,7 +98,7 @@ const MatchResult: React.FC = () => {
   const isParticipant = useMemo(() => {
     return currentUserId !== '' && [players[0]?.perfil_id, players[1]?.perfil_id].includes(currentUserId);
   }, [currentUserId, players]);
-  const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant, [matchWinner, partido?.id, isParticipant]);
+  const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason, [matchWinner, partido?.id, isParticipant, blockReason]);
   const hasDbPlayers = useMemo(() => Boolean(players[0]?.id && players[1]?.id), [players]);
 
   const updateScore = (set: keyof ScoreState, player: 'player1' | 'player2', delta: number) => {
@@ -125,6 +128,7 @@ const MatchResult: React.FC = () => {
     const loadMatchContext = async () => {
       setLoadingMatch(true);
       setSubmitError(null);
+      setBlockReason(null);
 
       try {
         if (!currentUserId) {
@@ -134,6 +138,86 @@ const MatchResult: React.FC = () => {
 
         const grupo = `TORNEO_${tournament.id}`;
         const categoria = tournament.subtitle || 'General';
+
+        const { data: statusRow, error: statusError } = await supabase
+          .from('torneo_estado')
+          .select('estado')
+          .eq('torneo_id', tournament.id)
+          .maybeSingle();
+
+        if (statusError) throw statusError;
+
+        const normalizedStatus = String(statusRow?.estado || 'RECRUITING').trim().toUpperCase();
+        setTournamentStatus(normalizedStatus);
+
+        if (normalizedStatus === 'FINALIZADO') {
+          setPartido(null);
+          setBlockReason('Este torneo ya finalizo. La carga de resultados esta cerrada y disponible solo para consulta.');
+          return;
+        }
+
+        // Primero validamos si el torneo tiene suficientes inscriptos reales para habilitar la carga.
+        const { data: inscritosCategoria, error: inscritosCategoriaError } = await supabase
+          .from('torneo_jugadores')
+          .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
+          .eq('torneo_id', tournament.id)
+          .eq('categoria', categoria)
+          .eq('grupo', grupo);
+
+        if (inscritosCategoriaError) throw inscritosCategoriaError;
+
+        let inscritos = inscritosCategoria || [];
+
+        if (inscritos.length === 0) {
+          const { data: inscritosFallback, error: inscritosFallbackError } = await supabase
+            .from('torneo_jugadores')
+            .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
+            .eq('torneo_id', tournament.id);
+
+          if (inscritosFallbackError) throw inscritosFallbackError;
+          inscritos = inscritosFallback || [];
+        }
+
+        const inscritosIds = inscritos.map((row: any) => row.perfil_id).filter(Boolean);
+        const { data: perfilesInscritos, error: perfilesInscritosError } = await supabase
+          .from('perfiles')
+          .select('id, nombre_completo')
+          .in('id', inscritosIds.length > 0 ? inscritosIds : ['00000000-0000-0000-0000-000000000000']);
+
+        if (perfilesInscritosError) throw perfilesInscritosError;
+
+        const nameByInscriptoId = Object.fromEntries((perfilesInscritos || []).map((row: any) => [row.id, row.nombre_completo || 'Jugador']));
+        const ordenados = [...inscritos].sort((a: any, b: any) => String(a.perfil_id).localeCompare(String(b.perfil_id)));
+        setEnrolledCount(ordenados.length);
+
+        if (ordenados.length > 0) {
+          const p1 = ordenados[0];
+          const p2 = ordenados[1];
+          setPlayers([
+            {
+              id: String(p1?.id || ''),
+              perfil_id: String(p1?.perfil_id || ''),
+              name: nameByInscriptoId[p1?.perfil_id] || 'Jugador 1',
+              puntos: Number(p1?.puntos || 0),
+              partidos_jugados: Number(p1?.partidos_jugados || 0),
+              sets_ganados: Number(p1?.sets_ganados || 0),
+            },
+            {
+              id: String(p2?.id || ''),
+              perfil_id: String(p2?.perfil_id || ''),
+              name: p2 ? (nameByInscriptoId[p2?.perfil_id] || 'Jugador 2') : 'Sin rival',
+              puntos: Number(p2?.puntos || 0),
+              partidos_jugados: Number(p2?.partidos_jugados || 0),
+              sets_ganados: Number(p2?.sets_ganados || 0),
+            },
+          ]);
+        }
+
+        if (ordenados.length < 2) {
+          setPartido(null);
+          setBlockReason(`Aun no se puede cargar resultados: hay ${ordenados.length} jugador(es) inscripto(s) y se necesitan al menos 2.`);
+          return;
+        }
 
         let partidoQuery = supabase
           .from('partidos')
@@ -157,7 +241,7 @@ const MatchResult: React.FC = () => {
 
         const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
         if (!targetPartido) {
-          setSubmitError('No encontramos un partido pendiente para este torneo y este jugador.');
+          setBlockReason('Todavia no hay un partido generado para esta jornada.');
           return;
         }
 
@@ -321,7 +405,27 @@ const MatchResult: React.FC = () => {
           </div>
         </section>
 
-        <div className="space-y-4">
+        {blockReason && !loadingMatch && (
+          <section className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-amber-500 text-lg">block</span>
+            <div>
+              <p className="text-sm text-amber-800 dark:text-amber-200 font-bold">Carga deshabilitada</p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">{blockReason}</p>
+            </div>
+          </section>
+        )}
+
+        {tournamentStatus === 'FINALIZADO' && !loadingMatch && (
+          <section className="p-4 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-700/30 flex gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-slate-500 text-lg">history</span>
+            <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Torneo finalizado: los resultados quedan congelados para historial.
+            </p>
+          </section>
+        )}
+
+        {!blockReason && (
+          <div className="space-y-4">
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
             return (
@@ -374,7 +478,8 @@ const MatchResult: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
         {loadingMatch && (
           <div className="p-4 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-100 dark:border-slate-800/20 flex gap-3 shadow-sm">
@@ -383,14 +488,14 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {!canConfirm && !loadingMatch && (
+        {!canConfirm && !loadingMatch && !blockReason && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm animate-pulse">
             <span className="material-symbols-outlined text-amber-500 text-lg">info</span>
             <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">Por favor completa los sets con resultados validos para poder enviar el partido.</p>
           </div>
         )}
 
-        {!hasDbPlayers && !loadingMatch && (
+        {!hasDbPlayers && !loadingMatch && !blockReason && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
             <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">Para cargar el partido, los dos jugadores deben existir dentro del torneo correcto.</p>

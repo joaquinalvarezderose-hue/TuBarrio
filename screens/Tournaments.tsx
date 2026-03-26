@@ -3,40 +3,70 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
+const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
+const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
+const PANEL_READY_STATUSES = new Set([
+  'INSCRIPCION_CERRADA',
+  'ARMADO_FIXTURE',
+  'ACTIVO',
+  'EN_CURSO',
+  'IN_PROGRESS', // legacy inglés — mismo concepto que EN_CURSO
+  'LOCKED',      // legacy inglés — cupo lleno, sorteo pendiente
+  'PLAYOFFS',
+  'FINALIZADO',
+]);
+
+const isTournamentOpenForSignup = (status?: string) => OPEN_SIGNUP_STATUSES.has(normalizeStatus(status));
+const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
+
+type Torneo = {
+  id: number;
+  titulo: string;
+  subtitulo: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  imagen_url: string | null;
+  activo: boolean;
+};
+
+const formatearFecha = (inicio: string | null, fin: string | null): string => {
+  if (!inicio) return 'Fecha a confirmar';
+  const fmt = (d: string) =>
+    new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+  return fin ? `${fmt(inicio)} - ${fmt(fin)}` : `Desde ${fmt(inicio)}`;
+};
+
 const Tournaments: React.FC = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<'hub' | 'available' | 'my'>('hub');
-  
+
   const userStr = localStorage.getItem('app_user');
-  const user = userStr ? JSON.parse(userStr) : { name: "Usuario" };
-  
+  const user = userStr ? JSON.parse(userStr) : { name: 'Usuario' };
+
   const [registeredIds, setRegisteredIds] = useState<number[]>([]);
   const [statusByTournamentId, setStatusByTournamentId] = useState<Record<number, string>>({});
   const [capacityByTournamentId, setCapacityByTournamentId] = useState<Record<number, { current: number; max: number }>>({});
-  
+  const [torneos, setTorneos] = useState<Torneo[]>([]);
+  const [cargandoTorneos, setCargandoTorneos] = useState(true);
+
   useEffect(() => {
     const loadRegistrations = async () => {
       const saved = localStorage.getItem('registered_tournaments');
       const localIds: number[] = saved ? JSON.parse(saved) : [];
-
       try {
         const userId = user?.id;
         if (!userId) {
           setRegisteredIds(localIds);
           return;
         }
-
         const { data, error } = await supabase
           .from('torneo_jugadores')
           .select('torneo_id')
           .eq('perfil_id', userId);
-
         if (error) throw error;
-
         const remoteIds = (data || [])
           .map((row: any) => Number(row.torneo_id || 0))
           .filter((id: number) => id > 0);
-
         const merged = Array.from(new Set([...localIds, ...remoteIds]));
         setRegisteredIds(merged);
         localStorage.setItem('registered_tournaments', JSON.stringify(merged));
@@ -45,7 +75,6 @@ const Tournaments: React.FC = () => {
         setRegisteredIds(localIds);
       }
     };
-
     loadRegistrations();
   }, []);
 
@@ -63,7 +92,7 @@ const Tournaments: React.FC = () => {
 
         (data || []).forEach((row: any) => {
           const id = Number(row.torneo_id);
-          nextStatus[id] = String(row.estado || 'RECRUITING');
+          nextStatus[id] = normalizeStatus(row.estado);
           nextCapacity[id] = {
             current: Number(row.current_participantes || 0),
             max: Number(row.max_participantes || 0),
@@ -80,73 +109,44 @@ const Tournaments: React.FC = () => {
     loadTournamentLifecycle();
   }, []);
 
-  const allTournaments = [
-    {
-      id: 1,
-      title: "Caballeros Singles - 3ra Categoría",
-      subtitle: "Singles Caballeros",
-      date: "10 - 15 Mar",
-      count: "24 Inscriptos",
-      maxParticipants: 24,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE",
-      avatars: ["https://i.pravatar.cc/150?u=1", "https://i.pravatar.cc/150?u=2", "https://i.pravatar.cc/150?u=3"],
-      extra: "+21"
-    },
-    {
-      id: 2,
-      title: "Caballeros Singles - 2da Categoría",
-      subtitle: "Singles Caballeros",
-      date: "12 - 18 Mar",
-      count: "16 Inscriptos",
-      maxParticipants: 16,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCJdWlacuqkDcu2Q0AVWRtpMog2NYZKB_m6UbjJ9vAC_kOGuh3mbwI_BfJPc5hG9H6gqtvses85VMCYm4RTvxbYb6u7SC9pOoGFf3WcsoMUQNe785z1Z9ALzLdDpndsM0Y81awbpbqwZfJ218iwcyKvs3lpN8yYLn0KLwu_XvTME6ukU9OGSrJbMbx4VyVL0raJpjrrJJz0BXQwhVWHnrVZLJ3R6KHBmMZbtCrZfvYj9AD5b57emWAExThw4FcoUkLlUnWtV4b9gbw",
-      avatars: ["https://i.pravatar.cc/150?u=4", "https://i.pravatar.cc/150?u=5"],
-      extra: "+14"
-    },
-    {
-      id: 3,
-      title: "Caballeros Singles - Intermedia",
-      subtitle: "Singles Caballeros",
-      date: "20 - 25 Mar",
-      count: "8 Inscriptos",
-      maxParticipants: 8,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBuAVvQAMpWs1A9RwmoapmwZFYSYckJHuLnfshuYRf6nvdqffLuXkcMR81eVmc0q1dFQmvZIZ5J374TuBT7jPOc_F4CubG2eUlnWfwdL2rq3p5mpkSHKJxyjfWsXWQJ5OFnKEh3bD9ClhfY9c9iVENVc5kwGn0FoBuDU99Ep6wEDCKsBDlsCpyzr035p9WEN5KHl-25VBGQ7jirkd7xecbOFfw4WFisYaNRwRdYpqrPUFNV9dxcf8a0WbXGjADZx3z4zpwTHO-6dZA",
-      avatars: ["https://i.pravatar.cc/150?u=6"],
-      extra: "+7"
-    },
-    {
-      id: 5,
-      title: "Torneo de Dobles Mixto/Libre",
-      subtitle: "Dobles Mixtos",
-      date: "01 - 05 Abr",
-      count: "12 Parejas",
-      maxParticipants: 24,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD822xk3Z5UFXimD5jaQ65Pnav_h7KOLdQhGDXtI3BeM9pnk_Tt7U_DZ5S9em63Fv8_cmz6E0VSlWflf_IBpjHT4Wz3Xya44BAQa03zjSYZbofwQPZYe4j4iBLfRaHTKdPAu15lgCnuwsHZFrJagJNeKFqZcUxjbSt6yMTfcKpyfClnNxYaroLk8-yrFr5PKz_sruS2a2IJRKHsKhiv9EzWf43769G7WPg8cubAvG5_UXnpRvdzdUdcBrUC8rBeyJD6gUzuwaRV_A8",
-      avatars: ["https://i.pravatar.cc/150?u=7", "https://i.pravatar.cc/150?u=8"],
-      extra: "+22"
-    },
-    {
-      id: 4,
-      title: "Mujeres Singles - Categoría Libre",
-      subtitle: "Singles Damas",
-      date: "08 - 14 Abr",
-      count: "32 Inscriptas",
-      maxParticipants: 32,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDxjuplDHRtHd-OUwF9Wwm5vPaBjuJZjHY8AvJejxsz0vrfcVLBOxqADQ76jP5vZAekynJhedQty64BTK8MDV3qzGosWwiEh7pXTKvx42CIvBNVHf8eziGbWpAGDVguikTH8Uena9SbZ4riqBdijv_eW4jffLPebFJ-NPHWRaFjJrPofF6isZ5DXtu-TIzHxMkKw3jdO-I0jdBxgrq7t9SZF7mD-KSZTRCsDROfxNYnleiVj0IbvOYw7jkZsmAOaioxUSes-yG8X0M",
-      avatars: ["https://i.pravatar.cc/150?u=9", "https://i.pravatar.cc/150?u=10"],
-      extra: "+30"
-    }
-  ];
+  useEffect(() => {
+    const cargarTorneos = async () => {
+      setCargandoTorneos(true);
+      try {
+        const { data, error } = await supabase
+          .from('torneos')
+          .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo')
+          .eq('activo', true)
+          .order('id', { ascending: true });
+        if (error) throw error;
+        setTorneos((data || []) as Torneo[]);
+      } catch (err) {
+        console.error('No se pudo cargar la lista de torneos', err);
+      } finally {
+        setCargandoTorneos(false);
+      }
+    };
+    cargarTorneos();
+  }, []);
 
-  const myRegisteredTournaments = allTournaments.filter(t => registeredIds.includes(t.id));
-  const availableTournaments = allTournaments.filter((t) => {
-    const status = statusByTournamentId[t.id];
-    if (!status) return true;
-    return status === 'RECRUITING';
+  // Convierte una fila de DB al objeto que esperan las sub-pantallas del torneo
+  const toNavTorneo = (t: Torneo) => ({
+    id: t.id,
+    title: t.titulo,
+    subtitle: t.subtitulo,
+    image: t.imagen_url || '',
+    date: formatearFecha(t.fecha_inicio, t.fecha_fin),
   });
 
-  const goToTournamentDetails = (tournament: any) => {
-    navigate('/tournament-details', { state: { tournament } });
+  const myRegisteredTournaments = torneos.filter(t => registeredIds.includes(t.id));
+  const availableTournaments = torneos.filter((t) => {
+    const status = statusByTournamentId[t.id];
+    if (!status) return true;
+    return isTournamentOpenForSignup(status);
+  });
+
+  const goToTournamentDetails = (t: Torneo) => {
+    navigate('/tournament-details', { state: { tournament: toNavTorneo(t) } });
   };
 
   // AVAILABLE TOURNAMENTS VIEW
@@ -179,6 +179,13 @@ const Tournaments: React.FC = () => {
             </div>
           )}
 
+          {cargandoTorneos && (
+            <div className="px-4 md:px-8 py-12 text-center">
+              <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">sync</span>
+              <p className="text-sm text-gray-400 mt-2">Cargando torneos...</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-8 pt-0">
             {availableTournaments.map((tournament) => (
               <div 
@@ -188,7 +195,7 @@ const Tournaments: React.FC = () => {
                 <div className="relative h-48 w-full bg-gray-100 dark:bg-gray-700">
                   <div 
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105" 
-                    style={{ backgroundImage: `url("${tournament.image}")` }}
+                    style={{ backgroundImage: `url("${tournament.imagen_url || ''}")` }}
                   ></div>
                   <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full border border-gray-100 dark:border-gray-800">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#111813] dark:text-white">Inscripción Abierta</p>
@@ -196,29 +203,22 @@ const Tournaments: React.FC = () => {
                 </div>
                 <div className="p-5 flex flex-col gap-3 flex-1">
                   <div className="flex flex-col gap-1">
-                    <p className="text-[#111813] dark:text-white text-xl font-bold leading-tight">{tournament.title}</p>
+                    <p className="text-[#111813] dark:text-white text-xl font-bold leading-tight">{tournament.titulo}</p>
                     <div className="flex items-center gap-2 text-secondary-text dark:text-gray-400 text-sm">
                       <span className="material-symbols-outlined text-[16px]">calendar_today</span>
                       <span>
-                        {tournament.date} • {
+                        {formatearFecha(tournament.fecha_inicio, tournament.fecha_fin)} • {
                           capacityByTournamentId[tournament.id]
                             ? `${capacityByTournamentId[tournament.id].current}/${capacityByTournamentId[tournament.id].max} Inscriptos`
-                            : tournament.count
+                            : 'Cupo disponible'
                         }
                       </span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center mt-auto pt-4">
-                    <div className="flex -space-x-2 overflow-hidden">
-                      {tournament.avatars.map((avatar, i) => (
-                        <img key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-[#1a2e1f] object-cover" src={avatar} alt="P" />
-                      ))}
-                      {tournament.extra && (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 ring-2 ring-white dark:ring-[#1a2e1f] text-[10px] font-bold text-gray-500 dark:text-gray-300">
-                          {tournament.extra}
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-xs font-semibold text-[#4a9c40] bg-[#4a9c40]/10 px-3 py-1 rounded-full">
+                      {tournament.subtitulo}
+                    </span>
                     <button 
                       onClick={() => goToTournamentDetails(tournament)}
                       className="bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-bold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-1 shadow-md shadow-[#4a9c40]/20"
@@ -260,21 +260,32 @@ const Tournaments: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myRegisteredTournaments.map(t => (
+              {myRegisteredTournaments.map((t) => {
+                const status = statusByTournamentId[t.id] || 'RECRUITING';
+                const isReady = isTournamentReadyForPanel(status);
+
+                return (
                 <div 
                   key={t.id} 
-                  onClick={() => navigate('/tournament-panel', { state: { tournament: t } })}
-                  className="bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 hover:scale-[1.01] hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => {
+                    if (isReady) {
+                      navigate('/tournament-panel', { state: { tournament: toNavTorneo(t) } });
+                    }
+                  }}
+                  className={`bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-all group ${isReady ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}
                 >
-                  <img src={t.image} className="size-24 rounded-2xl object-cover" alt={t.title} />
+                  <img src={t.imagen_url || ''} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
                   <div className="flex-1">
-                    <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.title}</h4>
-                    <p className="text-xs text-gray-400">{t.date}</p>
-                    <span className="text-primary text-xs font-bold mt-1 inline-block">Ver Panel</span>
+                    <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.titulo}</h4>
+                    <p className="text-xs text-gray-400">{formatearFecha(t.fecha_inicio, t.fecha_fin)}</p>
+                    <span className={`text-xs font-bold mt-1 inline-block ${isReady ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
+                      {isReady ? 'Ver Panel' : 'Torneo en preparación'}
+                    </span>
                   </div>
                   <span className="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">chevron_right</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

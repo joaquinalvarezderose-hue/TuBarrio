@@ -54,6 +54,7 @@ as $$
 declare
   v_partido public.partidos%rowtype;
   v_propuesta public.torneo_propuestas_partido%rowtype;
+  v_torneo_estado text;
   v_sets_j1 jsonb;
   v_sets_j2 jsonb;
   v_sets_player1 integer := 0;
@@ -88,6 +89,19 @@ begin
 
   if p_reportado_por not in (v_partido.jugador1_id, v_partido.jugador2_id) then
     raise exception 'Solo puede cargar el resultado uno de los jugadores del partido.';
+  end if;
+
+  select upper(coalesce(te.estado, ''))
+  into v_torneo_estado
+  from public.torneo_estado te
+  where te.torneo_id = v_partido.torneo_id
+    and te.categoria = v_partido.categoria
+    and te.grupo = v_partido.grupo
+  order by te.updated_at desc
+  limit 1;
+
+  if v_torneo_estado = 'FINALIZADO' then
+    raise exception 'El torneo ya esta finalizado. No se permiten nuevas cargas de resultado.';
   end if;
 
   if v_partido.estado = 'finalizado' then

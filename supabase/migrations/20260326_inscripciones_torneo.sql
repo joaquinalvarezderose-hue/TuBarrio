@@ -8,6 +8,8 @@ create table if not exists public.inscripciones_torneo (
   monto numeric(10,2) not null,
   moneda text not null default 'ARS',
   metodo_pago text not null default 'transferencia_alias',
+  categoria text,
+  grupo text,
   alias_destino text not null,
   whatsapp_destino text not null,
   referencia_manual text,
@@ -103,3 +105,69 @@ on public.inscripciones_torneo
 for delete
 to authenticated
 using (public.is_admin());
+
+-- Paso 3: Trigger para activar automaticamente la inscripcion deportiva
+create or replace function public.procesar_inscripcion_aprobada()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_categoria text;
+  v_grupo text;
+begin
+  if new.estado <> 'pagado_aprobado' then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' and old.estado = 'pagado_aprobado' then
+    return new;
+  end if;
+
+  v_categoria := coalesce(new.categoria, 'General');
+  v_grupo := coalesce(new.grupo, 'A Confirmar');
+
+  insert into public.torneo_jugadores (
+    perfil_id,
+    categoria,
+    grupo,
+    puntos,
+    partidos_jugados,
+    sets_ganados,
+    torneo_id
+  )
+  values (
+    new.perfil_id,
+    v_categoria,
+    v_grupo,
+    0,
+    0,
+    0,
+    new.torneo_id
+  )
+  on conflict do nothing;
+
+  update public.torneo_estado
+  set current_participantes = (
+    select count(*)
+    from public.torneo_jugadores tj
+    where tj.torneo_id = new.torneo_id
+  ),
+  updated_at = now()
+  where torneo_id = new.torneo_id;
+
+  if new.aprobado_en is null then
+    new.aprobado_en := now();
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_procesar_inscripcion_aprobada on public.inscripciones_torneo;
+create trigger trg_procesar_inscripcion_aprobada
+before insert or update on public.inscripciones_torneo
+for each row
+when (new.estado = 'pagado_aprobado')
+execute function public.procesar_inscripcion_aprobada();
