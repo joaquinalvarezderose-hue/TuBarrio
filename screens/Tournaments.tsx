@@ -51,25 +51,26 @@ const Tournaments: React.FC = () => {
 
   useEffect(() => {
     const loadRegistrations = async () => {
-      const saved = localStorage.getItem('registered_tournaments');
+      const userId = String(user?.id || 'anon');
+      const cacheKey = `registered_tournaments_${userId}`;
+      const saved = localStorage.getItem(cacheKey);
       const localIds: number[] = saved ? JSON.parse(saved) : [];
       try {
-        const userId = user?.id;
-        if (!userId) {
+        if (!user?.id) {
           setRegisteredIds(localIds);
           return;
         }
         const { data, error } = await supabase
           .from('torneo_jugadores')
           .select('torneo_id')
-          .eq('perfil_id', userId);
+          .eq('perfil_id', user.id);
         if (error) throw error;
         const remoteIds = (data || [])
           .map((row: any) => Number(row.torneo_id || 0))
           .filter((id: number) => id > 0);
-        const merged = Array.from(new Set([...localIds, ...remoteIds]));
-        setRegisteredIds(merged);
-        localStorage.setItem('registered_tournaments', JSON.stringify(merged));
+        // Backend es la fuente de verdad; cache solo para fallback offline.
+        setRegisteredIds(remoteIds);
+        localStorage.setItem(cacheKey, JSON.stringify(remoteIds));
       } catch (err) {
         console.error('Error cargando inscripciones desde Supabase', err);
         setRegisteredIds(localIds);

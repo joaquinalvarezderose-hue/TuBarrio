@@ -42,10 +42,17 @@ alter table public.torneo_estado
 -- PASO 0-B: Encontrar tus UUIDs de perfil
 -- Copiar los resultados para usarlos en los pasos siguientes.
 -- ===========================================================
-select id, nombre_completo, email, rol, whatsapp
+select id, nombre_completo, rol, whatsapp
 from public.perfiles
-order by created_at desc
+order by id desc
 limit 10;
+
+-- Si queres confirmar columnas disponibles en tu entorno:
+-- select column_name
+-- from information_schema.columns
+-- where table_schema = 'public'
+--   and table_name = 'perfiles'
+-- order by ordinal_position;
 
 -- Necesitas 2 perfiles:
 --   v_user_a_id = tu perfil real (el que usas para loguearte)
