@@ -18,43 +18,8 @@ const Confirmation: React.FC = () => {
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
 
   useEffect(() => {
-<<<<<<< Updated upstream
-    const registerTournament = async () => {
-      const saved = localStorage.getItem('registered_tournaments');
-      let registeredIds: number[] = saved ? JSON.parse(saved) : [];
-
-      if (!registeredIds.includes(tournament.id)) {
-        registeredIds.push(tournament.id);
-        localStorage.setItem('registered_tournaments', JSON.stringify(registeredIds));
-      }
-
-      try {
-        const userId = user?.id;
-        if (!userId) return;
-
-        const grupoTorneo = `TORNEO_${tournament.id}`;
-        const categoriaTorneo = tournament.subtitle || 'General';
-
-        const maxFromTournament = Number((tournament as any).maxParticipants || 8);
-
-        await registerParticipant({
-          tournamentId: Number(tournament.id),
-          userId: String(userId),
-          categoria: categoriaTorneo,
-          grupo: grupoTorneo,
-          maxParticipants: maxFromTournament,
-        });
-      } catch (err) {
-        console.error('Error al registrar jugador en ciclo de torneo', err);
-      }
-    };
-
-    registerTournament();
-  }, [tournament.id]);
-=======
     // La inscripción real se confirma en Supabase cuando el admin aprueba el pago.
   }, []);
->>>>>>> Stashed changes
 
   return (
     <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden bg-background-light font-display">
