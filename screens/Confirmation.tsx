@@ -12,11 +12,13 @@ const Confirmation: React.FC = () => {
     subtitle: "Singles Caballeros",
     date: "Sáb, 24 Oct • 09:00 AM"
   };
+  const enrollmentStatus = location.state?.enrollmentStatus || 'pendiente_revision';
 
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
 
   useEffect(() => {
+<<<<<<< Updated upstream
     const registerTournament = async () => {
       const saved = localStorage.getItem('registered_tournaments');
       let registeredIds: number[] = saved ? JSON.parse(saved) : [];
@@ -49,6 +51,10 @@ const Confirmation: React.FC = () => {
 
     registerTournament();
   }, [tournament.id]);
+=======
+    // La inscripción real se confirma en Supabase cuando el admin aprueba el pago.
+  }, []);
+>>>>>>> Stashed changes
 
   return (
     <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden bg-background-light font-display">
@@ -70,10 +76,21 @@ const Confirmation: React.FC = () => {
           <div className="inline-flex items-center justify-center size-16 rounded-full bg-primary/20 text-primary mb-4 animate-bounce">
             <span className="material-symbols-outlined text-[32px] font-black">check_circle</span>
           </div>
-          <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">¡Ya estás adentro!</h1>
-          <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
-            Tu lugar en {tournament.title} está asegurado. ¡Prepárate para la cancha!
-          </p>
+          {enrollmentStatus === 'pagado_aprobado' ? (
+            <>
+              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">¡Ya estás adentro!</h1>
+              <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
+                Tu lugar en {tournament.title} está asegurado. ¡Prepárate para la cancha!
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Pago en revisión</h1>
+              <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
+                Recibimos tu solicitud para {tournament.title}. Te habilitaremos cuando validemos la transferencia.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="relative w-full mb-8 drop-shadow-2xl">
