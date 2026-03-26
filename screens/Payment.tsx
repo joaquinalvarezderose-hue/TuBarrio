@@ -25,11 +25,23 @@ const Payment: React.FC = () => {
 
     try {
       const userStr = localStorage.getItem('app_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const perfilId = user?.id;
+      const cachedUser = userStr ? JSON.parse(userStr) : null;
+      const { data: authData, error: authError } = await (supabase as any).auth.getUser();
+      if (authError) throw authError;
+      const perfilId = authData?.user?.id || cachedUser?.id;
 
       if (!perfilId) {
-        throw new Error('No pudimos identificar tu perfil. Inicia sesión nuevamente.');
+        throw new Error('Sesion no valida. Inicia sesion nuevamente para inscribirte.');
+      }
+
+      // Si el cache local quedó de otra cuenta, lo corregimos para evitar desincronización.
+      if (!cachedUser || cachedUser.id !== perfilId) {
+        const { data: profileRow } = await supabase
+          .from('perfiles')
+          .select('*')
+          .eq('id', perfilId)
+          .maybeSingle();
+        localStorage.setItem('app_user', JSON.stringify(profileRow || { id: perfilId }));
       }
 
       const payload = {
