@@ -58,20 +58,45 @@ const Payment: React.FC = () => {
         referencia_manual: reference || null,
       };
 
-      const { data, error: upsertError } = await supabase
+      // Evitamos upsert porque si ya existe una fila aprobada/rechazada,
+      // la policy de UPDATE la bloquea y devuelve RLS error.
+      const { data: existente, error: existingError } = await supabase
         .from('inscripciones_torneo')
-        .upsert(payload, { onConflict: 'torneo_id,perfil_id' })
         .select('id, estado')
-        .single();
+        .eq('torneo_id', Number(tournament.id))
+        .eq('perfil_id', perfilId)
+        .maybeSingle();
 
-      if (upsertError) {
-        throw upsertError;
+      if (existingError) throw existingError;
+
+      let enrollmentStatus = 'pendiente_revision';
+
+      if (!existente) {
+        const { data: insertData, error: insertError } = await supabase
+          .from('inscripciones_torneo')
+          .insert(payload)
+          .select('id, estado')
+          .single();
+        if (insertError) throw insertError;
+        enrollmentStatus = insertData?.estado || 'pendiente_revision';
+      } else if (existente.estado === 'pendiente_revision') {
+        const { data: updateData, error: updateError } = await supabase
+          .from('inscripciones_torneo')
+          .update({ referencia_manual: reference || null })
+          .eq('id', existente.id)
+          .select('id, estado')
+          .single();
+        if (updateError) throw updateError;
+        enrollmentStatus = updateData?.estado || 'pendiente_revision';
+      } else {
+        // Si ya esta aprobado/rechazado, no intentamos mutar estado.
+        enrollmentStatus = existente.estado;
       }
 
       navigate('/confirmation', {
         state: {
           tournament,
-          enrollmentStatus: data?.estado || 'pendiente_revision',
+          enrollmentStatus,
         },
       });
     } catch (err: any) {
