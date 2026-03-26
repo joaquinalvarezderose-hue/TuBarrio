@@ -51,24 +51,43 @@ const Tournaments: React.FC = () => {
 
   useEffect(() => {
     const loadRegistrations = async () => {
-      const userId = String(user?.id || 'anon');
+      const { data: authData } = await (supabase as any).auth.getUser();
+      const authUserId = authData?.user?.id || user?.id;
+      const userId = String(authUserId || 'anon');
       const cacheKey = `registered_tournaments_${userId}`;
       const saved = localStorage.getItem(cacheKey);
       const localIds: number[] = saved ? JSON.parse(saved) : [];
       try {
-        if (!user?.id) {
+        if (!authUserId) {
           setRegisteredIds(localIds);
           return;
         }
-        const { data, error } = await supabase
-          .from('torneo_jugadores')
-          .select('torneo_id')
-          .eq('perfil_id', user.id);
-        if (error) throw error;
-        const remoteIds = (data || [])
+
+        const [{ data: jugadoresData, error: jugadoresError }, { data: inscripcionesData, error: inscripcionesError }] = await Promise.all([
+          supabase
+            .from('torneo_jugadores')
+            .select('torneo_id')
+            .eq('perfil_id', authUserId),
+          supabase
+            .from('inscripciones_torneo')
+            .select('torneo_id, estado')
+            .eq('perfil_id', authUserId)
+            .in('estado', ['pendiente_revision', 'pagado_aprobado'])
+        ]);
+
+        if (jugadoresError) throw jugadoresError;
+        if (inscripcionesError) throw inscripcionesError;
+
+        const jugadorIds = (jugadoresData || [])
           .map((row: any) => Number(row.torneo_id || 0))
           .filter((id: number) => id > 0);
-        // Backend es la fuente de verdad; cache solo para fallback offline.
+
+        const inscripcionIds = (inscripcionesData || [])
+          .map((row: any) => Number(row.torneo_id || 0))
+          .filter((id: number) => id > 0);
+
+        const remoteIds = Array.from(new Set([...jugadorIds, ...inscripcionIds]));
+
         setRegisteredIds(remoteIds);
         localStorage.setItem(cacheKey, JSON.stringify(remoteIds));
       } catch (err) {
@@ -141,6 +160,7 @@ const Tournaments: React.FC = () => {
 
   const myRegisteredTournaments = torneos.filter(t => registeredIds.includes(t.id));
   const availableTournaments = torneos.filter((t) => {
+    if (registeredIds.includes(t.id)) return false;
     const status = statusByTournamentId[t.id];
     if (!status) return true;
     return isTournamentOpenForSignup(status);

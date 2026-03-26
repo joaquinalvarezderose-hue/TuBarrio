@@ -38,9 +38,9 @@ const Confirmation: React.FC = () => {
           </div>
           {enrollmentStatus === 'pagado_aprobado' ? (
             <>
-              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">¡Ya estás adentro!</h1>
+              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Inscripción ya aprobada</h1>
               <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
-                Tu lugar en {tournament.title} está asegurado. ¡Prepárate para la cancha!
+                Tu lugar en {tournament.title} ya estaba confirmado. No registramos una nueva inscripción.
               </p>
             </>
           ) : (
