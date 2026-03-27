@@ -1,5 +1,5 @@
--- RPC transaccional en esquema en espanol.
--- Usa: torneo_jugadores, torneo_estado y (si existe) partidos.
+-- Permite reintentar sorteo si el torneo esta LOCKED, lleno y sin partidos,
+-- sin depender de reabrir estado a RECRUITING en DB.
 
 create or replace function public.registrar_participante_y_sortear_si_lleno(
   p_torneo_id bigint,
@@ -55,8 +55,6 @@ begin
 
   v_estado_antes := v_estado.estado;
 
-  -- Si ya no esta en RECRUITING pero el cupo esta lleno y no hay partidos,
-  -- permitimos reintentar el sorteo para recuperar estado inconsistente.
   if v_estado.estado <> 'RECRUITING' then
     select count(*)::integer into v_partidos_existentes
     from public.partidos p
@@ -67,41 +65,21 @@ begin
 
     if not (v_estado.current_participantes >= v_estado.max_participantes and v_partidos_existentes = 0) then
       return query
-      select
-        p_torneo_id,
-        p_perfil_id,
-        false,
-        v_estado_antes,
-        v_estado.estado,
-        v_estado.current_participantes,
-        v_estado.max_participantes,
-        false,
-        0,
-        '{}'::uuid[];
+      select p_torneo_id, p_perfil_id, false, v_estado_antes, v_estado.estado,
+             v_estado.current_participantes, v_estado.max_participantes, false, 0, '{}'::uuid[];
       return;
     end if;
   end if;
 
   if v_estado.estado <> 'RECRUITING' and v_estado.current_participantes >= v_estado.max_participantes and v_partidos_existentes = 0 then
-    -- Reintento de sorteo sobre estado inconsistente: no dependemos de
-    -- cambiar a RECRUITING porque el guardrail puede volver a LOCKED.
     v_estado.estado := 'RECRUITING';
     v_estado.sorteo_realizado := false;
   end if;
 
   if v_estado.estado <> 'RECRUITING' then
     return query
-    select
-      p_torneo_id,
-      p_perfil_id,
-      false,
-      v_estado_antes,
-      v_estado.estado,
-      v_estado.current_participantes,
-      v_estado.max_participantes,
-      false,
-      0,
-      '{}'::uuid[];
+    select p_torneo_id, p_perfil_id, false, v_estado_antes, v_estado.estado,
+           v_estado.current_participantes, v_estado.max_participantes, false, 0, '{}'::uuid[];
     return;
   end if;
 
@@ -135,42 +113,20 @@ begin
 
   if v_estado.current_participantes > v_estado.max_participantes then
     raise exception 'El torneo %/%/% supero el cupo configurado: % inscriptos para % lugares.',
-      p_torneo_id,
-      p_categoria,
-      p_grupo,
-      v_estado.current_participantes,
-      v_estado.max_participantes;
+      p_torneo_id, p_categoria, p_grupo, v_estado.current_participantes, v_estado.max_participantes;
   end if;
 
   if v_ya_inscripto and v_estado.current_participantes < v_estado.max_participantes then
     return query
-    select
-      p_torneo_id,
-      p_perfil_id,
-      true,
-      v_estado_antes,
-      v_estado.estado,
-      v_estado.current_participantes,
-      v_estado.max_participantes,
-      false,
-      0,
-      '{}'::uuid[];
+    select p_torneo_id, p_perfil_id, true, v_estado_antes, v_estado.estado,
+           v_estado.current_participantes, v_estado.max_participantes, false, 0, '{}'::uuid[];
     return;
   end if;
 
   if v_estado.current_participantes < v_estado.max_participantes then
     return query
-    select
-      p_torneo_id,
-      p_perfil_id,
-      false,
-      v_estado_antes,
-      v_estado.estado,
-      v_estado.current_participantes,
-      v_estado.max_participantes,
-      false,
-      0,
-      '{}'::uuid[];
+    select p_torneo_id, p_perfil_id, false, v_estado_antes, v_estado.estado,
+           v_estado.current_participantes, v_estado.max_participantes, false, 0, '{}'::uuid[];
     return;
   end if;
 
@@ -204,21 +160,9 @@ begin
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'partidos'
-      and column_name in (
-        'id',
-        'torneo_id',
-        'categoria',
-        'grupo',
-        'jornada',
-        'jugador1_id',
-        'jugador2_id',
-        'fecha_programada',
-        'resultado',
-        'estado',
-        'ganador_id'
-      )
+      and column_name in ('id','torneo_id','categoria','grupo','jornada','jugador1_id','jugador2_id','fecha_programada','resultado','estado','ganador_id')
     group by table_name
-    having count(distinct column_name) = 11
+    having count(*) = 10
   ) into v_can_insert_partidos;
 
   if not v_can_insert_partidos and v_expected_partidos > 0 then
@@ -235,34 +179,19 @@ begin
 
     if v_expected_partidos > 0 and v_partidos_existentes = v_expected_partidos then
       update public.torneo_estado
-      set estado = 'LOCKED',
-          sorteo_realizado = true,
-          updated_at = now()
+      set estado = 'LOCKED', sorteo_realizado = true, updated_at = now()
       where public.torneo_estado.torneo_id = p_torneo_id
         and public.torneo_estado.categoria = p_categoria
         and public.torneo_estado.grupo = p_grupo
       returning * into v_estado;
 
       return query
-      select
-        p_torneo_id,
-        p_perfil_id,
-        v_ya_inscripto,
-        v_estado_antes,
-        v_estado.estado,
-        v_estado.current_participantes,
-        v_estado.max_participantes,
-        false,
-        0,
-        '{}'::uuid[];
+      select p_torneo_id, p_perfil_id, v_ya_inscripto, v_estado_antes, v_estado.estado,
+             v_estado.current_participantes, v_estado.max_participantes, false, 0, '{}'::uuid[];
       return;
     elsif v_expected_partidos > 0 and v_partidos_existentes > 0 then
       raise exception 'Se detectaron % partidos existentes para %/%/%, pero el fixture esperado es de % partidos. Limpia los partidos existentes antes de reintentar el sorteo.',
-        v_partidos_existentes,
-        p_torneo_id,
-        p_categoria,
-        p_grupo,
-        v_expected_partidos;
+        v_partidos_existentes, p_torneo_id, p_categoria, p_grupo, v_expected_partidos;
     end if;
   end if;
 
@@ -273,31 +202,27 @@ begin
         v_byes := array_append(v_byes, v_shuffled[v_i]);
       else
         if v_can_insert_partidos then
-          begin
-            insert into public.partidos (id, torneo_id, categoria, grupo, jornada, jugador1_id, jugador2_id, fecha_programada, resultado, estado, ganador_id)
-            values (
-              (
-                substr(md5(random()::text || clock_timestamp()::text), 1, 8) || '-' ||
-                substr(md5(random()::text || clock_timestamp()::text), 1, 4) || '-' ||
-                substr(md5(random()::text || clock_timestamp()::text), 1, 4) || '-' ||
-                substr(md5(random()::text || clock_timestamp()::text), 1, 4) || '-' ||
-                substr(md5(random()::text || clock_timestamp()::text), 1, 12)
-              )::uuid,
-              p_torneo_id,
-              p_categoria,
-              p_grupo,
-              1,
-              v_shuffled[v_i],
-              v_shuffled[v_i + 1],
-              null,
-              'PENDIENTE',
-              'programado',
-              null
-            );
-            v_created := v_created + 1;
-          exception when others then
-            raise exception 'No se pudo insertar en partidos: %', sqlerrm;
-          end;
+          insert into public.partidos (id, torneo_id, categoria, grupo, jornada, jugador1_id, jugador2_id, fecha_programada, resultado, estado, ganador_id)
+          values (
+            (
+              substr(md5(random()::text || clock_timestamp()::text), 1, 8) || '-' ||
+              substr(md5(random()::text || clock_timestamp()::text), 1, 4) || '-' ||
+              substr(md5(random()::text || clock_timestamp()::text), 1, 4) || '-' ||
+              substr(md5(random()::text || clock_timestamp()::text), 1, 4) || '-' ||
+              substr(md5(random()::text || clock_timestamp()::text), 1, 12)
+            )::uuid,
+            p_torneo_id,
+            p_categoria,
+            p_grupo,
+            1,
+            v_shuffled[v_i],
+            v_shuffled[v_i + 1],
+            null,
+            'PENDIENTE',
+            'programado',
+            null
+          );
+          v_created := v_created + 1;
         end if;
       end if;
       v_i := v_i + 2;
@@ -309,26 +234,15 @@ begin
   end if;
 
   update public.torneo_estado
-  set estado = 'LOCKED',
-      sorteo_realizado = true,
-      updated_at = now()
+  set estado = 'LOCKED', sorteo_realizado = true, updated_at = now()
   where public.torneo_estado.torneo_id = p_torneo_id
     and public.torneo_estado.categoria = p_categoria
     and public.torneo_estado.grupo = p_grupo
   returning * into v_estado;
 
   return query
-  select
-    p_torneo_id,
-    p_perfil_id,
-    false,
-    v_estado_antes,
-    v_estado.estado,
-    v_estado.current_participantes,
-    v_estado.max_participantes,
-    true,
-    v_created,
-    v_byes;
+  select p_torneo_id, p_perfil_id, false, v_estado_antes, v_estado.estado,
+         v_estado.current_participantes, v_estado.max_participantes, true, v_created, v_byes;
 end;
 $$;
 

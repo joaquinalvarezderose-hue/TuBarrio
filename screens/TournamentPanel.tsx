@@ -9,8 +9,7 @@ const PANEL_READY_STATUSES = new Set([
   'ARMADO_FIXTURE',
   'ACTIVO',
   'EN_CURSO',
-  'IN_PROGRESS', // legacy inglés — mismo concepto que EN_CURSO
-  'LOCKED',      // legacy inglés — cupo lleno, sorteo pendiente
+  'LOCKED',
   'PLAYOFFS',
   'FINALIZADO',
 ]);
@@ -123,7 +122,6 @@ const TournamentPanel: React.FC = () => {
       case 'ACTIVO':
         return 'Activo';
       case 'EN_CURSO':
-      case 'IN_PROGRESS':
         return 'En curso';
       case 'LOCKED':
         return 'Cupo completo';

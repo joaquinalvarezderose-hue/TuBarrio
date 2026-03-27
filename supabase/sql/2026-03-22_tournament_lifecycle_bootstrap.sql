@@ -7,7 +7,7 @@ create table if not exists public.torneo_estado (
   categoria text not null,
   grupo text not null,
   estado text not null default 'RECRUITING'
-    check (estado in ('RECRUITING', 'LOCKED', 'IN_PROGRESS')),
+    check (estado in ('RECRUITING', 'LOCKED', 'EN_CURSO')),
   max_participantes integer not null default 8,
   current_participantes integer not null default 0,
   sorteo_realizado boolean not null default false,

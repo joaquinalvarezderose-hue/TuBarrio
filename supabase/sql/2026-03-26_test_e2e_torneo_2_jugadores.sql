@@ -29,12 +29,8 @@ alter table public.torneo_estado
     'EN_CURSO',
     'PLAYOFFS',
     'FINALIZADO',
-    -- Estados legacy del RPC anterior (equivalentes en inglés):
     -- LOCKED = cupo lleno, sorteo pendiente (≈ INSCRIPCION_CERRADA)
-    -- IN_PROGRESS = torneo activo              (≈ EN_CURSO)
-    -- Mantenidos para no romper torneos viejos.
-    'LOCKED',
-    'IN_PROGRESS'
+    'LOCKED'
   ));
 
 
@@ -171,7 +167,7 @@ where torneo_id = 3
 -- VERIFICACION despues del PASO 5:
 -- Ambos deben estar en torneo_jugadores, current_participantes=2 y
 -- el estado deberia pasar automaticamente a LOCKED (cupo completo).
--- Si tu entorno legacy ya arma fixture por RPC, puede quedar en IN_PROGRESS.
+-- El torneo pasa a EN_CURSO solamente cuando el admin lo inicia manualmente.
 -- ===========================================================
 select perfil_id, puntos, partidos_jugados
 from public.torneo_jugadores
@@ -197,8 +193,7 @@ where torneo_id = 3
 -- QUE VER EN LA APP despues del PASO 6:
 -- → Tournaments → "Mis Torneos" → Torneo 3 ya NO dice
 --   "Torneo en preparación" → hacer click abre TournamentPanel
--- → TournamentPanel muestra fase "LOCKED" (o "EN_CURSO/IN_PROGRESS"
---   si el fixture se creo automaticamente en tu entorno)
+-- → TournamentPanel muestra fase "LOCKED"
 --   pero todavía no hay partido programado → "Sin partido próximo"
 -- ===========================================================
 
@@ -217,15 +212,13 @@ order by jornada, id;
 
 
 -- ===========================================================
--- PASO 8: Iniciar torneo manualmente con fecha/hora definida
+-- PASO 8: Iniciar torneo manualmente (sin programar fechas)
 -- ===========================================================
 select *
 from public.iniciar_torneo_manual(
   3,
   'Singles Caballeros',
-  'TORNEO_3',
-  now() + interval '2 days', -- fecha/hora elegida por el admin
-  30                         -- minutos entre partidos
+  'TORNEO_3'
 );
 
 -- ===========================================================

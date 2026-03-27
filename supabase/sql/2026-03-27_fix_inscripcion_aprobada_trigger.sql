@@ -3,7 +3,7 @@
 --
 -- Problema que resuelve:
 -- - El trigger anterior insertaba en torneo_jugadores y solo recalculaba current_participantes.
--- - No disparaba la logica de LOCKED/IN_PROGRESS ni el armado de fixture del RPC.
+-- - No disparaba la logica de LOCKED/EN_CURSO ni el armado de fixture del RPC.
 -- - Resultado: cupo lleno pero torneo seguia en RECRUITING.
 
 create or replace function public.procesar_inscripcion_aprobada()

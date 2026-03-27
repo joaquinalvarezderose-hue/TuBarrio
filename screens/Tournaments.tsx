@@ -10,8 +10,7 @@ const PANEL_READY_STATUSES = new Set([
   'ARMADO_FIXTURE',
   'ACTIVO',
   'EN_CURSO',
-  'IN_PROGRESS', // legacy inglés — mismo concepto que EN_CURSO
-  'LOCKED',      // legacy inglés — cupo lleno, sorteo pendiente
+  'LOCKED',
   'PLAYOFFS',
   'FINALIZADO',
 ]);

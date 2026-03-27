@@ -116,7 +116,6 @@ export const getBestSecondsAverage = (standings: any[]) => {
 export type TournamentStatus =
   | 'RECRUITING'
   | 'LOCKED'
-  | 'IN_PROGRESS'
   | 'INSCRIPCION_ABIERTA'
   | 'INSCRIPCION_CERRADA'
   | 'ARMADO_FIXTURE'
