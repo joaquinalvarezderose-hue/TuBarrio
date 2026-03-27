@@ -14,6 +14,19 @@ const PANEL_READY_STATUSES = new Set([
   'PLAYOFFS',
   'FINALIZADO',
 ]);
+const STATUS_PRIORITY: Record<string, number> = {
+  FINALIZADO: 90,
+  PLAYOFFS: 80,
+  EN_CURSO: 70,
+  ACTIVO: 65,
+  ARMADO_FIXTURE: 60,
+  INSCRIPCION_CERRADA: 55,
+  LOCKED: 50,
+  RECRUITING: 10,
+  INSCRIPCION_ABIERTA: 10,
+};
+
+const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
 
 const isTournamentOpenForSignup = (status?: string) => OPEN_SIGNUP_STATUSES.has(normalizeStatus(status));
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
@@ -107,15 +120,22 @@ const Tournaments: React.FC = () => {
         if (error) throw error;
 
         const nextStatus: Record<number, string> = {};
+        const nextStatusPriority: Record<number, number> = {};
         const nextCapacity: Record<number, { current: number; max: number }> = {};
 
         (data || []).forEach((row: any) => {
           const id = Number(row.torneo_id);
-          nextStatus[id] = normalizeStatus(row.estado);
-          nextCapacity[id] = {
-            current: Number(row.current_participantes || 0),
-            max: Number(row.max_participantes || 0),
-          };
+          const normalized = normalizeStatus(row.estado);
+          const priority = getStatusPriority(normalized);
+
+          if ((nextStatusPriority[id] ?? -1) <= priority) {
+            nextStatus[id] = normalized;
+            nextStatusPriority[id] = priority;
+            nextCapacity[id] = {
+              current: Number(row.current_participantes || 0),
+              max: Number(row.max_participantes || 0),
+            };
+          }
         });
 
         setStatusByTournamentId(nextStatus);

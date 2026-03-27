@@ -13,6 +13,19 @@ const PANEL_READY_STATUSES = new Set([
   'PLAYOFFS',
   'FINALIZADO',
 ]);
+const STATUS_PRIORITY: Record<string, number> = {
+  FINALIZADO: 90,
+  PLAYOFFS: 80,
+  EN_CURSO: 70,
+  ACTIVO: 65,
+  ARMADO_FIXTURE: 60,
+  INSCRIPCION_CERRADA: 55,
+  LOCKED: 50,
+  RECRUITING: 10,
+  INSCRIPCION_ABIERTA: 10,
+};
+
+const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
 
 type NextMatch = {
@@ -50,13 +63,18 @@ const TournamentPanel: React.FC = () => {
     const loadPanelData = async () => {
       setLoadingData(true);
       try {
-        const { data: statusRow } = await supabase
+        const { data: statusRows, error: statusError } = await supabase
           .from('torneo_estado')
           .select('estado')
-          .eq('torneo_id', tournament.id)
-          .maybeSingle();
+          .eq('torneo_id', tournament.id);
 
-        const resolvedStatus = normalizeStatus(statusRow?.estado);
+        if (statusError) throw statusError;
+
+        const resolvedStatus = (statusRows || []).reduce((best: string, row: any) => {
+          const candidate = normalizeStatus(row?.estado);
+          return getStatusPriority(candidate) >= getStatusPriority(best) ? candidate : best;
+        }, 'RECRUITING');
+
         setTournamentStatus(resolvedStatus);
 
         if (!isTournamentReadyForPanel(resolvedStatus) || !currentUserId) {
