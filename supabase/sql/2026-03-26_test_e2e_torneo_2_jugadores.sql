@@ -169,30 +169,36 @@ where torneo_id = 3
 
 -- ===========================================================
 -- VERIFICACION despues del PASO 5:
--- Ambos deben estar en torneo_jugadores y
--- current_participantes debe ser 2.
+-- Ambos deben estar en torneo_jugadores, current_participantes=2 y
+-- el estado deberia pasar automaticamente a LOCKED (cupo completo).
+-- Si tu entorno legacy ya arma fixture por RPC, puede quedar en IN_PROGRESS.
 -- ===========================================================
 select perfil_id, puntos, partidos_jugados
 from public.torneo_jugadores
 where torneo_id = 3;
 
-select current_participantes, max_participantes, estado
+select categoria, grupo, current_participantes, max_participantes, estado
 from public.torneo_estado
-where torneo_id = 3;
+where torneo_id = 3
+  and categoria = 'Singles Caballeros'
+  and grupo = 'TORNEO_3';
 
 
 -- ===========================================================
--- PASO 6: Cerrar inscripcion (el panel del torneo se desbloquea)
+-- PASO 6: Verificar acceso al panel con estado automatico
 -- ===========================================================
-update public.torneo_estado
-set estado = 'INSCRIPCION_CERRADA'
-where torneo_id = 3;
+select categoria, grupo, estado
+from public.torneo_estado
+where torneo_id = 3
+  and categoria = 'Singles Caballeros'
+  and grupo = 'TORNEO_3';
 
 -- ===========================================================
 -- QUE VER EN LA APP despues del PASO 6:
 -- → Tournaments → "Mis Torneos" → Torneo 3 ya NO dice
 --   "Torneo en preparación" → hacer click abre TournamentPanel
--- → TournamentPanel muestra fase "Inscripción cerrada"
+-- → TournamentPanel muestra fase "LOCKED" (o "EN_CURSO/IN_PROGRESS"
+--   si el fixture se creo automaticamente en tu entorno)
 --   pero todavía no hay partido programado → "Sin partido próximo"
 -- ===========================================================
 
@@ -213,10 +219,13 @@ values
 
 -- ===========================================================
 -- PASO 8: Activar el torneo para habilitar la carga de resultados
+-- (si ya quedo IN_PROGRESS, este paso es opcional)
 -- ===========================================================
 update public.torneo_estado
 set estado = 'EN_CURSO'
-where torneo_id = 3;
+where torneo_id = 3
+  and categoria = 'Singles Caballeros'
+  and grupo = 'TORNEO_3';
 
 -- ===========================================================
 -- QUE VER EN LA APP despues de los PASOS 7-8:
