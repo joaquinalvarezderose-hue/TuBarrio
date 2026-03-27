@@ -205,27 +205,28 @@ where torneo_id = 3
 
 -- ===========================================================
 -- PASO 7: Crear el fixture (partido entre los 2 jugadores)
--- Reemplazar los UUID.
+-- Con el nuevo flujo, al llenarse el cupo el fixture se crea solo.
+-- Este paso ahora es solo para verificar.
 -- ===========================================================
-insert into public.partidos
-  (id, torneo_id, categoria, grupo, jornada, estado,
-   jugador1_id, jugador2_id, fecha_programada)
-values
-  (gen_random_uuid(), 3, 'Singles Caballeros', 'TORNEO_3', 1, 'programado',
-   'REEMPLAZAR-CON-TU-UUID',
-   'REEMPLAZAR-CON-UUID-JUGADOR2',
-   now() + interval '2 days');
-
-
--- ===========================================================
--- PASO 8: Activar el torneo para habilitar la carga de resultados
--- (si ya quedo IN_PROGRESS, este paso es opcional)
--- ===========================================================
-update public.torneo_estado
-set estado = 'EN_CURSO'
+select id, jornada, estado, jugador1_id, jugador2_id, fecha_programada
+from public.partidos
 where torneo_id = 3
   and categoria = 'Singles Caballeros'
-  and grupo = 'TORNEO_3';
+  and grupo = 'TORNEO_3'
+order by jornada, id;
+
+
+-- ===========================================================
+-- PASO 8: Iniciar torneo manualmente con fecha/hora definida
+-- ===========================================================
+select *
+from public.iniciar_torneo_manual(
+  3,
+  'Singles Caballeros',
+  'TORNEO_3',
+  now() + interval '2 days', -- fecha/hora elegida por el admin
+  30                         -- minutos entre partidos
+);
 
 -- ===========================================================
 -- QUE VER EN LA APP despues de los PASOS 7-8:

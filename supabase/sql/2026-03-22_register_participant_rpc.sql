@@ -237,7 +237,7 @@ begin
 
     if v_expected_partidos > 0 and v_partidos_existentes = v_expected_partidos then
       update public.torneo_estado
-      set estado = 'IN_PROGRESS',
+      set estado = 'LOCKED',
           sorteo_realizado = true,
           updated_at = now()
       where public.torneo_estado.torneo_id = p_torneo_id
@@ -291,7 +291,7 @@ begin
               1,
               v_shuffled[v_i],
               v_shuffled[v_i + 1],
-              now(),
+              null,
               'PENDIENTE',
               'programado',
               null
@@ -311,7 +311,7 @@ begin
   end if;
 
   update public.torneo_estado
-  set estado = 'IN_PROGRESS',
+  set estado = 'LOCKED',
       sorteo_realizado = true,
       updated_at = now()
   where public.torneo_estado.torneo_id = p_torneo_id
@@ -335,4 +335,4 @@ end;
 $$;
 
 comment on function public.registrar_participante_y_sortear_si_lleno(bigint, uuid, text, text, integer)
-is 'Inscribe jugador en torneo_jugadores, actualiza cupo en torneo_estado y sortea/crea partidos cuando se llena.';
+is 'Inscribe jugador en torneo_jugadores y al llenarse crea fixture automatico, dejando estado LOCKED hasta inicio manual.';
