@@ -53,6 +53,7 @@ const TournamentPanel: React.FC = () => {
 
   const [loadingData, setLoadingData] = useState(true);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
+  const [hasLifecycleStatus, setHasLifecycleStatus] = useState<boolean>(true);
   const [nextMatch, setNextMatch] = useState<NextMatch | null>(null);
 
   useEffect(() => {
@@ -68,7 +69,15 @@ const TournamentPanel: React.FC = () => {
           .select('estado')
           .eq('torneo_id', tournament.id);
 
-        if (statusError) throw statusError;
+        let vHasLifecycleStatus = false;
+
+        if (statusError) {
+          console.warn('No se pudo leer torneo_estado; se aplica fallback de panel por fixture.', statusError.message);
+          setHasLifecycleStatus(false);
+        } else {
+          vHasLifecycleStatus = Array.isArray(statusRows) && statusRows.length > 0;
+          setHasLifecycleStatus(vHasLifecycleStatus);
+        }
 
         const resolvedStatus = (statusRows || []).reduce((best: string, row: any) => {
           const candidate = normalizeStatus(row?.estado);
@@ -77,7 +86,7 @@ const TournamentPanel: React.FC = () => {
 
         setTournamentStatus(resolvedStatus);
 
-        if (!isTournamentReadyForPanel(resolvedStatus) || !currentUserId) {
+        if ((vHasLifecycleStatus && !isTournamentReadyForPanel(resolvedStatus)) || !currentUserId) {
           setNextMatch(null);
           return;
         }
@@ -126,7 +135,7 @@ const TournamentPanel: React.FC = () => {
     loadPanelData();
   }, [currentUserId, tournament.id]);
 
-  const isReady = isTournamentReadyForPanel(tournamentStatus);
+  const isReady = !hasLifecycleStatus || isTournamentReadyForPanel(tournamentStatus);
 
   const tournamentPhaseLabel = useMemo(() => {
     switch (tournamentStatus) {
