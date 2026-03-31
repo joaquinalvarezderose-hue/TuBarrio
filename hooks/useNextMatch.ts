@@ -81,7 +81,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
 
       // -------------------------------------------------------
       // Paso 2: Resolver en qué categoría y grupo está inscripto
-      // el jugador para filtrar solo sus partidos.
+        // el jugador para filtrar solo sus partidos.
       // La columna 'grupo' tiene el formato 'TORNEO_{id}'.
       // -------------------------------------------------------
       let categoria: string | null = null;
@@ -99,6 +99,8 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         categoria = String(scopeRow.categoria);
         grupo = String(scopeRow.grupo);
       }
+
+        console.debug('[useNextMatch] userId:', currentUserId, '| scope:', scopeRow ?? 'sin fila en torneo_jugadores');
 
       // -------------------------------------------------------
       // Paso 3: Buscar el próximo partido del usuario.
@@ -133,6 +135,8 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         setMatch(null);
         return;
       }
+
+      console.debug('[useNextMatch] partido encontrado:', next);
 
       // -------------------------------------------------------
       // Paso 4: Obtener perfil del rival (nombre + WhatsApp).

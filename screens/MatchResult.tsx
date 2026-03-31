@@ -54,7 +54,7 @@ const MatchResult: React.FC = () => {
   });
 
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const currentUserId = String(appUser?.id || '');
+  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
   const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
 
   const [players, setPlayers] = useState<PlayerCard[]>([
@@ -131,7 +131,14 @@ const MatchResult: React.FC = () => {
       setBlockReason(null);
 
       try {
-        if (!currentUserId) {
+          // Resolver usuario: Supabase Auth como fuente principal, localStorage como fallback
+          let currentUserId = String(appUser?.id || '');
+          try {
+            const { data: authData } = await (supabase as any).auth.getUser();
+            if (authData?.user?.id) currentUserId = String(authData.user.id);
+          } catch { /* sin sesión activa, usar localStorage */ }
+
+          if (!currentUserId) {
           setSubmitError('No hay un usuario activo para cargar el resultado.');
           return;
         }

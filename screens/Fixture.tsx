@@ -40,12 +40,20 @@ const Fixture: React.FC = () => {
     subtitle: 'Singles Caballeros',
   });
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const currentUserId = String(appUser?.id || '');
+  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
 
   const loadFixtureData = useCallback(async () => {
     try {
       const grupo = `TORNEO_${tournament.id}`;
       const categoria = tournament.subtitle || 'General';
+
+        // Resolver siempre desde Supabase Auth como fuente principal
+        let currentUserId = String(appUser?.id || '');
+        try {
+          const { data: authData } = await (supabase as any).auth.getUser();
+          if (authData?.user?.id) currentUserId = String(authData.user.id);
+        } catch { /* sin sesión activa, usar localStorage */ }
+
 
       const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
         supabase
