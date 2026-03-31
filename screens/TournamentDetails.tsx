@@ -17,28 +17,41 @@ const TournamentDetails: React.FC = () => {
 
   useEffect(() => {
     const checkRegistration = async () => {
+      const { data: authData } = await (supabase as any).auth.getUser();
+      const authUserId = authData?.user?.id;
+
       // Chequeo rápido en localStorage
-      const saved = localStorage.getItem('registered_tournaments');
-      const localIds: number[] = saved ? JSON.parse(saved) : [];
+      const userStr = localStorage.getItem('app_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const cacheKey = `registered_tournaments_${String(authUserId || user?.id || 'anon')}`;
+      const savedScoped = localStorage.getItem(cacheKey);
+      const savedLegacy = localStorage.getItem('registered_tournaments');
+      const localIds: number[] = Array.from(
+        new Set([
+          ...(savedScoped ? JSON.parse(savedScoped) : []),
+          ...(savedLegacy ? JSON.parse(savedLegacy) : []),
+        ]),
+      );
       if (localIds.includes(Number(tournament.id))) {
         setIsRegistered(true);
         return;
       }
+
       // Si no está en local, verificar en Supabase
-      const userStr = localStorage.getItem('app_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      if (!user?.id) return;
+      const perfilId = authUserId || user?.id;
+      if (!perfilId) return;
       try {
         const { data, error } = await supabase
           .from('torneo_jugadores')
           .select('torneo_id')
-          .eq('perfil_id', user.id)
+          .eq('perfil_id', perfilId)
           .eq('torneo_id', Number(tournament.id))
           .maybeSingle();
         if (!error && data) {
           setIsRegistered(true);
           // Sincronizar localStorage
           const merged = Array.from(new Set([...localIds, Number(tournament.id)]));
+          localStorage.setItem(cacheKey, JSON.stringify(merged));
           localStorage.setItem('registered_tournaments', JSON.stringify(merged));
         }
       } catch (_) {}

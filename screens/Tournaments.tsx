@@ -41,6 +41,54 @@ type Torneo = {
   activo: boolean;
 };
 
+const FALLBACK_TORNEOS: Torneo[] = [
+  {
+    id: 1,
+    titulo: 'Caballeros Singles - 3ra Categoria',
+    subtitulo: 'Singles Caballeros',
+    fecha_inicio: '2026-03-10',
+    fecha_fin: '2026-03-15',
+    imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE',
+    activo: true,
+  },
+  {
+    id: 2,
+    titulo: 'Caballeros Singles - 2da Categoria',
+    subtitulo: 'Singles Caballeros',
+    fecha_inicio: '2026-03-12',
+    fecha_fin: '2026-03-18',
+    imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCJdWlacuqkDcu2Q0AVWRtpMog2NYZKB_m6UbjJ9vAC_kOGuh3mbwI_BfJPc5hG9H6gqtvses85VMCYm4RTvxbYb6u7SC9pOoGFf3WcsoMUQNe785z1Z9ALzLdDpndsM0Y81awbpbqwZfJ218iwcyKvs3lpN8yYLn0KLwu_XvTME6ukU9OGSrJbMbx4VyVL0raJpjrrJJz0BXQwhVWHnrVZLJ3R6KHBmMZbtCrZfvYj9AD5b57emWAExThw4FcoUkLlUnWtV4b9gbw',
+    activo: true,
+  },
+  {
+    id: 3,
+    titulo: 'Caballeros Singles - Intermedia',
+    subtitulo: 'Singles Caballeros',
+    fecha_inicio: '2026-03-20',
+    fecha_fin: '2026-03-25',
+    imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBuAVvQAMpWs1A9RwmoapmwZFYSYckJHuLnfshuYRf6nvdqffLuXkcMR81eVmc0q1dFQmvZIZ5J374TuBT7jPOc_F4CubG2eUlnWfwdL2rq3p5mpkSHKJxyjfWsXWQJ5OFnKEh3bD9ClhfY9c9iVENVc5kwGn0FoBuDU99Ep6wEDCKsBDlsCpyzr035p9WEN5KHl-25VBGQ7jirkd7xecbOFfw4WFisYaNRwRdYpqrPUFNV9dxcf8a0WbXGjADZx3z4zpwTHO-6dZA',
+    activo: true,
+  },
+  {
+    id: 4,
+    titulo: 'Mujeres Singles - Categoria Libre',
+    subtitulo: 'Singles Damas',
+    fecha_inicio: '2026-04-08',
+    fecha_fin: '2026-04-14',
+    imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDxjuplDHRtHd-OUwF9Wwm5vPaBjuJZjHY8AvJejxsz0vrfcVLBOxqADQ76jP5vZAekynJhedQty64BTK8MDV3qzGosWwiEh7pXTKvx42CIvBNVHf8eziGbWpAGDVguikTH8Uena9SbZ4riqBdijv_eW4jffLPebFJ-NPHWRaFjJrPofF6isZ5DXtu-TIzHxMkKw3jdO-I0jdBxgrq7t9SZF7mD-KSZTRCsDROfxNYnleiVj0IbvOYw7jkZsmAOaioxUSes-yG8X0M',
+    activo: true,
+  },
+  {
+    id: 5,
+    titulo: 'Torneo de Dobles Mixto/Libre',
+    subtitulo: 'Dobles Mixtos',
+    fecha_inicio: '2026-04-01',
+    fecha_fin: '2026-04-05',
+    imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD822xk3Z5UFXimD5jaQ65Pnav_h7KOLdQhGDXtI3BeM9pnk_Tt7U_DZ5S9em63Fv8_cmz6E0VSlWflf_IBpjHT4Wz3Xya44BAQa03zjSYZbofwQPZYe4j4iBLfRaHTKdPAu15lgCnuwsHZFrJagJNeKFqZcUxjbSt6yMTfcKpyfClnNxYaroLk8-yrFr5PKz_sruS2a2IJRKHsKhiv9EzWf43769G7WPg8cubAvG5_UXnpRvdzdUdcBrUC8rBeyJD6gUzuwaRV_A8',
+    activo: true,
+  },
+];
+
 const formatearFecha = (inicio: string | null, fin: string | null): string => {
   if (!inicio) return 'Fecha a confirmar';
   const fmt = (d: string) =>
@@ -60,6 +108,8 @@ const Tournaments: React.FC = () => {
   const [capacityByTournamentId, setCapacityByTournamentId] = useState<Record<number, { current: number; max: number }>>({});
   const [torneos, setTorneos] = useState<Torneo[]>([]);
   const [cargandoTorneos, setCargandoTorneos] = useState(true);
+  const [torneosError, setTorneosError] = useState<string | null>(null);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
 
   useEffect(() => {
     const loadRegistrations = async () => {
@@ -151,16 +201,30 @@ const Tournaments: React.FC = () => {
   useEffect(() => {
     const cargarTorneos = async () => {
       setCargandoTorneos(true);
+      setTorneosError(null);
+      setUsingFallbackData(false);
       try {
         const { data, error } = await supabase
           .from('torneos')
           .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo')
-          .eq('activo', true)
           .order('id', { ascending: true });
         if (error) throw error;
-        setTorneos((data || []) as Torneo[]);
+        const activos = ((data || []) as Torneo[]).filter((t) => t.activo !== false);
+
+        if (activos.length === 0) {
+          setTorneos(FALLBACK_TORNEOS);
+          setUsingFallbackData(true);
+          setTorneosError('No llegaron torneos activos desde Supabase. Mostrando datos de respaldo.');
+          return;
+        }
+
+        setTorneos(activos);
       } catch (err) {
         console.error('No se pudo cargar la lista de torneos', err);
+        const message = String(err?.message || 'error desconocido');
+        setTorneos(FALLBACK_TORNEOS);
+        setUsingFallbackData(true);
+        setTorneosError(`No se pudo cargar desde Supabase (${message}). Mostrando datos de respaldo.`);
       } finally {
         setCargandoTorneos(false);
       }
@@ -210,6 +274,14 @@ const Tournaments: React.FC = () => {
 
         <div className="max-w-7xl mx-auto w-full">
           <h1 className="text-[#111813] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 md:px-8 text-left pb-3 pt-4">Torneos Disponibles</h1>
+
+          {(torneosError || usingFallbackData) && (
+            <div className="px-4 md:px-8 pb-4">
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 p-4 border border-amber-200 dark:border-amber-700/50 text-sm text-amber-800 dark:text-amber-200">
+                {torneosError || 'Mostrando datos de respaldo mientras se restablece la conexion con Supabase.'}
+              </div>
+            </div>
+          )}
 
           {availableTournaments.length === 0 && (
             <div className="px-4 md:px-8 pb-4">
