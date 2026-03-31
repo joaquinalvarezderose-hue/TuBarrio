@@ -38,6 +38,11 @@ type NextMatch = {
   rivalWhatsapp: string | null;
 };
 
+type TournamentScope = {
+  categoria: string;
+  grupo: string;
+};
+
 const TournamentPanel: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,25 +54,93 @@ const TournamentPanel: React.FC = () => {
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE"
   });
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const currentUserId = String(appUser?.id || '');
+  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
 
   const [loadingData, setLoadingData] = useState(true);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
   const [hasLifecycleStatus, setHasLifecycleStatus] = useState<boolean>(true);
   const [nextMatch, setNextMatch] = useState<NextMatch | null>(null);
+  const [userScope, setUserScope] = useState<TournamentScope | null>(null);
+  const [groupPosition, setGroupPosition] = useState<number | null>(null);
+  const [groupSize, setGroupSize] = useState<number>(0);
 
   useEffect(() => {
     localStorage.setItem('active_tournament', JSON.stringify(tournament));
   }, [tournament]);
 
   useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const { data } = await (supabase as any).auth.getUser();
+        const authUserId = data?.user?.id;
+        if (authUserId) {
+          setCurrentUserId(String(authUserId));
+        } else {
+          setCurrentUserId(String(appUser?.id || ''));
+        }
+      } catch {
+        setCurrentUserId(String(appUser?.id || ''));
+      }
+    };
+
+    loadCurrentUser();
+  }, []);
+
+  useEffect(() => {
     const loadPanelData = async () => {
       setLoadingData(true);
       try {
-        const { data: statusRows, error: statusError } = await supabase
+        let resolvedScope: TournamentScope | null = null;
+
+        if (currentUserId) {
+          const { data: jugadorScopeRows } = await supabase
+            .from('torneo_jugadores')
+            .select('categoria, grupo')
+            .eq('torneo_id', tournament.id)
+            .eq('perfil_id', currentUserId)
+            .limit(1);
+
+          const jugadorScope = Array.isArray(jugadorScopeRows) ? jugadorScopeRows[0] : null;
+          if (jugadorScope?.categoria && jugadorScope?.grupo) {
+            resolvedScope = {
+              categoria: String(jugadorScope.categoria),
+              grupo: String(jugadorScope.grupo),
+            };
+          }
+        }
+
+        if (!resolvedScope && currentUserId) {
+          const { data: inscripcionScopeRows } = await supabase
+            .from('inscripciones_torneo')
+            .select('categoria, grupo')
+            .eq('torneo_id', tournament.id)
+            .eq('perfil_id', currentUserId)
+            .in('estado', ['pagado_aprobado', 'pendiente_revision'])
+            .limit(1);
+
+          const inscripcionScope = Array.isArray(inscripcionScopeRows) ? inscripcionScopeRows[0] : null;
+          if (inscripcionScope?.categoria && inscripcionScope?.grupo) {
+            resolvedScope = {
+              categoria: String(inscripcionScope.categoria),
+              grupo: String(inscripcionScope.grupo),
+            };
+          }
+        }
+
+        setUserScope(resolvedScope);
+
+        let statusQuery: any = supabase
           .from('torneo_estado')
-          .select('estado')
+          .select('estado, categoria, grupo')
           .eq('torneo_id', tournament.id);
+
+        if (resolvedScope) {
+          statusQuery = statusQuery
+            .eq('categoria', resolvedScope.categoria)
+            .eq('grupo', resolvedScope.grupo);
+        }
+
+        const { data: statusRows, error: statusError } = await statusQuery;
 
         let vHasLifecycleStatus = false;
 
@@ -91,7 +164,7 @@ const TournamentPanel: React.FC = () => {
           return;
         }
 
-        const { data: matchRows, error: matchError } = await supabase
+        let matchQuery: any = supabase
           .from('partidos')
           .select('id, jornada, estado, fecha_programada, jugador1_id, jugador2_id')
           .eq('torneo_id', tournament.id)
@@ -100,33 +173,73 @@ const TournamentPanel: React.FC = () => {
           .order('fecha_programada', { ascending: true })
           .limit(1);
 
+        if (resolvedScope) {
+          matchQuery = matchQuery
+            .eq('categoria', resolvedScope.categoria)
+            .eq('grupo', resolvedScope.grupo);
+        }
+
+        const { data: matchRows, error: matchError } = await matchQuery;
+
         if (matchError) throw matchError;
 
         const next = Array.isArray(matchRows) ? matchRows[0] : null;
         if (!next) {
           setNextMatch(null);
-          return;
+        } else {
+          const rivalId = String(next.jugador1_id) === currentUserId ? String(next.jugador2_id) : String(next.jugador1_id);
+          const { data: rivalProfile } = await supabase
+            .from('perfiles')
+            .select('id, nombre_completo, whatsapp')
+            .eq('id', rivalId)
+            .maybeSingle();
+
+          setNextMatch({
+            id: String(next.id),
+            jornada: Number(next.jornada || 1),
+            estado: String(next.estado || 'programado'),
+            fecha_programada: next.fecha_programada || null,
+            rivalId,
+            rivalName: String(rivalProfile?.nombre_completo || 'Rival por confirmar'),
+            rivalWhatsapp: rivalProfile?.whatsapp || null,
+          });
         }
 
-        const rivalId = String(next.jugador1_id) === currentUserId ? String(next.jugador2_id) : String(next.jugador1_id);
-        const { data: rivalProfile } = await supabase
-          .from('perfiles')
-          .select('id, nombre_completo, whatsapp')
-          .eq('id', rivalId)
-          .maybeSingle();
+        if (resolvedScope && currentUserId) {
+          const { data: tableRows, error: tableError } = await supabase
+            .from('torneo_jugadores')
+            .select('perfil_id, puntos, sets_ganados, partidos_jugados')
+            .eq('torneo_id', tournament.id)
+            .eq('categoria', resolvedScope.categoria)
+            .eq('grupo', resolvedScope.grupo);
 
-        setNextMatch({
-          id: String(next.id),
-          jornada: Number(next.jornada || 1),
-          estado: String(next.estado || 'programado'),
-          fecha_programada: next.fecha_programada || null,
-          rivalId,
-          rivalName: String(rivalProfile?.nombre_completo || 'Rival por confirmar'),
-          rivalWhatsapp: rivalProfile?.whatsapp || null,
-        });
+          if (!tableError && Array.isArray(tableRows) && tableRows.length > 0) {
+            const sorted = [...tableRows].sort((a: any, b: any) => {
+              const pointsDiff = Number(b.puntos || 0) - Number(a.puntos || 0);
+              if (pointsDiff !== 0) return pointsDiff;
+
+              const setsDiff = Number(b.sets_ganados || 0) - Number(a.sets_ganados || 0);
+              if (setsDiff !== 0) return setsDiff;
+
+              return Number(a.partidos_jugados || 0) - Number(b.partidos_jugados || 0);
+            });
+
+            const userIndex = sorted.findIndex((row: any) => String(row.perfil_id) === currentUserId);
+            setGroupSize(sorted.length);
+            setGroupPosition(userIndex >= 0 ? userIndex + 1 : null);
+          } else {
+            setGroupSize(0);
+            setGroupPosition(null);
+          }
+        } else {
+          setGroupSize(0);
+          setGroupPosition(null);
+        }
       } catch (error) {
         console.error('No se pudo cargar el panel del torneo', error);
         setNextMatch(null);
+        setGroupSize(0);
+        setGroupPosition(null);
       } finally {
         setLoadingData(false);
       }
@@ -182,6 +295,12 @@ const TournamentPanel: React.FC = () => {
     });
   }, [nextMatch?.fecha_programada]);
 
+  const groupProgressWidth = useMemo(() => {
+    if (!groupPosition || !groupSize || groupSize <= 0) return 0;
+    const progress = ((groupSize - groupPosition + 1) / groupSize) * 100;
+    return Math.max(8, Math.min(100, Math.round(progress)));
+  }, [groupPosition, groupSize]);
+
   if (!loadingData && !isReady) {
     return (
       <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark font-display">
@@ -236,7 +355,10 @@ const TournamentPanel: React.FC = () => {
                 <span className="text-primary text-xs font-bold uppercase tracking-widest">{tournamentPhaseLabel}</span>
                 <h2 className="text-xl font-bold leading-tight text-[#111813] dark:text-white">{tournament.title}</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="bg-primary/10 text-[#4a9c40] dark:bg-primary/20 px-2 py-0.5 rounded text-xs font-semibold">{tournament.subtitle || 'Categoría general'}</span>
+                  <span className="bg-primary/10 text-[#4a9c40] dark:bg-primary/20 px-2 py-0.5 rounded text-xs font-semibold">{userScope?.categoria || tournament.subtitle || 'Categoría general'}</span>
+                  {userScope?.grupo && (
+                    <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-semibold">{userScope.grupo}</span>
+                  )}
                   <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-semibold">{tournamentStatus}</span>
                 </div>
               </div>
@@ -339,9 +461,16 @@ const TournamentPanel: React.FC = () => {
 
         {/* Status Footer */}
         <section className="mt-8 text-center px-4">
-          <p className="text-xs text-gray-500 dark:text-gray-500 font-bold uppercase tracking-wide">Estás en la posición #4 de tu grupo</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 font-bold uppercase tracking-wide">
+            {groupPosition && groupSize > 0
+              ? `Estás en la posición #${groupPosition} de ${groupSize} en tu grupo`
+              : 'Posición de grupo disponible cuando haya tabla cargada'}
+          </p>
           <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mt-3 overflow-hidden">
-            <div className="bg-[#4a9c40] h-full w-[65%] rounded-full shadow-[0_0_8px_rgba(74,156,64,0.4)]"></div>
+            <div
+              className="bg-[#4a9c40] h-full rounded-full shadow-[0_0_8px_rgba(74,156,64,0.4)]"
+              style={{ width: `${groupProgressWidth}%` }}
+            ></div>
           </div>
         </section>
       </main>
