@@ -40,7 +40,6 @@ const Fixture: React.FC = () => {
     subtitle: 'Singles Caballeros',
   });
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
 
   const loadFixtureData = useCallback(async () => {
     try {

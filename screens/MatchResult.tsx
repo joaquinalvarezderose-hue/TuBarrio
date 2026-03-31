@@ -54,7 +54,6 @@ const MatchResult: React.FC = () => {
   });
 
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
   const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
 
   const [players, setPlayers] = useState<PlayerCard[]>([
