@@ -303,23 +303,25 @@ const Tournaments: React.FC = () => {
               {myRegisteredTournaments.map((t) => {
                 const status = statusByTournamentId[t.id] || 'RECRUITING';
                 const isReady = isTournamentReadyForPanel(status);
+                const hasLifecycleInfo = Boolean(statusByTournamentId[t.id]);
+                const canOpenPanel = isReady || !hasLifecycleInfo;
 
                 return (
                 <div 
                   key={t.id} 
                   onClick={() => {
-                    if (isReady) {
+                    if (canOpenPanel) {
                       navigate('/tournament-panel', { state: { tournament: toNavTorneo(t) } });
                     }
                   }}
-                  className={`bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-all group ${isReady ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}
+                  className={`bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-all group ${canOpenPanel ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}
                 >
                   <img src={t.imagen_url || ''} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
                   <div className="flex-1">
                     <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.titulo}</h4>
                     <p className="text-xs text-gray-400">{formatearFecha(t.fecha_inicio, t.fecha_fin)}</p>
-                    <span className={`text-xs font-bold mt-1 inline-block ${isReady ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
-                      {isReady ? 'Ver Panel' : 'Torneo en preparación'}
+                    <span className={`text-xs font-bold mt-1 inline-block ${canOpenPanel ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
+                      {canOpenPanel ? 'Ver Panel' : 'Torneo en preparación'}
                     </span>
                   </div>
                   <span className="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">chevron_right</span>
