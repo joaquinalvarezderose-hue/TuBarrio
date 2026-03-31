@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import { useNextMatch } from '../hooks/useNextMatch';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const PANEL_READY_STATUSES = new Set([
@@ -28,16 +29,6 @@ const STATUS_PRIORITY: Record<string, number> = {
 const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
 
-type NextMatch = {
-  id: string;
-  jornada: number;
-  estado: string;
-  fecha_programada: string | null;
-  rivalId: string;
-  rivalName: string;
-  rivalWhatsapp: string | null;
-};
-
 type TournamentScope = {
   categoria: string;
   grupo: string;
@@ -59,10 +50,12 @@ const TournamentPanel: React.FC = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
   const [hasLifecycleStatus, setHasLifecycleStatus] = useState<boolean>(true);
-  const [nextMatch, setNextMatch] = useState<NextMatch | null>(null);
   const [userScope, setUserScope] = useState<TournamentScope | null>(null);
   const [groupPosition, setGroupPosition] = useState<number | null>(null);
   const [groupSize, setGroupSize] = useState<number>(0);
+
+  // Hook centralizado para el próximo partido + datos del rival
+  const { match: nextMatch, loading: loadingNextMatch } = useNextMatch(tournament.id);
 
   useEffect(() => {
     localStorage.setItem('active_tournament', JSON.stringify(tournament));
@@ -160,51 +153,11 @@ const TournamentPanel: React.FC = () => {
         setTournamentStatus(resolvedStatus);
 
         if ((vHasLifecycleStatus && !isTournamentReadyForPanel(resolvedStatus)) || !currentUserId) {
-          setNextMatch(null);
           return;
         }
 
-        let matchQuery: any = supabase
-          .from('partidos')
-          .select('id, jornada, estado, fecha_programada, jugador1_id, jugador2_id')
-          .eq('torneo_id', tournament.id)
-          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .in('estado', ['programado', 'en_curso'])
-          .order('fecha_programada', { ascending: true })
-          .limit(1);
-
-        if (resolvedScope) {
-          matchQuery = matchQuery
-            .eq('categoria', resolvedScope.categoria)
-            .eq('grupo', resolvedScope.grupo);
-        }
-
-        const { data: matchRows, error: matchError } = await matchQuery;
-
-        if (matchError) throw matchError;
-
-        const next = Array.isArray(matchRows) ? matchRows[0] : null;
-        if (!next) {
-          setNextMatch(null);
-        } else {
-          const rivalId = String(next.jugador1_id) === currentUserId ? String(next.jugador2_id) : String(next.jugador1_id);
-          const { data: rivalProfile } = await supabase
-            .from('perfiles')
-            .select('id, nombre_completo, whatsapp')
-            .eq('id', rivalId)
-            .maybeSingle();
-
-          setNextMatch({
-            id: String(next.id),
-            jornada: Number(next.jornada || 1),
-            estado: String(next.estado || 'programado'),
-            fecha_programada: next.fecha_programada || null,
-            rivalId,
-            rivalName: String(rivalProfile?.nombre_completo || 'Rival por confirmar'),
-            rivalWhatsapp: rivalProfile?.whatsapp || null,
-          });
-        }
-
+        // La carga del próximo partido es manejada por el hook useNextMatch.
+        // Aquí solo cargamos la posición en el grupo.
         if (resolvedScope && currentUserId) {
           const { data: tableRows, error: tableError } = await supabase
             .from('torneo_jugadores')
@@ -237,7 +190,6 @@ const TournamentPanel: React.FC = () => {
         }
       } catch (error) {
         console.error('No se pudo cargar el panel del torneo', error);
-        setNextMatch(null);
         setGroupSize(0);
         setGroupPosition(null);
       } finally {
@@ -248,6 +200,9 @@ const TournamentPanel: React.FC = () => {
     loadPanelData();
   }, [currentUserId, tournament.id]);
 
+  // El panel se considera "cargando" hasta que tanto el estado general
+  // como los datos del próximo partido estén resueltos.
+  const isLoading = loadingData || loadingNextMatch;
   const isReady = !hasLifecycleStatus || isTournamentReadyForPanel(tournamentStatus);
 
   const tournamentPhaseLabel = useMemo(() => {
@@ -301,7 +256,7 @@ const TournamentPanel: React.FC = () => {
     return Math.max(8, Math.min(100, Math.round(progress)));
   }, [groupPosition, groupSize]);
 
-  if (!loadingData && !isReady) {
+  if (!isLoading && !isReady) {
     return (
       <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark font-display">
         <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">

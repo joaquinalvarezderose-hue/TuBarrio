@@ -66,7 +66,7 @@ const Fixture: React.FC = () => {
           .eq('categoria', categoria)
           .eq('grupo', grupo)
           .order('jornada', { ascending: true })
-          .order('fecha_programada', { ascending: true }),
+          .order('fecha_programada', { ascending: true, nullsFirst: false }),
         supabase
           .from('torneo_partidos_historial')
           .select('partido_id, sets_jugador1, sets_jugador2, ganador_perfil_id')
