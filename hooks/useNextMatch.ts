@@ -75,7 +75,23 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         return;
       }
 
-      const { data: matchRows, error: matchError } = await supabase
+      let scopeCategoria: string | null = null;
+      let scopeGrupo: string | null = null;
+
+      const { data: scopeRows } = await supabase
+        .from('torneo_jugadores')
+        .select('categoria, grupo')
+        .eq('torneo_id', parsedTournamentId)
+        .eq('perfil_id', currentUserId)
+        .limit(1);
+
+      const scopeRow = Array.isArray(scopeRows) ? scopeRows[0] : null;
+      if (scopeRow?.categoria) scopeCategoria = String(scopeRow.categoria);
+      if (scopeRow?.grupo) scopeGrupo = String(scopeRow.grupo);
+
+      let next: any = null;
+
+      let joinedQuery: any = supabase
         .from('partidos')
         .select(
           `
@@ -97,9 +113,34 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         .order('fecha_programada', { ascending: true, nullsFirst: false })
         .limit(1);
 
-      if (matchError) throw matchError;
+      if (scopeCategoria) joinedQuery = joinedQuery.eq('categoria', scopeCategoria);
+      if (scopeGrupo) joinedQuery = joinedQuery.eq('grupo', scopeGrupo);
 
-      const next = Array.isArray(matchRows) ? (matchRows[0] as any) ?? null : null;
+      const { data: matchRows, error: matchError } = await joinedQuery;
+
+      if (!matchError) {
+        next = Array.isArray(matchRows) ? (matchRows[0] as any) ?? null : null;
+      }
+
+      if (matchError) {
+        // Fallback si el join alias no puede resolverse por metadata/fk en runtime.
+        let plainQuery: any = supabase
+          .from('partidos')
+          .select('id, jornada, estado, fecha_programada, torneo_id, jugador1_id, jugador2_id')
+          .eq('torneo_id', parsedTournamentId)
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .eq('estado', 'programado')
+          .order('jornada', { ascending: true })
+          .order('fecha_programada', { ascending: true, nullsFirst: false })
+          .limit(1);
+
+        if (scopeCategoria) plainQuery = plainQuery.eq('categoria', scopeCategoria);
+        if (scopeGrupo) plainQuery = plainQuery.eq('grupo', scopeGrupo);
+
+        const { data: plainRows, error: plainError } = await plainQuery;
+        if (plainError) throw plainError;
+        next = Array.isArray(plainRows) ? (plainRows[0] as any) ?? null : null;
+      }
 
       if (!next) {
         setMatch(null);
@@ -107,12 +148,31 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
       }
 
       const isCurrentUserJugador1 = String(next.jugador1_id) === currentUserId;
-      const rivalRow = isCurrentUserJugador1 ? next.jugador2 : next.jugador1;
+      const rivalJoinedRaw = isCurrentUserJugador1 ? next.jugador2 : next.jugador1;
+      const rivalRow = Array.isArray(rivalJoinedRaw) ? rivalJoinedRaw[0] : rivalJoinedRaw;
+
+      let rivalId = String(isCurrentUserJugador1 ? next.jugador2_id : next.jugador1_id);
+      let rivalNombre = String(rivalRow?.nombre_completo ?? 'Rival por confirmar');
+      let rivalWhatsapp = rivalRow?.whatsapp ? String(rivalRow.whatsapp) : null;
+
+      if (!rivalRow?.id || (!rivalWhatsapp && rivalNombre === 'Rival por confirmar')) {
+        const { data: rivalProfile, error: rivalError } = await supabase
+          .from('perfiles')
+          .select('id, nombre_completo, whatsapp')
+          .eq('id', rivalId)
+          .maybeSingle();
+
+        if (!rivalError && rivalProfile) {
+          rivalId = String(rivalProfile.id ?? rivalId);
+          rivalNombre = String(rivalProfile.nombre_completo ?? rivalNombre);
+          rivalWhatsapp = rivalProfile.whatsapp ? String(rivalProfile.whatsapp) : null;
+        }
+      }
 
       const rival: RivalProfile = {
-        id: String(rivalRow?.id ?? (isCurrentUserJugador1 ? next.jugador2_id : next.jugador1_id)),
-        nombre_completo: String(rivalRow?.nombre_completo ?? 'Rival por confirmar'),
-        whatsapp: rivalRow?.whatsapp ? String(rivalRow.whatsapp) : null,
+        id: rivalId,
+        nombre_completo: rivalNombre,
+        whatsapp: rivalWhatsapp,
       };
 
       const digits = String(rival.whatsapp ?? '').replace(/[^\d]/g, '');

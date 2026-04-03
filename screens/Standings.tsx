@@ -8,6 +8,7 @@ const Standings: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [dbRows, setDbRows] = useState<any[] | null>(null);
+  const [scope, setScope] = useState<TournamentScope | null>(null);
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -20,15 +21,77 @@ const Standings: React.FC = () => {
 
   const loadDbStandings = useCallback(async () => {
     try {
-      const grupo = `TORNEO_${tournament.id}`;
-      const categoria = tournament.subtitle || 'General';
+      const parsedTournamentId = Number(tournament.id);
+      if (!Number.isFinite(parsedTournamentId)) {
+        setDbRows([]);
+        return;
+      }
 
-      const { data, error } = await supabase
+      let currentUserId = '';
+      try {
+        const { data } = await (supabase as any).auth.getUser();
+        currentUserId = String(data?.user?.id || '');
+      } catch {
+        // ignore
+      }
+
+      if (!currentUserId) {
+        try {
+          const appUserRaw = localStorage.getItem('app_user');
+          const appUser = appUserRaw ? JSON.parse(appUserRaw) : null;
+          currentUserId = String(appUser?.id || '');
+        } catch {
+          // ignore
+        }
+      }
+
+      let resolvedScope: TournamentScope | null = null;
+      if (currentUserId) {
+        const { data: playerScopeRows } = await supabase
+          .from('torneo_jugadores')
+          .select('categoria, grupo')
+          .eq('torneo_id', parsedTournamentId)
+          .eq('perfil_id', currentUserId)
+          .limit(1);
+
+        const playerScope = Array.isArray(playerScopeRows) ? playerScopeRows[0] : null;
+        if (playerScope?.categoria && playerScope?.grupo) {
+          resolvedScope = {
+            categoria: String(playerScope.categoria),
+            grupo: String(playerScope.grupo),
+          };
+        }
+      }
+
+      if (!resolvedScope && currentUserId) {
+        const { data: inscriptionScopeRows } = await supabase
+          .from('inscripciones_torneo')
+          .select('categoria, grupo')
+          .eq('torneo_id', parsedTournamentId)
+          .eq('perfil_id', currentUserId)
+          .in('estado', ['pagado_aprobado', 'pendiente_revision'])
+          .limit(1);
+
+        const inscriptionScope = Array.isArray(inscriptionScopeRows) ? inscriptionScopeRows[0] : null;
+        if (inscriptionScope?.categoria && inscriptionScope?.grupo) {
+          resolvedScope = {
+            categoria: String(inscriptionScope.categoria),
+            grupo: String(inscriptionScope.grupo),
+          };
+        }
+      }
+
+      setScope(resolvedScope);
+
+      let standingsQuery: any = supabase
         .from('torneo_jugadores')
         .select('perfil_id, puntos, partidos_jugados, sets_ganados')
-        .eq('torneo_id', tournament.id)
-        .eq('categoria', categoria)
-        .eq('grupo', grupo);
+        .eq('torneo_id', parsedTournamentId);
+
+      if (resolvedScope?.categoria) standingsQuery = standingsQuery.eq('categoria', resolvedScope.categoria);
+      if (resolvedScope?.grupo) standingsQuery = standingsQuery.eq('grupo', resolvedScope.grupo);
+
+      const { data, error } = await standingsQuery;
 
       if (error || !data) {
         setDbRows([]);
@@ -113,8 +176,8 @@ const Standings: React.FC = () => {
         </div>
         <div className="px-4 pb-4 pt-2">
           <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl font-bold">Grupo A</h3>
-            <span className="text-slate-500 font-medium text-lg">- {tournament.subtitle || 'General'}</span>
+            <h3 className="text-2xl font-bold">{scope?.grupo || 'Grupo'}</h3>
+            <span className="text-slate-500 font-medium text-lg">- {scope?.categoria || tournament.subtitle || 'General'}</span>
           </div>
           <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mt-1">{tournament.title || 'Torneo TuBarrio'}</p>
         </div>
