@@ -1,18 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 
-// -----------------------------------------------------------------
-// Tipo que describe el próximo partido del usuario y los datos
-// del rival (incluyendo WhatsApp para el botón de contacto).
-// -----------------------------------------------------------------
+type RivalProfile = {
+  id: string;
+  nombre_completo: string;
+  whatsapp: string | null;
+};
+
 export type NextMatch = {
   id: string;
   jornada: number;
   estado: string;
   fecha_programada: string | null;
+  jugador1_id: string;
+  jugador2_id: string;
+  rival: RivalProfile;
+
+  // Compatibilidad con pantallas existentes.
   rivalId: string;
   rivalName: string;
   rivalWhatsapp: string | null;
+  whatsappLink: string | null;
 };
 
 export type UseNextMatchResult = {
@@ -26,20 +34,6 @@ export type UseNextMatchResult = {
   refetch: () => void;
 };
 
-/**
- * Hook que carga el próximo partido sin jugar del usuario logueado
- * para un torneo específico.
- *
- * Pasos internos:
- *  1. Resuelve el ID del usuario (Supabase Auth, con fallback a localStorage).
- *  2. Busca la categoría/grupo del usuario en `torneo_jugadores`.
- *  3. Consulta `partidos` filtrando por estado 'programado' o 'en_curso',
- *     ordenado por jornada y luego por fecha_programada.
- *  4. Obtiene el perfil del rival (nombre_completo + whatsapp) desde `perfiles`.
- *
- * Uso:
- *   const { loading, match, error, refetch } = useNextMatch(tournament.id);
- */
 export function useNextMatch(tournamentId: number | string): UseNextMatchResult {
   const [loading, setLoading] = useState(true);
   const [match, setMatch] = useState<NextMatch | null>(null);
@@ -51,17 +45,13 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
     setMatch(null);
 
     try {
-      // -------------------------------------------------------
-      // Paso 1: Obtener el ID del usuario actual.
-      // Primero intenta con Supabase Auth (sesión real),
-      // si no hay sesión activa usa el perfil guardado en localStorage.
-      // -------------------------------------------------------
       let currentUserId = '';
+
       try {
         const { data: authData } = await (supabase as any).auth.getUser();
         currentUserId = authData?.user?.id ?? '';
       } catch {
-        /* No hay sesión activa de Supabase, usamos fallback */
+        // Sin sesion auth, intenta fallback.
       }
 
       if (!currentUserId) {
@@ -69,102 +59,77 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
           const stored = localStorage.getItem('app_user');
           currentUserId = stored ? (JSON.parse(stored)?.id ?? '') : '';
         } catch {
-          /* localStorage no disponible */
+          // localStorage inaccesible.
         }
       }
 
       if (!currentUserId) {
-        // Sin usuario identificado no podemos consultar partidos personales
         setMatch(null);
         return;
       }
 
-      // -------------------------------------------------------
-      // Paso 2: Resolver en qué categoría y grupo está inscripto
-        // el jugador para filtrar solo sus partidos.
-      // La columna 'grupo' tiene el formato 'TORNEO_{id}'.
-      // -------------------------------------------------------
-      let categoria: string | null = null;
-      let grupo: string | null = null;
-
-      const { data: scopeRows } = await supabase
-        .from('torneo_jugadores')
-        .select('categoria, grupo')
-        .eq('torneo_id', tournamentId)
-        .eq('perfil_id', currentUserId)
-        .limit(1);
-
-      const scopeRow = Array.isArray(scopeRows) ? scopeRows[0] : null;
-      if (scopeRow?.categoria) {
-        categoria = String(scopeRow.categoria);
-        grupo = String(scopeRow.grupo);
+      const parsedTournamentId = Number(tournamentId);
+      if (!Number.isFinite(parsedTournamentId)) {
+        setError('ID de torneo invalido.');
+        setMatch(null);
+        return;
       }
 
-        console.debug('[useNextMatch] userId:', currentUserId, '| scope:', scopeRow ?? 'sin fila en torneo_jugadores');
-
-      // -------------------------------------------------------
-      // Paso 3: Buscar el próximo partido del usuario.
-      // Filtramos: torneo_id + usuario como jugador1 o jugador2
-      //            + estado pendiente o en curso.
-      // Orden: primero por jornada (número de ronda),
-      //        luego por fecha_programada con nulls al final
-      //        para que las fechas sin confirmar no "suban" al tope.
-      // -------------------------------------------------------
-      let query = supabase
+      const { data: matchRows, error: matchError } = await supabase
         .from('partidos')
-        .select('id, jornada, estado, fecha_programada, jugador1_id, jugador2_id')
-        .eq('torneo_id', tournamentId)
+        .select(
+          `
+            id,
+            jornada,
+            estado,
+            fecha_programada,
+            torneo_id,
+            jugador1_id,
+            jugador2_id,
+            jugador1:perfiles!jugador1_id(id, nombre_completo, whatsapp),
+            jugador2:perfiles!jugador2_id(id, nombre_completo, whatsapp)
+          `
+        )
+        .eq('torneo_id', parsedTournamentId)
         .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-        .in('estado', ['programado', 'en_curso'])
+        .eq('estado', 'programado')
         .order('jornada', { ascending: true })
         .order('fecha_programada', { ascending: true, nullsFirst: false })
         .limit(1);
 
-      // Agregar filtros de scope solo si están disponibles
-      if (categoria) query = (query as any).eq('categoria', categoria);
-      if (grupo) query = (query as any).eq('grupo', grupo);
-
-      const { data: matchRows, error: matchError } = await query;
-
       if (matchError) throw matchError;
 
-      const next = Array.isArray(matchRows) ? (matchRows[0] ?? null) : null;
+      const next = Array.isArray(matchRows) ? (matchRows[0] as any) ?? null : null;
 
       if (!next) {
-        // No hay partidos pendientes para este jugador en este torneo
         setMatch(null);
         return;
       }
 
-      console.debug('[useNextMatch] partido encontrado:', next);
+      const isCurrentUserJugador1 = String(next.jugador1_id) === currentUserId;
+      const rivalRow = isCurrentUserJugador1 ? next.jugador2 : next.jugador1;
 
-      // -------------------------------------------------------
-      // Paso 4: Obtener perfil del rival (nombre + WhatsApp).
-      // El rival es el jugador que NO soy yo en el partido.
-      // La columna 'whatsapp' en 'perfiles' se guarda durante
-      // el registro (Register.tsx).
-      // -------------------------------------------------------
-      const rivalId =
-        String(next.jugador1_id) === currentUserId
-          ? String(next.jugador2_id)
-          : String(next.jugador1_id);
+      const rival: RivalProfile = {
+        id: String(rivalRow?.id ?? (isCurrentUserJugador1 ? next.jugador2_id : next.jugador1_id)),
+        nombre_completo: String(rivalRow?.nombre_completo ?? 'Rival por confirmar'),
+        whatsapp: rivalRow?.whatsapp ? String(rivalRow.whatsapp) : null,
+      };
 
-      const { data: rivalProfile, error: profileError } = await supabase
-        .from('perfiles')
-        .select('id, nombre_completo, whatsapp')
-        .eq('id', rivalId)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
+      const digits = String(rival.whatsapp ?? '').replace(/[^\d]/g, '');
+      const whatsappLink = digits ? `https://wa.me/${digits}` : null;
 
       setMatch({
         id: String(next.id),
         jornada: Number(next.jornada ?? 1),
         estado: String(next.estado ?? 'programado'),
         fecha_programada: next.fecha_programada ?? null,
-        rivalId,
-        rivalName: rivalProfile?.nombre_completo ?? 'Rival por confirmar',
-        rivalWhatsapp: rivalProfile?.whatsapp ?? null,
+        jugador1_id: String(next.jugador1_id),
+        jugador2_id: String(next.jugador2_id),
+        rival,
+        rivalId: rival.id,
+        rivalName: rival.nombre_completo,
+        rivalWhatsapp: rival.whatsapp,
+        whatsappLink,
       });
     } catch (err: any) {
       console.error('[useNextMatch] Error al cargar el próximo partido:', err);

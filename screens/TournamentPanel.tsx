@@ -232,11 +232,12 @@ const TournamentPanel: React.FC = () => {
   const estaFinalizado = tournamentStatus === 'FINALIZADO';
 
   const rivalWaLink = useMemo(() => {
-    if (!nextMatch?.rivalWhatsapp) return null;
-    const digits = String(nextMatch.rivalWhatsapp).replace(/[^\d]/g, '');
+    const whatsapp = nextMatch?.rival?.whatsapp ?? nextMatch?.rivalWhatsapp;
+    if (!whatsapp) return null;
+    const digits = String(whatsapp).replace(/[^\d]/g, '');
     if (!digits) return null;
     return `https://wa.me/${digits}`;
-  }, [nextMatch?.rivalWhatsapp]);
+  }, [nextMatch?.rival?.whatsapp, nextMatch?.rivalWhatsapp]);
 
   const nextMatchDateLabel = useMemo(() => {
     if (!nextMatch?.fecha_programada) return 'Fecha a confirmar por la organización';
