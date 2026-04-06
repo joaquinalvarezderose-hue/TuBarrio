@@ -208,6 +208,7 @@ const Fixture: React.FC = () => {
 
   const canReportMatch = (match: FixtureMatch) => {
     if (torneoFinalizado) return false;
+    const currentUserId = String(appUser?.id || '');
     return currentUserId !== '' && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId) && match.estado !== 'finalizado';
   };
 
