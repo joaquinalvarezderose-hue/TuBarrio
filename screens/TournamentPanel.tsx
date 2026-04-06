@@ -312,10 +312,6 @@ const TournamentPanel: React.FC = () => {
                 <h2 className="text-xl font-bold leading-tight text-[#111813] dark:text-white">{tournament.title}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="bg-primary/10 text-[#4a9c40] dark:bg-primary/20 px-2 py-0.5 rounded text-xs font-semibold">{userScope?.categoria || tournament.subtitle || 'Categoría general'}</span>
-                  {userScope?.grupo && (
-                    <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-semibold">{userScope.grupo}</span>
-                  )}
-                  <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-semibold">{tournamentStatus}</span>
                 </div>
               </div>
             </div>

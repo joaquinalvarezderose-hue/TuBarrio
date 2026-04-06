@@ -176,8 +176,8 @@ const Standings: React.FC = () => {
         </div>
         <div className="px-4 pb-4 pt-2">
           <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl font-bold">{scope?.grupo || 'Grupo'}</h3>
-            <span className="text-slate-500 font-medium text-lg">- {scope?.categoria || tournament.subtitle || 'General'}</span>
+            <h3 className="text-2xl font-bold">Tabla General</h3>
+            <span className="text-slate-500 font-medium text-lg">{scope?.categoria || tournament.subtitle || 'General'}</span>
           </div>
           <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mt-1">{tournament.title || 'Torneo TuBarrio'}</p>
         </div>
