@@ -98,7 +98,27 @@ const Standings: React.FC = () => {
         return;
       }
 
-      const profileIds = data.map((row: any) => row.perfil_id).filter(Boolean);
+      const rowsByProfile = new Map<string, any>();
+      for (const row of data) {
+        const perfilId = String(row?.perfil_id || '');
+        if (!perfilId) continue;
+        const prev = rowsByProfile.get(perfilId);
+        if (!prev) {
+          rowsByProfile.set(perfilId, row);
+          continue;
+        }
+
+        // Defensive merge in case duplicated rows exist in torneo_jugadores.
+        rowsByProfile.set(perfilId, {
+          ...prev,
+          puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
+          partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
+          sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
+        });
+      }
+
+      const uniqueRows = Array.from(rowsByProfile.values());
+      const profileIds = uniqueRows.map((row: any) => row.perfil_id).filter(Boolean);
       const { data: perfiles } = await supabase
         .from('perfiles')
         .select('id, nombre_completo')
@@ -106,7 +126,7 @@ const Standings: React.FC = () => {
 
       const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
 
-      const mapped = data.map((row: any, idx: number) => ({
+      const mapped = uniqueRows.map((row: any, idx: number) => ({
         id: row.perfil_id || `db-player-${idx}`,
         name: nameById[row.perfil_id] || 'Jugador',
         img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop',
@@ -124,7 +144,23 @@ const Standings: React.FC = () => {
         return b.setsWon - a.setsWon;
       });
 
-      setDbRows(mapped);
+      const nameCounts = mapped.reduce((acc: Record<string, number>, row: any) => {
+        const key = String(row.name || 'Jugador');
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+
+      const withUniqueLabels = mapped.map((row: any) => {
+        const duplicatedName = (nameCounts[String(row.name || 'Jugador')] || 0) > 1;
+        if (!duplicatedName) return row;
+        const shortId = String(row.id || '').slice(-4);
+        return {
+          ...row,
+          name: `${row.name} #${shortId}`,
+        };
+      });
+
+      setDbRows(withUniqueLabels);
     } catch (err) {
       console.error('No se pudo cargar la tabla desde Supabase', err);
       setDbRows([]);
