@@ -32,6 +32,7 @@ const Fixture: React.FC = () => {
   const [playersStats, setPlayersStats] = useState<FixturePlayer[]>([]);
   const [matches, setMatches] = useState<FixtureMatch[]>([]);
   const [torneoFinalizado, setTorneoFinalizado] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -162,8 +163,10 @@ const Fixture: React.FC = () => {
       }));
 
       setMatches(mappedMatches);
+      setLoadError(null);
     } catch (err) {
       console.error('No se pudo cargar el estado del fixture', err);
+      setLoadError('No pudimos cargar los datos del fixture. Intentá recargar la página.');
     }
   }, [tournament.id, tournament.subtitle]);
 
@@ -278,6 +281,12 @@ const Fixture: React.FC = () => {
             )}
           </div>
 
+          {loadError && (
+            <div className="rounded-xl bg-red-50 dark:bg-red-900/10 p-4 border border-red-100 dark:border-red-800/20 flex gap-3 mb-4">
+              <span className="material-symbols-outlined text-red-500 text-lg">error</span>
+              <p className="text-sm text-red-700 dark:text-red-300 font-medium">{loadError}</p>
+            </div>
+          )}
           <h3 className="text-[#111813] dark:text-white text-base font-bold uppercase tracking-wider mb-3">Partidos del torneo</h3>
           <div className="flex flex-col gap-4">
             {fixtureMatches.length === 0 ? (

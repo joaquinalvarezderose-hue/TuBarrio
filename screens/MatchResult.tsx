@@ -55,6 +55,7 @@ const MatchResult: React.FC = () => {
 
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
   const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
+  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
 
   const [players, setPlayers] = useState<PlayerCard[]>([
     { id: '', perfil_id: '', name: 'Jugador 1', puntos: 0, partidos_jugados: 0, sets_ganados: 0 },
@@ -124,19 +125,18 @@ const MatchResult: React.FC = () => {
   };
 
   useEffect(() => {
+    (supabase as any).auth.getUser().then(({ data }: any) => {
+      if (data?.user?.id) setCurrentUserId(String(data.user.id));
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const loadMatchContext = async () => {
       setLoadingMatch(true);
       setSubmitError(null);
       setBlockReason(null);
 
       try {
-          // Resolver usuario: Supabase Auth como fuente principal, localStorage como fallback
-          let currentUserId = String(appUser?.id || '');
-          try {
-            const { data: authData } = await (supabase as any).auth.getUser();
-            if (authData?.user?.id) currentUserId = String(authData.user.id);
-          } catch { /* sin sesión activa, usar localStorage */ }
-
           if (!currentUserId) {
           setSubmitError('No hay un usuario activo para cargar el resultado.');
           return;
