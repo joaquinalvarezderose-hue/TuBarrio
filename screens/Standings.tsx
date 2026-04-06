@@ -4,6 +4,26 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PlayerStats } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
 
+type TournamentScope = {
+  categoria: string;
+  grupo: string;
+};
+
+type TournamentPlayerRow = {
+  perfil_id: string;
+  puntos: number | null;
+  partidos_jugados: number | null;
+  sets_ganados: number | null;
+};
+
+type TournamentMatchRow = {
+  jugador1_id: string | null;
+  jugador2_id: string | null;
+  categoria: string | null;
+  grupo: string | null;
+  jornada: number | null;
+};
+
 const Standings: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,6 +103,37 @@ const Standings: React.FC = () => {
 
       setScope(resolvedScope);
 
+      let participantIds: string[] = [];
+      let partidosRows: TournamentMatchRow[] = [];
+
+      if (currentUserId) {
+        let partidosQuery: any = supabase
+          .from('partidos')
+          .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
+          .eq('torneo_id', parsedTournamentId)
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .order('jornada', { ascending: true });
+
+        if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
+        if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
+
+        const { data: userMatchRows, error: userMatchError } = await partidosQuery;
+        if (userMatchError) throw userMatchError;
+        partidosRows = Array.isArray(userMatchRows) ? userMatchRows : [];
+
+        if (!resolvedScope && partidosRows[0]?.categoria && partidosRows[0]?.grupo) {
+          resolvedScope = {
+            categoria: String(partidosRows[0].categoria),
+            grupo: String(partidosRows[0].grupo),
+          };
+          setScope(resolvedScope);
+        }
+
+        participantIds = Array.from(new Set(
+          partidosRows.flatMap((row) => [row.jugador1_id, row.jugador2_id]).filter(Boolean).map((id) => String(id))
+        ));
+      }
+
       let standingsQuery: any = supabase
         .from('torneo_jugadores')
         .select('perfil_id, puntos, partidos_jugados, sets_ganados')
@@ -98,83 +149,130 @@ const Standings: React.FC = () => {
         return;
       }
 
-      const rowsByProfile = new Map<string, any>();
-      for (const row of data) {
-        const perfilId = String(row?.perfil_id || '');
-        if (!perfilId) continue;
-        const prev = rowsByProfile.get(perfilId);
-        if (!prev) {
-          rowsByProfile.set(perfilId, row);
-          continue;
-        }
+      const rowsByProfile = new Map<string, TournamentPlayerRow>();
+      const mergeRows = (rows: TournamentPlayerRow[]) => {
+        for (const row of rows) {
+          const perfilId = String(row?.perfil_id || '');
+          if (!perfilId) continue;
+          const prev = rowsByProfile.get(perfilId);
+          if (!prev) {
+            rowsByProfile.set(perfilId, row);
+            continue;
+          }
 
-        // Defensive merge in case duplicated rows exist in torneo_jugadores.
-        rowsByProfile.set(perfilId, {
-          ...prev,
-          puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
-          partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
-          sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
-        });
-      }
+          rowsByProfile.set(perfilId, {
+            ...prev,
+            puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
+            partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
+            sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
+          });
+        }
+      };
+
+      mergeRows((data || []) as TournamentPlayerRow[]);
 
       let uniqueRows = Array.from(rowsByProfile.values());
 
-      if (uniqueRows.length < 2 && currentUserId) {
-        let partidosQuery: any = supabase
+      if (participantIds.length > 0 && uniqueRows.length < participantIds.length) {
+        const { data: participantRows, error: participantRowsError } = await supabase
+          .from('torneo_jugadores')
+          .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+          .eq('torneo_id', parsedTournamentId)
+          .in('perfil_id', participantIds);
+
+        if (participantRowsError) throw participantRowsError;
+        mergeRows((participantRows || []) as TournamentPlayerRow[]);
+        uniqueRows = participantIds.map((perfilId) => rowsByProfile.get(perfilId)).filter(Boolean) as TournamentPlayerRow[];
+      }
+
+      if (uniqueRows.length === 0 && resolvedScope) {
+        const { data: approvedPlayers, error: approvedPlayersError } = await supabase
+          .from('inscripciones_torneo')
+          .select('perfil_id')
+          .eq('torneo_id', parsedTournamentId)
+          .eq('categoria', resolvedScope.categoria)
+          .eq('grupo', resolvedScope.grupo)
+          .in('estado', ['pagado_aprobado', 'pendiente_revision']);
+
+        if (approvedPlayersError) throw approvedPlayersError;
+
+        participantIds = Array.from(new Set(
+          (approvedPlayers || []).map((row: any) => String(row?.perfil_id || '')).filter(Boolean)
+        ));
+
+        if (participantIds.length > 0) {
+          const seededRows = participantIds.map((perfilId) => ({
+            perfil_id: perfilId,
+            puntos: 0,
+            partidos_jugados: 0,
+            sets_ganados: 0,
+          }));
+          mergeRows(seededRows);
+          uniqueRows = participantIds.map((perfilId) => rowsByProfile.get(perfilId)).filter(Boolean) as TournamentPlayerRow[];
+        }
+      }
+
+      if (uniqueRows.length < 2 && participantIds.length === 0 && currentUserId) {
+        const { data: fallbackMatches, error: fallbackMatchesError } = await supabase
           .from('partidos')
           .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
           .eq('torneo_id', parsedTournamentId)
           .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .order('jornada', { ascending: true })
-          .limit(1);
+          .order('jornada', { ascending: true });
 
-        if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-        if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
+        if (fallbackMatchesError) throw fallbackMatchesError;
 
-        const { data: partidosRows } = await partidosQuery;
-        const partidoRef = Array.isArray(partidosRows) ? partidosRows[0] : null;
+        const firstMatch = Array.isArray(fallbackMatches) ? fallbackMatches[0] : null;
+        if (firstMatch?.categoria && firstMatch?.grupo) {
+          resolvedScope = {
+            categoria: String(firstMatch.categoria),
+            grupo: String(firstMatch.grupo),
+          };
+          setScope(resolvedScope);
+        }
 
-        if (partidoRef?.jugador1_id && partidoRef?.jugador2_id) {
-          const targetPerfilIds = [String(partidoRef.jugador1_id), String(partidoRef.jugador2_id)];
-          const { data: jugadoresFallbackRows, error: jugadoresFallbackError } = await supabase
+        participantIds = Array.from(new Set(
+          (fallbackMatches || []).flatMap((row: any) => [row.jugador1_id, row.jugador2_id]).filter(Boolean).map((id: any) => String(id))
+        ));
+
+        if (participantIds.length > 0) {
+          const { data: participantRows, error: participantRowsError } = await supabase
             .from('torneo_jugadores')
             .select('perfil_id, puntos, partidos_jugados, sets_ganados')
             .eq('torneo_id', parsedTournamentId)
-            .in('perfil_id', targetPerfilIds);
+            .in('perfil_id', participantIds);
 
-          if (!jugadoresFallbackError && Array.isArray(jugadoresFallbackRows)) {
-            for (const row of jugadoresFallbackRows) {
-              const perfilId = String(row?.perfil_id || '');
-              if (!perfilId) continue;
-              const prev = rowsByProfile.get(perfilId);
-              if (!prev) {
-                rowsByProfile.set(perfilId, row);
-                continue;
-              }
-              rowsByProfile.set(perfilId, {
-                ...prev,
-                puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
-                partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
-                sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
-              });
-            }
-
-            uniqueRows = targetPerfilIds
-              .map((perfilId) => rowsByProfile.get(perfilId))
-              .filter(Boolean);
-          }
+          if (participantRowsError) throw participantRowsError;
+          mergeRows((participantRows || []) as TournamentPlayerRow[]);
+          uniqueRows = participantIds.map((perfilId) => rowsByProfile.get(perfilId) || {
+            perfil_id: perfilId,
+            puntos: 0,
+            partidos_jugados: 0,
+            sets_ganados: 0,
+          }).filter(Boolean) as TournamentPlayerRow[];
         }
       }
 
-      const profileIds = uniqueRows.map((row: any) => row.perfil_id).filter(Boolean);
-      const { data: perfiles } = await supabase
+      if (uniqueRows.length === 0) {
+        setDbRows([]);
+        return;
+      }
+
+      const profileIds = uniqueRows.map((row: TournamentPlayerRow) => row.perfil_id).filter(Boolean);
+      const { data: perfiles, error: perfilesError } = await supabase
         .from('perfiles')
         .select('id, nombre_completo')
         .in('id', profileIds);
 
+      if (perfilesError) throw perfilesError;
+
       const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
 
-      const mapped = uniqueRows.map((row: any, idx: number) => ({
+      const orderedRows = participantIds.length > 0
+        ? participantIds.map((perfilId) => rowsByProfile.get(perfilId)).filter(Boolean) as TournamentPlayerRow[]
+        : uniqueRows;
+
+      const mapped = orderedRows.map((row: TournamentPlayerRow, idx: number) => ({
         id: row.perfil_id || `db-player-${idx}`,
         name: nameById[row.perfil_id] || 'Jugador',
         img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop',
@@ -186,7 +284,6 @@ const Standings: React.FC = () => {
         gamesLost: 0,
         matches: [],
       }));
-
       mapped.sort((a, b) => {
         if (b.pts !== a.pts) return b.pts - a.pts;
         return b.setsWon - a.setsWon;
@@ -222,7 +319,14 @@ const Standings: React.FC = () => {
       .channel(`standings-live-${tournament.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'torneo_jugadores' },
+        { event: '*', schema: 'public', table: 'torneo_jugadores', filter: `torneo_id=eq.${tournament.id}` },
+        () => {
+          loadDbStandings();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'partidos', filter: `torneo_id=eq.${tournament.id}` },
         () => {
           loadDbStandings();
         }
@@ -232,7 +336,7 @@ const Standings: React.FC = () => {
     // Fallback defensivo por si Realtime no está habilitado en Supabase.
     const intervalId = window.setInterval(() => {
       loadDbStandings();
-    }, 15000);
+    }, 45000);
 
     return () => {
       window.clearInterval(intervalId);

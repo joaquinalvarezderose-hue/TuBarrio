@@ -40,11 +40,30 @@ ORDER BY t.tabla;
 BEGIN;
 
 DROP POLICY IF EXISTS torneo_jugadores_select_own ON public.torneo_jugadores;
-CREATE POLICY torneo_jugadores_select_own
+DROP POLICY IF EXISTS torneo_jugadores_select_visible_scope ON public.torneo_jugadores;
+CREATE POLICY torneo_jugadores_select_visible_scope
 ON public.torneo_jugadores
 FOR SELECT
 TO authenticated
-USING (perfil_id = auth.uid() OR is_admin());
+USING (
+  perfil_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1
+    FROM public.inscripciones_torneo it
+    WHERE it.torneo_id = torneo_jugadores.torneo_id
+      AND it.perfil_id = auth.uid()
+      AND it.estado IN ('pagado_aprobado', 'pendiente_revision')
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.partidos p
+    WHERE p.torneo_id = torneo_jugadores.torneo_id
+      AND coalesce(p.categoria, '') = coalesce(torneo_jugadores.categoria, '')
+      AND coalesce(p.grupo, '') = coalesce(torneo_jugadores.grupo, '')
+      AND (p.jugador1_id = auth.uid() OR p.jugador2_id = auth.uid())
+  )
+);
 
 DROP POLICY IF EXISTS partidos_select_own ON public.partidos;
 CREATE POLICY partidos_select_own
@@ -60,6 +79,14 @@ USING (
 DROP POLICY IF EXISTS torneo_estado_select_authenticated ON public.torneo_estado;
 CREATE POLICY torneo_estado_select_authenticated
 ON public.torneo_estado
+FOR SELECT
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS "Users can select their own perfil" ON public.perfiles;
+DROP POLICY IF EXISTS perfiles_select_authenticated ON public.perfiles;
+CREATE POLICY perfiles_select_authenticated
+ON public.perfiles
 FOR SELECT
 TO authenticated
 USING (true);
