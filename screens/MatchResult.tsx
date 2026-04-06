@@ -100,7 +100,7 @@ const MatchResult: React.FC = () => {
     return currentUserId !== '' && [players[0]?.perfil_id, players[1]?.perfil_id].includes(currentUserId);
   }, [currentUserId, players]);
   const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason, [matchWinner, partido?.id, isParticipant, blockReason]);
-  const hasDbPlayers = useMemo(() => Boolean(players[0]?.id && players[1]?.id), [players]);
+  const hasDbPlayers = useMemo(() => Boolean(players[0]?.perfil_id && players[1]?.perfil_id), [players]);
 
   const updateScore = (set: keyof ScoreState, player: 'player1' | 'player2', delta: number) => {
     setScores((prev) => {
@@ -264,7 +264,7 @@ const MatchResult: React.FC = () => {
         });
 
         const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
-        const [{ data: jugadores, error: jugadoresError }, { data: perfiles, error: perfilesError }, { data: propuesta }] = await Promise.all([
+        const [{ data: jugadoresScoped, error: jugadoresScopedError }, { data: perfiles, error: perfilesError }, { data: propuesta }] = await Promise.all([
           supabase
             .from('torneo_jugadores')
             .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
@@ -283,8 +283,20 @@ const MatchResult: React.FC = () => {
             .maybeSingle(),
         ]);
 
-        if (jugadoresError) throw jugadoresError;
+        if (jugadoresScopedError) throw jugadoresScopedError;
         if (perfilesError) throw perfilesError;
+
+        let jugadores = jugadoresScoped || [];
+        if (jugadores.length < 2) {
+          const { data: jugadoresFallback, error: jugadoresFallbackError } = await supabase
+            .from('torneo_jugadores')
+            .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
+            .eq('torneo_id', tournament.id)
+            .in('perfil_id', playerIds);
+
+          if (jugadoresFallbackError) throw jugadoresFallbackError;
+          jugadores = jugadoresFallback || jugadores;
+        }
 
         const playerByPerfilId = Object.fromEntries((jugadores || []).map((row: any) => [row.perfil_id, row]));
         const nameById = Object.fromEntries((perfiles || []).map((row: any) => [row.id, row.nombre_completo || 'Jugador']));
@@ -507,7 +519,7 @@ const MatchResult: React.FC = () => {
         {!hasDbPlayers && !loadingMatch && !blockReason && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
-            <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">Para cargar el partido, los dos jugadores deben existir dentro del torneo correcto.</p>
+            <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">No pudimos resolver los dos perfiles del partido. Reintenta en unos segundos.</p>
           </div>
         )}
 
