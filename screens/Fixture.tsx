@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
@@ -28,11 +28,15 @@ type FixtureMatch = {
 const Fixture: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
   const [activeFecha, setActiveFecha] = useState(1);
   const [playersStats, setPlayersStats] = useState<FixturePlayer[]>([]);
   const [matches, setMatches] = useState<FixtureMatch[]>([]);
   const [torneoFinalizado, setTorneoFinalizado] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
+  const isLoadingRef = useRef(false);
+  const refreshTimerRef = useRef<number | null>(null);
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -40,20 +44,20 @@ const Fixture: React.FC = () => {
     title: 'Abierto de Tenis TuBarrio',
     subtitle: 'Singles Caballeros',
   });
-  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
+
+  useEffect(() => {
+    (supabase as any).auth.getUser().then(({ data }: any) => {
+      if (data?.user?.id) setCurrentUserId(String(data.user.id));
+    }).catch(() => {});
+  }, []);
 
   const loadFixtureData = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+
     try {
       const grupo = `TORNEO_${tournament.id}`;
       const categoria = tournament.subtitle || 'General';
-
-        // Resolver siempre desde Supabase Auth como fuente principal
-        let currentUserId = String(appUser?.id || '');
-        try {
-          const { data: authData } = await (supabase as any).auth.getUser();
-          if (authData?.user?.id) currentUserId = String(authData.user.id);
-        } catch { /* sin sesión activa, usar localStorage */ }
-
 
       const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
         supabase
@@ -89,6 +93,7 @@ const Fixture: React.FC = () => {
           .eq('grupo', grupo),
       ]);
 
+          if (estadoResp.error) throw estadoResp.error;
       if (jugadoresResp.error) throw jugadoresResp.error;
       if (partidosResp.error) throw partidosResp.error;
       if (historialResp.error) throw historialResp.error;
@@ -107,12 +112,15 @@ const Fixture: React.FC = () => {
         ...partidos.flatMap((row: any) => [row.jugador1_id, row.jugador2_id]),
       ].filter(Boolean)));
 
-      const { data: perfiles, error: perfilesError } = await supabase
-        .from('perfiles')
-        .select('id, nombre_completo')
-        .in('id', profileIds);
-
-      if (perfilesError) throw perfilesError;
+      let perfiles: any[] = [];
+      if (profileIds.length > 0) {
+        const { data: perfilesData, error: perfilesError } = await supabase
+          .from('perfiles')
+          .select('id, nombre_completo')
+          .in('id', profileIds);
+        if (perfilesError) throw perfilesError;
+        perfiles = perfilesData || [];
+      }
 
       const nameById = Object.fromEntries((perfiles || []).map((row: any) => [row.id, row.nombre_completo || 'Jugador']));
       const jugadorById = Object.fromEntries((jugadores || []).map((row: any) => [row.perfil_id, row]));
@@ -166,7 +174,9 @@ const Fixture: React.FC = () => {
       setLoadError(null);
     } catch (err) {
       console.error('No se pudo cargar el estado del fixture', err);
-      setLoadError('No pudimos cargar los datos del fixture. Intentá recargar la página.');
+      setLoadError('Hubo un error al cargar el fixture. Intenta recargar la pagina en unos segundos.');
+    } finally {
+      isLoadingRef.current = false;
     }
   }, [tournament.id, tournament.subtitle]);
 
@@ -186,18 +196,32 @@ const Fixture: React.FC = () => {
   useEffect(() => {
     loadFixtureData();
 
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = window.setTimeout(() => {
+        loadFixtureData();
+        refreshTimerRef.current = null;
+      }, 250);
+    };
+
     const channel = supabase
       .channel(`fixture-live-${tournament.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_jugadores' }, loadFixtureData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'partidos' }, loadFixtureData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_partidos_historial' }, loadFixtureData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_propuestas_partido' }, loadFixtureData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_jugadores', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partidos', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_partidos_historial', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_propuestas_partido', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
       .subscribe();
 
-    const intervalId = window.setInterval(loadFixtureData, 15000);
+    const intervalId = window.setInterval(loadFixtureData, 45000);
 
     return () => {
       window.clearInterval(intervalId);
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
   }, [loadFixtureData, tournament.id]);
@@ -211,7 +235,6 @@ const Fixture: React.FC = () => {
 
   const canReportMatch = (match: FixtureMatch) => {
     if (torneoFinalizado) return false;
-    const currentUserId = String(appUser?.id || '');
     return currentUserId !== '' && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId) && match.estado !== 'finalizado';
   };
 
@@ -284,7 +307,15 @@ const Fixture: React.FC = () => {
           {loadError && (
             <div className="rounded-xl bg-red-50 dark:bg-red-900/10 p-4 border border-red-100 dark:border-red-800/20 flex gap-3 mb-4">
               <span className="material-symbols-outlined text-red-500 text-lg">error</span>
-              <p className="text-sm text-red-700 dark:text-red-300 font-medium">{loadError}</p>
+              <div className="flex-1">
+                <p className="text-sm text-red-700 dark:text-red-300 font-medium">{loadError}</p>
+                <button
+                  onClick={loadFixtureData}
+                  className="mt-2 text-xs font-bold uppercase tracking-wide text-red-700 dark:text-red-300 underline"
+                >
+                  Reintentar
+                </button>
+              </div>
             </div>
           )}
           <h3 className="text-[#111813] dark:text-white text-base font-bold uppercase tracking-wider mb-3">Partidos del torneo</h3>

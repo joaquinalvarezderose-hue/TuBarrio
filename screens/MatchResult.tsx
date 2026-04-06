@@ -71,6 +71,7 @@ const MatchResult: React.FC = () => {
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
+  const [retryTick, setRetryTick] = useState(0);
 
   const getSetWinner = (p1: number, p2: number) => {
     if ((p1 === 6 && p2 <= 4) || (p1 === 7 && (p2 === 5 || p2 === 6))) return 1;
@@ -138,7 +139,7 @@ const MatchResult: React.FC = () => {
 
       try {
           if (!currentUserId) {
-          setSubmitError('No hay un usuario activo para cargar el resultado.');
+            setSubmitError('Hubo un error al identificar tu usuario. Volve a iniciar sesion e intenta nuevamente.');
           return;
         }
 
@@ -221,6 +222,7 @@ const MatchResult: React.FC = () => {
 
         if (ordenados.length < 2) {
           setPartido(null);
+          setSubmitError(null);
           setBlockReason(`Aun no se puede cargar resultados: hay ${ordenados.length} jugador(es) inscripto(s) y se necesitan al menos 2.`);
           return;
         }
@@ -247,6 +249,7 @@ const MatchResult: React.FC = () => {
 
         const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
         if (!targetPartido) {
+          setSubmitError(null);
           setBlockReason('Todavia no hay un partido generado para esta jornada.');
           return;
         }
@@ -318,14 +321,14 @@ const MatchResult: React.FC = () => {
         }
       } catch (error) {
         console.error('No se pudo cargar el contexto del partido', error);
-        setSubmitError('No pudimos preparar la carga del partido.');
+        setSubmitError('Hubo un error al cargar el partido. Intenta nuevamente en unos segundos.');
       } finally {
         setLoadingMatch(false);
       }
     };
 
     loadMatchContext();
-  }, [currentUserId, selectedPartidoId, tournament.id, tournament.subtitle]);
+  }, [currentUserId, selectedPartidoId, tournament.id, tournament.subtitle, retryTick]);
 
   const handleConfirm = async () => {
     if (!canConfirm || !partido?.id) return;
@@ -366,7 +369,7 @@ const MatchResult: React.FC = () => {
       }
     } catch (error) {
       console.error('Error enviando la propuesta de resultado', error);
-      setSubmitError('No pudimos enviar el resultado del partido.');
+      setSubmitError('Hubo un error al enviar el resultado. Intenta nuevamente.');
     } finally {
       setSaving(false);
     }
@@ -525,7 +528,17 @@ const MatchResult: React.FC = () => {
         {submitError && (
           <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-red-500 text-lg">error</span>
-            <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed font-medium">{submitError}</p>
+            <div className="flex-1">
+              <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed font-medium">{submitError}</p>
+              {!saving && (
+                <button
+                  onClick={() => setRetryTick((prev) => prev + 1)}
+                  className="mt-2 text-[11px] font-bold uppercase tracking-wide text-red-700 dark:text-red-300 underline"
+                >
+                  Reintentar carga
+                </button>
+              )}
+            </div>
           </div>
         )}
       </main>
