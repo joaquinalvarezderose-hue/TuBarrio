@@ -117,7 +117,55 @@ const Standings: React.FC = () => {
         });
       }
 
-      const uniqueRows = Array.from(rowsByProfile.values());
+      let uniqueRows = Array.from(rowsByProfile.values());
+
+      if (uniqueRows.length < 2 && currentUserId) {
+        let partidosQuery: any = supabase
+          .from('partidos')
+          .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
+          .eq('torneo_id', parsedTournamentId)
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .order('jornada', { ascending: true })
+          .limit(1);
+
+        if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
+        if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
+
+        const { data: partidosRows } = await partidosQuery;
+        const partidoRef = Array.isArray(partidosRows) ? partidosRows[0] : null;
+
+        if (partidoRef?.jugador1_id && partidoRef?.jugador2_id) {
+          const targetPerfilIds = [String(partidoRef.jugador1_id), String(partidoRef.jugador2_id)];
+          const { data: jugadoresFallbackRows, error: jugadoresFallbackError } = await supabase
+            .from('torneo_jugadores')
+            .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+            .eq('torneo_id', parsedTournamentId)
+            .in('perfil_id', targetPerfilIds);
+
+          if (!jugadoresFallbackError && Array.isArray(jugadoresFallbackRows)) {
+            for (const row of jugadoresFallbackRows) {
+              const perfilId = String(row?.perfil_id || '');
+              if (!perfilId) continue;
+              const prev = rowsByProfile.get(perfilId);
+              if (!prev) {
+                rowsByProfile.set(perfilId, row);
+                continue;
+              }
+              rowsByProfile.set(perfilId, {
+                ...prev,
+                puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
+                partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
+                sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
+              });
+            }
+
+            uniqueRows = targetPerfilIds
+              .map((perfilId) => rowsByProfile.get(perfilId))
+              .filter(Boolean);
+          }
+        }
+      }
+
       const profileIds = uniqueRows.map((row: any) => row.perfil_id).filter(Boolean);
       const { data: perfiles } = await supabase
         .from('perfiles')

@@ -107,8 +107,64 @@ const Fixture: React.FC = () => {
       const historial = historialResp.data || [];
       const propuestas = propuestasResp.data || [];
 
+      const jugadoresByPerfil = new Map<string, any>();
+      for (const row of jugadores) {
+        const perfilId = String(row?.perfil_id || '');
+        if (!perfilId) continue;
+        const prev = jugadoresByPerfil.get(perfilId);
+        if (!prev) {
+          jugadoresByPerfil.set(perfilId, row);
+          continue;
+        }
+        jugadoresByPerfil.set(perfilId, {
+          ...prev,
+          puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
+          partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
+          sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
+        });
+      }
+
+      let jugadoresNormalizados = Array.from(jugadoresByPerfil.values());
+
+      if (jugadoresNormalizados.length < 2 && partidos.length > 0) {
+        const partidoPlayerIds = Array.from(new Set(
+          partidos
+            .flatMap((row: any) => [row.jugador1_id, row.jugador2_id])
+            .filter(Boolean)
+            .map((id: any) => String(id))
+        ));
+
+        if (partidoPlayerIds.length > 0) {
+          const { data: jugadoresFallback, error: jugadoresFallbackError } = await supabase
+            .from('torneo_jugadores')
+            .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+            .eq('torneo_id', tournament.id)
+            .in('perfil_id', partidoPlayerIds);
+
+          if (jugadoresFallbackError) throw jugadoresFallbackError;
+
+          for (const row of jugadoresFallback || []) {
+            const perfilId = String(row?.perfil_id || '');
+            if (!perfilId) continue;
+            const prev = jugadoresByPerfil.get(perfilId);
+            if (!prev) {
+              jugadoresByPerfil.set(perfilId, row);
+              continue;
+            }
+            jugadoresByPerfil.set(perfilId, {
+              ...prev,
+              puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
+              partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
+              sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
+            });
+          }
+
+          jugadoresNormalizados = Array.from(jugadoresByPerfil.values());
+        }
+      }
+
       const profileIds = Array.from(new Set([
-        ...jugadores.map((row: any) => row.perfil_id),
+        ...jugadoresNormalizados.map((row: any) => row.perfil_id),
         ...partidos.flatMap((row: any) => [row.jugador1_id, row.jugador2_id]),
       ].filter(Boolean)));
 
@@ -123,11 +179,11 @@ const Fixture: React.FC = () => {
       }
 
       const nameById = Object.fromEntries((perfiles || []).map((row: any) => [row.id, row.nombre_completo || 'Jugador']));
-      const jugadorById = Object.fromEntries((jugadores || []).map((row: any) => [row.perfil_id, row]));
+      const jugadorById = Object.fromEntries((jugadoresNormalizados || []).map((row: any) => [row.perfil_id, row]));
       const historialByMatch = Object.fromEntries((historial || []).map((row: any) => [row.partido_id, row]));
       const proposalByMatch = Object.fromEntries((propuestas || []).map((row: any) => [row.partido_id, row.estado]));
 
-      const stats: FixturePlayer[] = jugadores.map((row: any) => ({
+      const stats: FixturePlayer[] = jugadoresNormalizados.map((row: any) => ({
         perfil_id: row.perfil_id,
         nombre: nameById[row.perfil_id] || 'Jugador',
         puntos: Number(row.puntos || 0),
