@@ -24,6 +24,12 @@ type MatchContext = {
   jugador1_id: string;
   jugador2_id: string;
   resultado: string | null;
+  set1_j1: number | null;
+  set1_j2: number | null;
+  set2_j1: number | null;
+  set2_j2: number | null;
+  set3_j1: number | null;
+  set3_j2: number | null;
 };
 
 type ProposalRpcRow = {
@@ -64,7 +70,7 @@ const MatchResult: React.FC = () => {
   const [partido, setPartido] = useState<MatchContext | null>(null);
   const [scores, setScores] = useState<ScoreState>(emptyScores);
   const [loadingMatch, setLoadingMatch] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [proposalState, setProposalState] = useState<'idle' | 'pendiente' | 'confirmado' | 'discrepancia'>('idle');
@@ -99,7 +105,9 @@ const MatchResult: React.FC = () => {
   const isParticipant = useMemo(() => {
     return currentUserId !== '' && [players[0]?.perfil_id, players[1]?.perfil_id].includes(currentUserId);
   }, [currentUserId, players]);
-  const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason, [matchWinner, partido?.id, isParticipant, blockReason]);
+  const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
+  const isWaitingValidation = partido?.estado === 'esperando_validacion';
+  const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason && !isWaitingValidation, [matchWinner, partido?.id, isParticipant, blockReason, isWaitingValidation]);
   const hasDbPlayers = useMemo(() => Boolean(players[0]?.perfil_id && players[1]?.perfil_id), [players]);
 
   const updateScore = (set: keyof ScoreState, player: 'player1' | 'player2', delta: number) => {
@@ -229,7 +237,7 @@ const MatchResult: React.FC = () => {
 
         let partidoQuery = supabase
           .from('partidos')
-          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado')
+          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2')
           .eq('torneo_id', tournament.id)
           .eq('categoria', categoria)
           .eq('grupo', grupo);
@@ -239,7 +247,7 @@ const MatchResult: React.FC = () => {
         } else {
           partidoQuery = partidoQuery
             .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-            .in('estado', ['programado', 'en_curso'])
+            .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
             .order('jornada', { ascending: true })
             .limit(1);
         }
@@ -261,6 +269,12 @@ const MatchResult: React.FC = () => {
           jugador1_id: String(targetPartido.jugador1_id),
           jugador2_id: String(targetPartido.jugador2_id),
           resultado: targetPartido.resultado || null,
+          set1_j1: targetPartido.set1_j1 != null ? Number(targetPartido.set1_j1) : null,
+          set1_j2: targetPartido.set1_j2 != null ? Number(targetPartido.set1_j2) : null,
+          set2_j1: targetPartido.set2_j1 != null ? Number(targetPartido.set2_j1) : null,
+          set2_j2: targetPartido.set2_j2 != null ? Number(targetPartido.set2_j2) : null,
+          set3_j1: targetPartido.set3_j1 != null ? Number(targetPartido.set3_j1) : null,
+          set3_j2: targetPartido.set3_j2 != null ? Number(targetPartido.set3_j2) : null,
         });
 
         const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
@@ -345,45 +359,105 @@ const MatchResult: React.FC = () => {
   const handleConfirm = async () => {
     if (!canConfirm || !partido?.id) return;
 
-    setSaving(true);
+    // Verificación de estado antes de enviar: evitar double submit
+    const { data: currentPartido, error: checkError } = await supabase
+      .from('partidos')
+      .select('estado')
+      .eq('id', partido.id)
+      .single();
+
+    if (checkError) {
+      setSubmitError('No se pudo verificar el estado del partido. Intenta nuevamente.');
+      return;
+    }
+
+    if (currentPartido.estado === 'esperando_validacion') {
+      setSubmitError('Este resultado ya fue enviado y está esperando validación del rival.');
+      return;
+    }
+
+    if (currentPartido.estado === 'finalizado') {
+      setSubmitError('Este partido ya fue finalizado y no se puede modificar.');
+      return;
+    }
+
+    setIsSubmitting(true);
     setSubmitError(null);
     setSubmitMessage(null);
 
-    const usedSets = isMatchFinishedByTwoSets
-      ? [scores.set1, scores.set2]
-      : [scores.set1, scores.set2, scores.set3];
-
     try {
-      const payload = usedSets.map((setRow) => ({ p1: setRow.player1, p2: setRow.player2 }));
-      const { data, error } = await supabase.rpc('proponer_resultado_partido', {
-        p_partido_id: partido.id,
-        p_reportado_por: currentUserId,
-        p_sets_json: payload,
-      });
+      const { error } = await supabase
+        .from('partidos')
+        .update({
+          set1_j1: scores.set1.player1,
+          set1_j2: scores.set1.player2,
+          set2_j1: scores.set2.player1,
+          set2_j2: scores.set2.player2,
+          set3_j1: isDrawInSets ? scores.set3.player1 : null,
+          set3_j2: isDrawInSets ? scores.set3.player2 : null,
+          estado: 'esperando_validacion',
+        })
+        .eq('id', partido.id);
 
       if (error) throw error;
 
-      const row = Array.isArray(data) ? (data[0] as ProposalRpcRow | undefined) : undefined;
-      if (!row) {
-        throw new Error('La RPC no devolvio resultado.');
-      }
-
-      setProposalState(row.estado_propuesta || 'idle');
-      setSubmitMessage(row.mensaje || null);
-
-      if (row.estado_propuesta === 'discrepancia') {
-        setSubmitError(row.mensaje || 'El rival cargo un resultado diferente.');
-        return;
-      }
-
-      if (row.confirmacion_completa) {
-        navigate('/standings', { state: { tournament } });
-      }
+      setPartido((prev) => prev ? { ...prev, estado: 'esperando_validacion' } : prev);
+      setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
     } catch (error) {
-      console.error('Error enviando la propuesta de resultado', error);
+      console.error('Error enviando el resultado', error);
       setSubmitError('Hubo un error al enviar el resultado. Intenta nuevamente.');
     } finally {
-      setSaving(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmResult = async () => {
+    if (!partido?.id) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const { error } = await supabase
+        .from('partidos')
+        .update({ estado: 'finalizado' })
+        .eq('id', partido.id);
+      if (error) throw error;
+      navigate('/standings', { state: { tournament } });
+    } catch (error) {
+      console.error('Error confirmando el resultado', error);
+      setSubmitError('No se pudo confirmar el resultado. Intenta nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRejectResult = async () => {
+    if (!partido?.id) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const { error } = await supabase
+        .from('partidos')
+        .update({
+          estado: 'programado',
+          set1_j1: null, set1_j2: null,
+          set2_j1: null, set2_j2: null,
+          set3_j1: null, set3_j2: null,
+        })
+        .eq('id', partido.id);
+      if (error) throw error;
+      setPartido((prev) => prev ? {
+        ...prev,
+        estado: 'programado',
+        set1_j1: null, set1_j2: null,
+        set2_j1: null, set2_j2: null,
+        set3_j1: null, set3_j2: null,
+      } : prev);
+      setSubmitMessage('Resultado rechazado. El partido vuelve a estado inicial para que se pongan de acuerdo.');
+    } catch (error) {
+      console.error('Error rechazando el resultado', error);
+      setSubmitError('No se pudo rechazar el resultado. Intenta nuevamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -445,7 +519,70 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {!blockReason && (
+        {/* Jugador 1: resultado ya enviado, esperando que el rival confirme */}
+        {isWaitingValidation && !isPlayer2 && !loadingMatch && (
+          <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-sky-500 text-lg">schedule</span>
+            <p className="text-sm text-sky-700 dark:text-sky-300 font-bold leading-relaxed">
+              Resultado enviado. Esperando que tu rival confirme el marcador.
+            </p>
+          </section>
+        )}
+
+        {/* Jugador 2: panel de validación del resultado propuesto */}
+        {isPlayer2 && isWaitingValidation && !loadingMatch && (
+          <section className="space-y-4">
+            <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3">
+              <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">pending</span>
+              <div>
+                <p className="text-sm font-bold text-sky-800 dark:text-sky-200">Resultado propuesto por tu rival</p>
+                <p className="text-[11px] text-sky-600 dark:text-sky-300 mt-0.5">Revisá el marcador y confirmá si es correcto.</p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-4 space-y-1">
+                {[
+                  { label: 'Set 1', j1: partido?.set1_j1, j2: partido?.set1_j2 },
+                  { label: 'Set 2', j1: partido?.set2_j1, j2: partido?.set2_j2 },
+                  ...(partido?.set3_j1 != null ? [{ label: 'Set 3 (TB)', j1: partido.set3_j1, j2: partido.set3_j2 }] : []),
+                ].map(({ label, j1, j2 }) => (
+                  <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
+                    <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 w-16 text-right truncate">{players[0].name.split(' ')[0]}</span>
+                      <span className="text-2xl font-black text-primary">{j1 ?? '-'}</span>
+                      <span className="text-xs text-gray-300">—</span>
+                      <span className="text-2xl font-black text-primary">{j2 ?? '-'}</span>
+                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 w-16 truncate">{players[1].name.split(' ')[0]}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                onClick={handleRejectResult}
+                disabled={isSubmitting}
+                className="flex items-center justify-center gap-2 py-5 rounded-xl border-2 border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400 font-black text-base transition-all active:scale-[0.97] disabled:opacity-50"
+              >
+                <span className="text-xl">❌</span>
+                Es Incorrecto
+              </button>
+              <button
+                onClick={handleConfirmResult}
+                disabled={isSubmitting}
+                className="flex items-center justify-center gap-2 py-5 rounded-xl bg-primary text-gray-900 font-black text-base shadow-lg shadow-primary/30 transition-all active:scale-[0.97] disabled:opacity-50"
+              >
+                {isSubmitting ? <span className="w-5 h-5 border-2 border-gray-700/40 border-t-gray-900 rounded-full animate-spin"></span> : <span className="text-xl">✅</span>}
+                Confirmar
+              </button>
+            </div>
+          </section>
+        )}
+
+        {!blockReason && !(isPlayer2 && isWaitingValidation) && (
           <div className="space-y-4">
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
@@ -509,7 +646,7 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {!canConfirm && !loadingMatch && !blockReason && (
+        {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm animate-pulse">
             <span className="material-symbols-outlined text-amber-500 text-lg">info</span>
             <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">Por favor completa los sets con resultados validos para poder enviar el partido.</p>
@@ -530,7 +667,7 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {proposalState === 'pendiente' && submitMessage && !submitError && (
+        {proposalState === 'pendiente' && submitMessage && !submitError && !isWaitingValidation && (
           <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-100 dark:border-sky-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg">schedule</span>
             <p className="text-[11px] text-sky-700 dark:text-sky-300 leading-relaxed font-medium">{submitMessage}</p>
@@ -555,20 +692,23 @@ const MatchResult: React.FC = () => {
         )}
       </main>
 
+      {!(isPlayer2 && isWaitingValidation) && (
       <footer className="fixed bottom-0 left-0 right-0 md:static max-w-2xl mx-auto p-6 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-[60] md:bg-none">
         <button
           onClick={handleConfirm}
-          disabled={!canConfirm || !hasDbPlayers || saving || loadingMatch}
+          disabled={!canConfirm || !hasDbPlayers || isSubmitting || loadingMatch}
           className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
-            canConfirm && hasDbPlayers && !saving && !loadingMatch
+            canConfirm && hasDbPlayers && !isSubmitting && !loadingMatch
               ? 'bg-primary text-gray-900 shadow-primary/30 active:scale-[0.98]'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
           }`}
         >
-          <span>{saving ? 'Enviando...' : 'Enviar Resultado'}</span>
-          <span className="material-symbols-outlined text-xl">send</span>
+          {isSubmitting && <span className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin"></span>}
+          <span>{isSubmitting ? 'Enviando...' : 'Enviar Resultado'}</span>
+          {!isSubmitting && <span className="material-symbols-outlined text-xl">send</span>}
         </button>
       </footer>
+      )}
     </div>
   );
 };
