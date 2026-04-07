@@ -24,6 +24,17 @@ type TournamentMatchRow = {
   jornada: number | null;
 };
 
+type TournamentHistoryRow = {
+  categoria: string | null;
+  grupo: string | null;
+  jugador1_perfil_id: string | null;
+  jugador2_perfil_id: string | null;
+  puntos_jugador1: number | null;
+  puntos_jugador2: number | null;
+  sets_jugador1: number | null;
+  sets_jugador2: number | null;
+};
+
 const Standings: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -250,6 +261,70 @@ const Standings: React.FC = () => {
             partidos_jugados: 0,
             sets_ganados: 0,
           }).filter(Boolean) as TournamentPlayerRow[];
+        }
+      }
+
+      const { data: historyRows, error: historyError } = await supabase
+        .from('torneo_partidos_historial')
+        .select('categoria, grupo, jugador1_perfil_id, jugador2_perfil_id, puntos_jugador1, puntos_jugador2, sets_jugador1, sets_jugador2')
+        .eq('torneo_id', parsedTournamentId);
+
+      if (historyError) throw historyError;
+
+      if (Array.isArray(historyRows) && historyRows.length > 0) {
+        const scopedHistoryRows = (historyRows as TournamentHistoryRow[]).filter((row) => {
+          const matchesScope = Boolean(
+            resolvedScope?.categoria &&
+            resolvedScope?.grupo &&
+            row.categoria === resolvedScope.categoria &&
+            row.grupo === resolvedScope.grupo
+          );
+
+          if (matchesScope) return true;
+
+          if (participantIds.length > 0) {
+            return participantIds.includes(String(row.jugador1_perfil_id || '')) || participantIds.includes(String(row.jugador2_perfil_id || ''));
+          }
+
+          return !resolvedScope;
+        });
+
+        const historyAggByProfile = new Map<string, TournamentPlayerRow>();
+        const addHistory = (perfilIdRaw: string | null, puntosRaw: number | null, setsRaw: number | null) => {
+          const perfilId = String(perfilIdRaw || '');
+          if (!perfilId) return;
+          const prev = historyAggByProfile.get(perfilId) || {
+            perfil_id: perfilId,
+            puntos: 0,
+            partidos_jugados: 0,
+            sets_ganados: 0,
+          };
+
+          historyAggByProfile.set(perfilId, {
+            perfil_id: perfilId,
+            puntos: Number(prev.puntos || 0) + Number(puntosRaw || 0),
+            partidos_jugados: Number(prev.partidos_jugados || 0) + 1,
+            sets_ganados: Number(prev.sets_ganados || 0) + Number(setsRaw || 0),
+          });
+        };
+
+        for (const row of scopedHistoryRows) {
+          addHistory(row.jugador1_perfil_id, row.puntos_jugador1, row.sets_jugador1);
+          addHistory(row.jugador2_perfil_id, row.puntos_jugador2, row.sets_jugador2);
+        }
+
+        if (historyAggByProfile.size > 0) {
+          mergeRows(Array.from(historyAggByProfile.values()));
+
+          if (participantIds.length === 0) {
+            participantIds = Array.from(historyAggByProfile.keys());
+          } else {
+            participantIds = Array.from(new Set([...participantIds, ...historyAggByProfile.keys()]));
+          }
+
+          uniqueRows = participantIds.length > 0
+            ? participantIds.map((perfilId) => rowsByProfile.get(perfilId) || historyAggByProfile.get(perfilId)).filter(Boolean) as TournamentPlayerRow[]
+            : Array.from(rowsByProfile.values());
         }
       }
 

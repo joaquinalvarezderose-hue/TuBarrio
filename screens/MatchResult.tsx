@@ -623,11 +623,11 @@ const MatchResult: React.FC = () => {
                   <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
                     <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 w-16 text-right truncate">{players[0].name.split(' ')[0]}</span>
+                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">{players[0].name}</span>
                       <span className="text-2xl font-black text-primary">{j1 ?? '-'}</span>
                       <span className="text-xs text-gray-300">—</span>
                       <span className="text-2xl font-black text-primary">{j2 ?? '-'}</span>
-                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 w-16 truncate">{players[1].name.split(' ')[0]}</span>
+                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">{players[1].name}</span>
                     </div>
                   </div>
                 ))}
