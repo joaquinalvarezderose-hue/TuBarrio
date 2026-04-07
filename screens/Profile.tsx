@@ -29,42 +29,19 @@ const Profile: React.FC = () => {
         <div className="relative mb-4 group">
           <div className="liquid-ring size-36 rounded-full flex items-center justify-center p-1.5 shadow-sm">
             <div className="bg-background-light dark:bg-background-dark size-full rounded-full flex items-center justify-center p-1.5 overflow-hidden relative">
-              <div 
-                className="size-full rounded-full bg-cover bg-center bg-no-repeat" 
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDWCTIBw_oy-Ors3ZoHYHQLWWrP2rYitUAFYDQC96qpBg5zRQ0UJuzTU7TEXguGpmAtxIPehAFk_tIgue4CCUN_W31HX3c55gL_84iUycQWel6T6UNHnhJIl2xGIJHC1UnS12MTxFZeY96N83at-jCptspK9-sdolZivh3Kdq9PXrWqIV-o0608UHWWTicGLNzlT9hA1hEWMwr0k-wV_VKfbfmm5DgQiB8jSEBNeHXaqmRcsZGrX2D-oynMXF4IBFfHV75S21ziPMU")' }}
-              >
+              <div className="size-full rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-3xl font-bold uppercase">
+                {String(user?.name || 'Jugador')
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((chunk: string) => chunk[0])
+                  .join('') || 'J'}
               </div>
             </div>
           </div>
-          <button aria-label="Cambiar foto de perfil" className="absolute bottom-2 right-1 bg-surface-light dark:bg-surface-dark border border-gray-100 dark:border-white/10 p-2 rounded-full shadow-lg text-slate-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors z-20">
-            <span className="material-symbols-outlined text-[18px]">photo_camera</span>
-          </button>
         </div>
         <div className="flex flex-col items-center text-center mt-2">
           <h1 className="text-2xl font-bold tracking-tight mb-1">{user.name}</h1>
-          <div className="flex items-center gap-1.5 bg-primary/20 dark:bg-primary/10 px-3 py-1 rounded-full">
-            <span className="material-symbols-outlined text-green-700 dark:text-green-400 text-[18px] filled">verified</span>
-            <span className="text-green-800 dark:text-green-300 text-sm font-medium">Residente Verificado</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Section */}
-      <div className="px-4 pb-6">
-        <h2 className="text-lg font-bold mb-3 px-1 tracking-tight">Mi Actividad</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-surface-light dark:bg-surface-dark rounded p-3 flex flex-col items-center justify-center gap-1 border border-gray-100 dark:border-white/5 shadow-sm">
-            <span className="text-2xl font-bold text-slate-900 dark:text-white">12</span>
-            <span className="text-[10px] leading-tight text-center text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight">Reportes</span>
-          </div>
-          <div className="bg-surface-light dark:bg-surface-dark rounded p-3 flex flex-col items-center justify-center gap-1 border border-gray-100 dark:border-white/5 shadow-sm">
-            <span className="text-2xl font-bold text-primary">450</span>
-            <span className="text-[10px] leading-tight text-center text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight">Puntos de<br/>Contribución</span>
-          </div>
-          <div className="bg-surface-light dark:bg-surface-dark rounded p-3 flex flex-col items-center justify-center gap-1 border border-gray-100 dark:border-white/5 shadow-sm">
-            <span className="text-2xl font-bold text-slate-900 dark:text-white">5</span>
-            <span className="text-[10px] leading-tight text-center text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight">Torneos<br/>Jugados</span>
-          </div>
         </div>
       </div>
 
