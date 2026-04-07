@@ -11,6 +11,7 @@ import TournamentPanel from './screens/TournamentPanel';
 import Fixture from './screens/Fixture';
 import Standings from './screens/Standings';
 import MatchResult from './screens/MatchResult';
+import ResultDetail from './screens/ResultDetail';
 import Rules from './screens/Rules';
 import Profile from './screens/Profile';
 import Payment from './screens/Payment';
@@ -42,6 +43,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
           <Route path="/fixture" element={user ? <Fixture /> : <Navigate to="/login" replace />} />
           <Route path="/standings" element={user ? <Standings /> : <Navigate to="/login" replace />} />
           <Route path="/match-result" element={user ? <MatchResult /> : <Navigate to="/login" replace />} />
+          <Route path="/result-detail" element={user ? <ResultDetail /> : <Navigate to="/login" replace />} />
           <Route path="/rules" element={user ? <Rules /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" replace />} />
           <Route path="/payment" element={user ? <Payment /> : <Navigate to="/login" replace />} />

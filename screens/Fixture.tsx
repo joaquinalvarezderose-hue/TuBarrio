@@ -25,6 +25,11 @@ type FixtureMatch = {
     sets_jugador2: number;
     ganador_perfil_id: string | null;
   } | null;
+  gameDetails: Array<{
+    p1: number;
+    p2: number;
+    tb?: number;
+  }> | null;
 };
 
 const parseResultadoSets = (resultado: string | null): { sets_jugador1: number; sets_jugador2: number } | null => {
@@ -35,6 +40,29 @@ const parseResultadoSets = (resultado: string | null): { sets_jugador1: number; 
     sets_jugador1: Number(match[1] || 0),
     sets_jugador2: Number(match[2] || 0),
   };
+};
+
+const parseSetJsonToGames = (setsJson: any): Array<{ p1: number; p2: number; tb?: number }> | null => {
+  if (!Array.isArray(setsJson)) return null;
+  return setsJson.map((set: any) => ({
+    p1: Number(set?.p1 || 0),
+    p2: Number(set?.p2 || 0),
+    tb: set?.tb !== undefined && set?.tb !== null ? Number(set.tb) : undefined,
+  }));
+};
+
+const formatGameScore = (games: Array<{ p1: number; p2: number; tb?: number }> | null): string => {
+  if (!games || games.length === 0) return '';
+  const formatted = games
+    .filter((g) => g.p1 > 0 || g.p2 > 0)
+    .map((g) => {
+      if (g.tb !== undefined) {
+        return `${Math.max(g.p1, g.p2)}-${Math.min(g.p1, g.p2)}(${g.tb})`;
+      }
+      return `${g.p1}-${g.p2}`;
+    })
+    .join(' | ');
+  return formatted;
 };
 
 const resolveWinnerId = (
@@ -302,13 +330,15 @@ const Fixture: React.FC = () => {
 
       const mappedMatches: FixtureMatch[] = partidos.map((row: any) => {
         const parsedResultado = parseResultadoSets(row.resultado || null);
-        const historialScore = historialByMatch[row.id]
+        const historialEntry = historialByMatch[row.id];
+        const historialScore = historialEntry
           ? {
-              sets_jugador1: Number(historialByMatch[row.id].sets_jugador1 || 0),
-              sets_jugador2: Number(historialByMatch[row.id].sets_jugador2 || 0),
-              ganador_perfil_id: historialByMatch[row.id].ganador_perfil_id || null,
+              sets_jugador1: Number(historialEntry.sets_jugador1 || 0),
+              sets_jugador2: Number(historialEntry.sets_jugador2 || 0),
+              ganador_perfil_id: historialEntry.ganador_perfil_id || null,
             }
           : null;
+        const historialGames = historialEntry && historialEntry.sets_json ? parseSetJsonToGames(historialEntry.sets_json) : null;
 
         const finalScore = historialScore || (parsedResultado
           ? {
@@ -347,6 +377,7 @@ const Fixture: React.FC = () => {
             sets_ganados: Number(jugadorById[row.jugador2_id]?.sets_ganados || 0),
           },
           finalScore,
+          gameDetails: historialGames,
         };
       });
 
@@ -525,7 +556,7 @@ const Fixture: React.FC = () => {
                   className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
                   aria-label="Contactar rival por WhatsApp"
                 >
-                  <span className="material-symbols-outlined">message</span>
+                  <span className="material-symbols-outlined">mail</span>
                 </a>
               ) : (
                 <button
@@ -533,7 +564,7 @@ const Fixture: React.FC = () => {
                   className="w-11 h-11 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed"
                   aria-label="WhatsApp no disponible"
                 >
-                  <span className="material-symbols-outlined">message</span>
+                  <span className="material-symbols-outlined">mail</span>
                 </button>
               )}
             </div>
@@ -542,7 +573,6 @@ const Fixture: React.FC = () => {
           <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Estado en vivo</h3>
-              <span className="text-[10px] text-[#61896b] font-bold">Supabase</span>
             </div>
             {playersStats.length === 0 ? (
               <p className="text-sm text-[#61896b]">Todavia no hay estadisticas cargadas para este torneo.</p>
@@ -616,7 +646,6 @@ const Fixture: React.FC = () => {
                           <span className={`${p2Won ? 'text-[#111813] dark:text-white font-bold' : 'text-[#111813] dark:text-white font-medium'} text-lg`}>{match.p2.nombre}</span>
                           {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
                         </div>
-                        {isFinal && <p className="text-xs text-[#61896b] font-semibold mt-1">Resultado final: {p1Sets}-{p2Sets}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         {!isFinal && isActual && (
@@ -644,7 +673,7 @@ const Fixture: React.FC = () => {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => navigate('/match-result', { state: { tournament, partidoId: match.id } })}
+                        onClick={() => navigate(isFinal ? '/result-detail' : '/match-result', { state: { tournament, partidoId: match.id, currentUserId } })}
                         className="flex-1 h-10 rounded-lg bg-background-light dark:bg-[#2e4a35] text-[#111813] dark:text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
                       >
                         <span className="material-symbols-outlined text-lg">sports_tennis</span>
@@ -658,7 +687,7 @@ const Fixture: React.FC = () => {
                           className="w-12 h-10 rounded-lg bg-[#25D366] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm"
                           aria-label="Contactar rival por WhatsApp"
                         >
-                          <span className="material-symbols-outlined font-bold">message</span>
+                          <span className="material-symbols-outlined font-bold">mail</span>
                         </a>
                       ) : (
                         <button
@@ -666,7 +695,7 @@ const Fixture: React.FC = () => {
                           className="w-12 h-10 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed"
                           aria-label="WhatsApp no disponible"
                         >
-                          <span className="material-symbols-outlined font-bold">message</span>
+                          <span className="material-symbols-outlined font-bold">mail</span>
                         </button>
                       )}
                     </div>
