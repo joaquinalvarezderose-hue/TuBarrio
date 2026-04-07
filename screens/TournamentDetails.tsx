@@ -123,7 +123,7 @@ const TournamentDetails: React.FC = () => {
               style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZFkqBmThhKQvkFpbT4fetiHM-5Qwb1EB49RzxQMvybIvdYS0-_rV_YwFhARurSeiEAyaiyb8CEZYChh8S1sMwDq73wrqUEZw0IpTJdJeUjgnKygNggWdxujsI92y0Rw-KXIV9aw7H-t5cwPlGYmpB29c1apBELhOwLOEOTos3uSczGbjazrRVXg9DHZzby-STciMc403zow0oXWSLOmalfjEqulvdscR-_X9rO2xyOQIqKpe9RVexjMcoef7MWNOvC9pEnweOuro")' }}
             ></div>
             <a
-              href="https://share.google/KhvKVGsJQXvZxfF7V"
+              href="https://maps.app.goo.gl/W5j2pF2XkeEyLCqq5"
               target="_blank"
               rel="noreferrer"
               className="absolute inset-0 bg-black/10 flex items-center justify-center cursor-pointer"
