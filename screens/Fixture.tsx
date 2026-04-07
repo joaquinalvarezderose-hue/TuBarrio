@@ -394,13 +394,26 @@ const Fixture: React.FC = () => {
 
   const fechas = useMemo(() => {
     const unique = Array.from(new Set(matches.map((match) => match.jornada))).sort((a, b) => a - b);
-    return unique.length > 0 ? unique : [1];
+    if (unique.length === 0) return [1];
+
+    const maxJornada = unique[unique.length - 1];
+    const maxJornadaMatches = matches.filter((match) => match.jornada === maxJornada);
+    const maxJornadaFinalizada = maxJornadaMatches.length > 0
+      && maxJornadaMatches.every((match) => match.estado === 'finalizado' || Boolean(match.finalScore));
+
+    if (maxJornadaFinalizada) {
+      return [...unique, maxJornada + 1];
+    }
+
+    return unique;
   }, [matches]);
 
   const fixtureMatches = useMemo(() => {
     if (activeFecha === 0) return matches;
     return matches.filter((match) => match.jornada === activeFecha);
   }, [matches, activeFecha]);
+
+  const fechasForTabs = useMemo(() => [...fechas].sort((a, b) => b - a), [fechas]);
 
   const nextPlayableMatchId = useMemo(() => {
     const nextPlayable = matches.find((match) => !Boolean(match.finalScore) && match.estado !== 'finalizado' && match.estado !== 'esperando_validacion');
@@ -514,7 +527,7 @@ const Fixture: React.FC = () => {
             >
               <p className={`text-sm tracking-wide ${activeFecha === 0 ? 'font-bold' : 'font-semibold'}`}>TODAS</p>
             </button>
-            {fechas.map((f) => (
+            {fechasForTabs.map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveFecha(f)}
