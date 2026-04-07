@@ -240,9 +240,9 @@ const TournamentPanel: React.FC = () => {
   }, [nextMatch?.rival?.whatsapp, nextMatch?.rivalWhatsapp]);
 
   const nextMatchDateLabel = useMemo(() => {
-    if (!nextMatch?.fecha_programada) return 'Fecha a confirmar por la organización';
+    if (!nextMatch?.fecha_programada) return null;
     const date = new Date(nextMatch.fecha_programada);
-    if (Number.isNaN(date.getTime())) return 'Fecha a confirmar por la organización';
+    if (Number.isNaN(date.getTime())) return null;
     return date.toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
@@ -378,7 +378,7 @@ const TournamentPanel: React.FC = () => {
               <div className="space-y-1">
                 <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">{nextMatch ? `Fecha ${nextMatch.jornada}` : 'Sin partido'}</p>
                 <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rivalName}` : 'Rival por definir'}</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>
+                {nextMatchDateLabel && <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>}
               </div>
               <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white dark:border-gray-700 shadow-sm flex items-center justify-center text-sm font-bold uppercase">
                 {String(nextMatch?.rivalName || 'Rival')
