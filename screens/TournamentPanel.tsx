@@ -380,12 +380,13 @@ const TournamentPanel: React.FC = () => {
                 <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rivalName}` : 'Rival por definir'}</h4>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>
               </div>
-              <div className="size-12 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0 border-2 border-white dark:border-gray-700 shadow-sm">
-                <img 
-                  alt={nextMatch?.rivalName || 'Rival'} 
-                  className="w-full h-full object-cover" 
-                  src={`https://i.pravatar.cc/120?u=${nextMatch?.rivalId || 'rival'}`}
-                />
+              <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white dark:border-gray-700 shadow-sm flex items-center justify-center text-sm font-bold uppercase">
+                {String(nextMatch?.rivalName || 'Rival')
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((chunk) => chunk[0])
+                  .join('') || 'R'}
               </div>
             </div>
             

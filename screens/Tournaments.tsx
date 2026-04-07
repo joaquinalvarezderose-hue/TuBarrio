@@ -391,7 +391,6 @@ const Tournaments: React.FC = () => {
                   <img src={t.imagen_url || ''} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
                   <div className="flex-1">
                     <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.titulo}</h4>
-                    <p className="text-xs text-gray-400">{formatearFecha(t.fecha_inicio, t.fecha_fin)}</p>
                     <span className={`text-xs font-bold mt-1 inline-block ${canOpenPanel ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
                       {canOpenPanel ? 'Ver Panel' : 'Torneo en preparación'}
                     </span>

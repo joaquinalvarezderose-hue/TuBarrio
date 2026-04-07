@@ -555,13 +555,27 @@ const MatchResult: React.FC = () => {
             </div>
             <div className="flex items-center justify-between mt-3">
               <div className="flex flex-col items-center gap-2 flex-1">
-                <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 1 ? 'ring-primary' : 'ring-gray-200'} bg-cover bg-center transition-all`} style={{ backgroundImage: "url('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop')" }}></div>
+                <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 1 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase transition-all`}>
+                  {String(players[0]?.name || 'Jugador')
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((chunk) => chunk[0])
+                    .join('') || 'J'}
+                </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{players[0].name}</span>
                 {matchWinner === 1 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
               </div>
               <div className="flex flex-col items-center px-4"><span className="text-xs font-black text-gray-300 italic uppercase">VS</span></div>
               <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${matchWinner === 1 ? 'opacity-40' : ''}`}>
-                <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 2 ? 'ring-primary' : 'ring-gray-200'} bg-cover bg-center`} style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop')" }}></div>
+                <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 2 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase`}>
+                  {String(players[1]?.name || 'Jugador')
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((chunk) => chunk[0])
+                    .join('') || 'J'}
+                </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{players[1].name}</span>
                 {matchWinner === 2 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
               </div>

@@ -350,7 +350,6 @@ const Standings: React.FC = () => {
       const mapped = orderedRows.map((row: TournamentPlayerRow, idx: number) => ({
         id: row.perfil_id || `db-player-${idx}`,
         name: nameById[row.perfil_id] || 'Jugador',
-        img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop',
         pj: Number(row.partidos_jugados || 0),
         pts: Number(row.puntos || 0),
         setsWon: Number(row.sets_ganados || 0),
@@ -465,7 +464,14 @@ const Standings: React.FC = () => {
                   <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700' : 'bg-white dark:bg-slate-900'}`}>{idx + 1}</td>
                   <td className={`px-4 py-4 sticky left-12 z-10 ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
                     <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-full bg-cover bg-center border-2 border-white shadow-sm" style={{ backgroundImage: `url("${p.img}")` }}></div>
+                      <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
+                        {String(p.name || 'Jugador')
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((chunk: string) => chunk[0])
+                          .join('') || 'J'}
+                      </div>
                       <span className="text-sm font-semibold">{p.name}</span>
                     </div>
                   </td>

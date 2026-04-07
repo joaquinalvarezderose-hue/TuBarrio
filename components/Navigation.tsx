@@ -27,7 +27,7 @@ const Navigation: React.FC = () => {
           <span className="material-symbols-outlined">location_city</span>
         </div>
         <div>
-          <h1 className="font-black text-lg leading-none text-secondary dark:text-white">MiBarrio</h1>
+          <h1 className="font-black text-lg leading-none text-secondary dark:text-white">TuBarrio</h1>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">App Web</p>
         </div>
       </div>
