@@ -122,9 +122,14 @@ const TournamentDetails: React.FC = () => {
               className="absolute inset-0 bg-cover bg-center opacity-80" 
               style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZFkqBmThhKQvkFpbT4fetiHM-5Qwb1EB49RzxQMvybIvdYS0-_rV_YwFhARurSeiEAyaiyb8CEZYChh8S1sMwDq73wrqUEZw0IpTJdJeUjgnKygNggWdxujsI92y0Rw-KXIV9aw7H-t5cwPlGYmpB29c1apBELhOwLOEOTos3uSczGbjazrRVXg9DHZzby-STciMc403zow0oXWSLOmalfjEqulvdscR-_X9rO2xyOQIqKpe9RVexjMcoef7MWNOvC9pEnweOuro")' }}
             ></div>
-            <div className="absolute inset-0 bg-black/10 flex items-center justify-center cursor-pointer">
+            <a
+              href="https://share.google/KhvKVGsJQXvZxfF7V"
+              target="_blank"
+              rel="noreferrer"
+              className="absolute inset-0 bg-black/10 flex items-center justify-center cursor-pointer"
+            >
               <span className="bg-white/90 px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm">Ver en el Mapa</span>
-            </div>
+            </a>
           </div>
         </div>
       </div>
@@ -144,7 +149,7 @@ const TournamentDetails: React.FC = () => {
             <span className="material-symbols-outlined text-[20px]">emoji_events</span>
             <span className="text-sm font-medium">Premios</span>
           </div>
-          <p className="relative z-10 text-gray-900 text-lg font-bold leading-snug">Diversos premios para los mejores</p>
+          <p className="relative z-10 text-gray-900 text-lg font-bold leading-snug">Premios para los mejores</p>
         </div>
       </div>
 
