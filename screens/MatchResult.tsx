@@ -32,6 +32,12 @@ type MatchContext = {
   set3_j2: number | null;
 };
 
+type ProposalSets = {
+  set1: { player1: number; player2: number };
+  set2: { player1: number; player2: number };
+  set3: { player1: number; player2: number };
+};
+
 type ProposalRpcRow = {
   partido_id: string;
   propuesta_id: string | null;
@@ -46,6 +52,15 @@ const emptyScores: ScoreState = {
   set1: { player1: 0, player2: 0 },
   set2: { player1: 0, player2: 0 },
   set3: { player1: 0, player2: 0 },
+};
+
+const parseProposalSets = (raw: any): ProposalSets | null => {
+  if (!Array.isArray(raw)) return null;
+  return {
+    set1: { player1: Number(raw[0]?.p1 || 0), player2: Number(raw[0]?.p2 || 0) },
+    set2: { player1: Number(raw[1]?.p1 || 0), player2: Number(raw[1]?.p2 || 0) },
+    set3: { player1: Number(raw[2]?.p1 || 0), player2: Number(raw[2]?.p2 || 0) },
+  };
 };
 
 const MatchResult: React.FC = () => {
@@ -74,6 +89,7 @@ const MatchResult: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [proposalState, setProposalState] = useState<'idle' | 'pendiente' | 'confirmado' | 'discrepancia'>('idle');
+  const [rivalProposalScores, setRivalProposalScores] = useState<ProposalSets | null>(null);
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -107,6 +123,7 @@ const MatchResult: React.FC = () => {
   }, [currentUserId, players]);
   const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
   const isWaitingValidation = partido?.estado === 'esperando_validacion';
+  const isScoreInputLocked = useMemo(() => isWaitingValidation || isSubmitting || loadingMatch || !isParticipant, [isWaitingValidation, isSubmitting, loadingMatch, isParticipant]);
   const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason && !isWaitingValidation, [matchWinner, partido?.id, isParticipant, blockReason, isWaitingValidation]);
   const hasDbPlayers = useMemo(() => Boolean(players[0]?.perfil_id && players[1]?.perfil_id), [players]);
   const submitErrorUi = useMemo(() => {
@@ -196,6 +213,7 @@ const MatchResult: React.FC = () => {
       setLoadingMatch(true);
       setSubmitError(null);
       setBlockReason(null);
+      setRivalProposalScores(null);
 
       try {
           if (!currentUserId) {
@@ -388,13 +406,18 @@ const MatchResult: React.FC = () => {
 
         if (propuesta) {
           setProposalState(propuesta.estado || 'idle');
-          const ownSets = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j1 : propuesta.sets_json_j2;
-          if (Array.isArray(ownSets)) {
-            setScores({
-              set1: { player1: Number(ownSets[0]?.p1 || 0), player2: Number(ownSets[0]?.p2 || 0) },
-              set2: { player1: Number(ownSets[1]?.p1 || 0), player2: Number(ownSets[1]?.p2 || 0) },
-              set3: { player1: Number(ownSets[2]?.p1 || 0), player2: Number(ownSets[2]?.p2 || 0) },
-            });
+          const ownSetsRaw = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j1 : propuesta.sets_json_j2;
+          const rivalSetsRaw = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j2 : propuesta.sets_json_j1;
+
+          const ownSets = parseProposalSets(ownSetsRaw);
+          const rivalSets = parseProposalSets(rivalSetsRaw);
+
+          if (ownSets) {
+            setScores(ownSets);
+          }
+
+          if (rivalSets) {
+            setRivalProposalScores(rivalSets);
           }
         }
       } catch (error) {
@@ -528,7 +551,7 @@ const MatchResult: React.FC = () => {
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{tournament.title} - {tournament.subtitle}</p>
             <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-300">
               <span>Jornada {partido?.jornada || 1}</span>
-              <span className="font-bold uppercase">{partido?.estado || 'sin partido'}</span>
+              {!isWaitingValidation && <span className="font-bold uppercase">{partido?.estado || 'sin partido'}</span>}
             </div>
             <div className="flex items-center justify-between mt-3">
               <div className="flex flex-col items-center gap-2 flex-1">
@@ -589,9 +612,13 @@ const MatchResult: React.FC = () => {
             <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               <div className="p-4 space-y-1">
                 {[
-                  { label: 'Set 1', j1: partido?.set1_j1, j2: partido?.set1_j2 },
-                  { label: 'Set 2', j1: partido?.set2_j1, j2: partido?.set2_j2 },
-                  ...(partido?.set3_j1 != null ? [{ label: 'Set 3 (TB)', j1: partido.set3_j1, j2: partido.set3_j2 }] : []),
+                  { label: 'Set 1', j1: rivalProposalScores?.set1.player1 ?? partido?.set1_j1, j2: rivalProposalScores?.set1.player2 ?? partido?.set1_j2 },
+                  { label: 'Set 2', j1: rivalProposalScores?.set2.player1 ?? partido?.set2_j1, j2: rivalProposalScores?.set2.player2 ?? partido?.set2_j2 },
+                  ...((rivalProposalScores
+                    ? (rivalProposalScores.set3.player1 > 0 || rivalProposalScores.set3.player2 > 0)
+                    : partido?.set3_j1 != null)
+                    ? [{ label: 'Set 3 (TB)', j1: rivalProposalScores?.set3.player1 ?? partido?.set3_j1, j2: rivalProposalScores?.set3.player2 ?? partido?.set3_j2 }]
+                    : []),
                 ].map(({ label, j1, j2 }) => (
                   <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
                     <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
@@ -629,7 +656,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {!blockReason && !(isPlayer2 && isWaitingValidation) && (
-          <div className="space-y-4">
+          <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
             return (
@@ -643,9 +670,9 @@ const MatchResult: React.FC = () => {
                     <div key={pKey} className="flex items-center justify-between">
                       <span className="text-gray-700 dark:text-gray-300 font-medium">{pKey === 'player1' ? players[0].name : players[1].name}</span>
                       <div className="flex items-center gap-3">
-                        <button onClick={() => updateScore(setKey, pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90">-</button>
+                        <button disabled={isScoreInputLocked} onClick={() => updateScore(setKey, pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
                         <span className="text-xl font-black text-gray-900 dark:text-white w-6 text-center">{scores[setKey][pKey]}</span>
-                        <button onClick={() => updateScore(setKey, pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold active:scale-90 shadow-sm">+</button>
+                        <button disabled={isScoreInputLocked} onClick={() => updateScore(setKey, pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold active:scale-90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">+</button>
                       </div>
                     </div>
                   ))}
@@ -668,14 +695,15 @@ const MatchResult: React.FC = () => {
                   <div key={pKey} className="flex items-center justify-between">
                     <span className="text-gray-700 dark:text-gray-300 font-medium">{pKey === 'player1' ? players[0].name : players[1].name}</span>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => updateScore('set3', pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90">-</button>
+                      <button disabled={isScoreInputLocked} onClick={() => updateScore('set3', pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
                       <input
+                        disabled={isScoreInputLocked}
                         className="text-xl font-black text-gray-900 dark:text-white w-12 text-center bg-transparent border-none focus:ring-0 p-0"
                         type="number"
                         value={scores.set3[pKey]}
                         onChange={(e) => setScores((prev) => ({ ...prev, set3: { ...prev.set3, [pKey]: parseInt(e.target.value, 10) || 0 } }))}
                       />
-                      <button onClick={() => updateScore('set3', pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold shadow-sm">+</button>
+                      <button disabled={isScoreInputLocked} onClick={() => updateScore('set3', pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">+</button>
                     </div>
                   </div>
                 ))}
