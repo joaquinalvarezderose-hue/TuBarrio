@@ -27,6 +27,29 @@ type FixtureMatch = {
   } | null;
 };
 
+const parseResultadoSets = (resultado: string | null): { sets_jugador1: number; sets_jugador2: number } | null => {
+  if (!resultado) return null;
+  const match = resultado.match(/(\d+)\s*[-:]\s*(\d+)/);
+  if (!match) return null;
+  return {
+    sets_jugador1: Number(match[1] || 0),
+    sets_jugador2: Number(match[2] || 0),
+  };
+};
+
+const resolveWinnerId = (
+  ganadorId: string | null | undefined,
+  p1Id: string,
+  p2Id: string,
+  setsJugador1: number,
+  setsJugador2: number,
+): string | null => {
+  if (ganadorId) return String(ganadorId);
+  if (setsJugador1 > setsJugador2) return p1Id;
+  if (setsJugador2 > setsJugador1) return p2Id;
+  return null;
+};
+
 const Fixture: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,7 +126,7 @@ const Fixture: React.FC = () => {
 
       let partidosScopeQuery: any = supabase
         .from('partidos')
-        .select('id, jornada, estado, resultado, jugador1_id, jugador2_id, categoria, grupo')
+        .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, categoria, grupo')
         .eq('torneo_id', parsedTournamentId)
         .order('jornada', { ascending: true })
         .order('fecha_programada', { ascending: true, nullsFirst: false });
@@ -136,7 +159,7 @@ const Fixture: React.FC = () => {
 
       let partidosQuery: any = supabase
         .from('partidos')
-        .select('id, jornada, estado, resultado, jugador1_id, jugador2_id')
+        .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id')
         .eq('torneo_id', parsedTournamentId)
         .order('jornada', { ascending: true })
         .order('fecha_programada', { ascending: true, nullsFirst: false });
@@ -277,36 +300,55 @@ const Fixture: React.FC = () => {
       });
       setPlayersStats(stats);
 
-      const mappedMatches: FixtureMatch[] = partidos.map((row: any) => ({
-        id: String(row.id),
-        jornada: Number(row.jornada || 1),
-        estado: String(row.estado || 'programado'),
-        resultado: row.resultado || null,
-        proposalState: proposalByMatch[row.id] || null,
-        p1: {
-          perfil_id: String(row.jugador1_id),
-          nombre: nameById[row.jugador1_id] || 'Jugador 1',
-          whatsapp: perfiles.find((p: any) => p.id === row.jugador1_id)?.whatsapp ? String(perfiles.find((p: any) => p.id === row.jugador1_id).whatsapp) : null,
-          puntos: Number(jugadorById[row.jugador1_id]?.puntos || 0),
-          partidos_jugados: Number(jugadorById[row.jugador1_id]?.partidos_jugados || 0),
-          sets_ganados: Number(jugadorById[row.jugador1_id]?.sets_ganados || 0),
-        },
-        p2: {
-          perfil_id: String(row.jugador2_id),
-          nombre: nameById[row.jugador2_id] || 'Jugador 2',
-          whatsapp: perfiles.find((p: any) => p.id === row.jugador2_id)?.whatsapp ? String(perfiles.find((p: any) => p.id === row.jugador2_id).whatsapp) : null,
-          puntos: Number(jugadorById[row.jugador2_id]?.puntos || 0),
-          partidos_jugados: Number(jugadorById[row.jugador2_id]?.partidos_jugados || 0),
-          sets_ganados: Number(jugadorById[row.jugador2_id]?.sets_ganados || 0),
-        },
-        finalScore: historialByMatch[row.id]
+      const mappedMatches: FixtureMatch[] = partidos.map((row: any) => {
+        const parsedResultado = parseResultadoSets(row.resultado || null);
+        const historialScore = historialByMatch[row.id]
           ? {
               sets_jugador1: Number(historialByMatch[row.id].sets_jugador1 || 0),
               sets_jugador2: Number(historialByMatch[row.id].sets_jugador2 || 0),
               ganador_perfil_id: historialByMatch[row.id].ganador_perfil_id || null,
             }
-          : null,
-      }));
+          : null;
+
+        const finalScore = historialScore || (parsedResultado
+          ? {
+              sets_jugador1: parsedResultado.sets_jugador1,
+              sets_jugador2: parsedResultado.sets_jugador2,
+              ganador_perfil_id: resolveWinnerId(
+                row.ganador_id,
+                String(row.jugador1_id),
+                String(row.jugador2_id),
+                parsedResultado.sets_jugador1,
+                parsedResultado.sets_jugador2,
+              ),
+            }
+          : null);
+
+        return {
+          id: String(row.id),
+          jornada: Number(row.jornada || 1),
+          estado: String(row.estado || 'programado'),
+          resultado: row.resultado || null,
+          proposalState: proposalByMatch[row.id] || null,
+          p1: {
+            perfil_id: String(row.jugador1_id),
+            nombre: nameById[row.jugador1_id] || 'Jugador 1',
+            whatsapp: perfiles.find((p: any) => p.id === row.jugador1_id)?.whatsapp ? String(perfiles.find((p: any) => p.id === row.jugador1_id).whatsapp) : null,
+            puntos: Number(jugadorById[row.jugador1_id]?.puntos || 0),
+            partidos_jugados: Number(jugadorById[row.jugador1_id]?.partidos_jugados || 0),
+            sets_ganados: Number(jugadorById[row.jugador1_id]?.sets_ganados || 0),
+          },
+          p2: {
+            perfil_id: String(row.jugador2_id),
+            nombre: nameById[row.jugador2_id] || 'Jugador 2',
+            whatsapp: perfiles.find((p: any) => p.id === row.jugador2_id)?.whatsapp ? String(perfiles.find((p: any) => p.id === row.jugador2_id).whatsapp) : null,
+            puntos: Number(jugadorById[row.jugador2_id]?.puntos || 0),
+            partidos_jugados: Number(jugadorById[row.jugador2_id]?.partidos_jugados || 0),
+            sets_ganados: Number(jugadorById[row.jugador2_id]?.sets_ganados || 0),
+          },
+          finalScore,
+        };
+      });
 
       setMatches(mappedMatches);
       refetchNextMatch();
@@ -483,7 +525,7 @@ const Fixture: React.FC = () => {
                   className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
                   aria-label="Contactar rival por WhatsApp"
                 >
-                  <span className="material-symbols-outlined">chat</span>
+                  <span className="material-symbols-outlined">message</span>
                 </a>
               ) : (
                 <button
@@ -491,7 +533,7 @@ const Fixture: React.FC = () => {
                   className="w-11 h-11 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed"
                   aria-label="WhatsApp no disponible"
                 >
-                  <span className="material-symbols-outlined">chat</span>
+                  <span className="material-symbols-outlined">message</span>
                 </button>
               )}
             </div>
@@ -558,6 +600,9 @@ const Fixture: React.FC = () => {
                 const rivalWhatsappLink = rivalWhatsappDigits ? `https://wa.me/${rivalWhatsappDigits}` : null;
                 const isActual = match.estado === 'esperando_validacion' || match.estado === 'en_curso';
                 const isNext = match.id === highlightedNextMatchId;
+                const userIsParticipant = currentUserId !== '' && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId);
+                const userWon = userIsParticipant && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id === currentUserId;
+                const userLost = userIsParticipant && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id !== currentUserId;
 
                 return (
                   <div key={match.id} className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] hover:shadow-md transition-shadow">
@@ -571,6 +616,7 @@ const Fixture: React.FC = () => {
                           <span className={`${p2Won ? 'text-[#111813] dark:text-white font-bold' : 'text-[#111813] dark:text-white font-medium'} text-lg`}>{match.p2.nombre}</span>
                           {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
                         </div>
+                        {isFinal && <p className="text-xs text-[#61896b] font-semibold mt-1">Resultado final: {p1Sets}-{p2Sets}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         {!isFinal && isActual && (
@@ -580,6 +626,12 @@ const Fixture: React.FC = () => {
                           <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">SIGUIENTE</span>
                         )}
                         <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">{getStatusLabel(match)}</span>
+                        {isFinal && userWon && (
+                          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">GANASTE</span>
+                        )}
+                        {isFinal && userLost && (
+                          <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">PERDISTE</span>
+                        )}
                         <div className="flex items-center gap-1 text-[#61896b] text-sm font-medium">
                           <span className="material-symbols-outlined text-sm">event</span>
                           <span>Jornada {match.jornada}</span>
@@ -606,7 +658,7 @@ const Fixture: React.FC = () => {
                           className="w-12 h-10 rounded-lg bg-[#25D366] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm"
                           aria-label="Contactar rival por WhatsApp"
                         >
-                          <span className="material-symbols-outlined font-bold">chat</span>
+                          <span className="material-symbols-outlined font-bold">message</span>
                         </a>
                       ) : (
                         <button
@@ -614,7 +666,7 @@ const Fixture: React.FC = () => {
                           className="w-12 h-10 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed"
                           aria-label="WhatsApp no disponible"
                         >
-                          <span className="material-symbols-outlined font-bold">chat</span>
+                          <span className="material-symbols-outlined font-bold">message</span>
                         </button>
                       )}
                     </div>
@@ -630,7 +682,6 @@ const Fixture: React.FC = () => {
             <span className="material-symbols-outlined text-4xl">event_available</span>
           </div>
           <h4 className="text-[#111813] dark:text-white font-bold mb-1">Calendario oficial</h4>
-          <p className="text-[#61896b] text-sm max-w-[240px]">Las jornadas se leen desde la tabla de partidos del torneo, por eso ahora cada cruce corresponde al fixture real.</p>
         </div>
       </main>
 
