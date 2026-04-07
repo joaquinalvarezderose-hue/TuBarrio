@@ -544,72 +544,76 @@ const Fixture: React.FC = () => {
 
       <main className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark pb-8 no-scrollbar">
         <div className="px-4 py-4">
-          <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Proximo partido</h3>
-                {nextMatchLoading ? (
-                  <p className="text-sm text-[#61896b] mt-1">Buscando tu proximo cruce...</p>
-                ) : nextMatch ? (
-                  <>
-                    <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">{nextMatch.rivalName}</p>
-                    <p className="text-xs text-[#61896b] mt-0.5">Jornada {nextMatch.jornada} - {nextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
-                    <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {nextMatch.rivalWhatsapp || 'No disponible'}</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-[#61896b] mt-1">No tenes un proximo partido pendiente por ahora.</p>
-                )}
-                {nextMatchError && <p className="text-xs text-red-600 mt-1">{nextMatchError}</p>}
-              </div>
-              {nextMatch?.whatsappLink ? (
-                <a
-                  href={nextMatch.whatsappLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
-                  aria-label="Contactar rival por WhatsApp"
-                >
-                  <span className="material-symbols-outlined">mail</span>
-                </a>
-              ) : (
-                <button
-                  disabled
-                  className="w-11 h-11 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed"
-                  aria-label="WhatsApp no disponible"
-                >
-                  <span className="material-symbols-outlined">mail</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Estado en vivo</h3>
-            </div>
-            {playersStats.length === 0 ? (
-              <p className="text-sm text-[#61896b]">Todavia no hay estadisticas cargadas para este torneo.</p>
-            ) : (
-              <div className="space-y-2">
-                {playersStats.slice(0, 4).map((p, idx) => (
-                  <div key={`${p.perfil_id}-${idx}`} className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-sm">
-                    <span className="font-bold text-[#4a9c40]">{idx + 1}</span>
-                    <span className="font-semibold truncate text-[#111813] dark:text-white">{p.nombre}</span>
-                    <span className="text-center font-bold">{p.puntos}</span>
-                    <span className="text-center">{p.partidos_jugados}</span>
-                    <span className="text-center">{p.sets_ganados}</span>
+          {activeFecha === 0 && (
+            <>
+              <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Proximo partido</h3>
+                    {nextMatchLoading ? (
+                      <p className="text-sm text-[#61896b] mt-1">Buscando tu proximo cruce...</p>
+                    ) : nextMatch ? (
+                      <>
+                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">{nextMatch.rivalName}</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">Jornada {nextMatch.jornada} - {nextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {nextMatch.rivalWhatsapp || 'No disponible'}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#61896b] mt-1">No tenes un proximo partido pendiente por ahora.</p>
+                    )}
+                    {nextMatchError && <p className="text-xs text-red-600 mt-1">{nextMatchError}</p>}
                   </div>
-                ))}
-                <div className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-[10px] uppercase tracking-wider text-[#61896b] pt-1 border-t border-[#dbe6de] dark:border-[#2a3c2e]">
-                  <span></span>
-                  <span>Jugador</span>
-                  <span className="text-center">Pts</span>
-                  <span className="text-center">PJ</span>
-                  <span className="text-center">Sets</span>
+                  {nextMatch?.whatsappLink ? (
+                    <a
+                      href={nextMatch.whatsappLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
+                      aria-label="Contactar rival por WhatsApp"
+                    >
+                      <span className="material-symbols-outlined">mail</span>
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-11 h-11 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed"
+                      aria-label="WhatsApp no disponible"
+                    >
+                      <span className="material-symbols-outlined">mail</span>
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Estado en vivo</h3>
+                </div>
+                {playersStats.length === 0 ? (
+                  <p className="text-sm text-[#61896b]">Todavia no hay estadisticas cargadas para este torneo.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {playersStats.slice(0, 4).map((p, idx) => (
+                      <div key={`${p.perfil_id}-${idx}`} className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-sm">
+                        <span className="font-bold text-[#4a9c40]">{idx + 1}</span>
+                        <span className="font-semibold truncate text-[#111813] dark:text-white">{p.nombre}</span>
+                        <span className="text-center font-bold">{p.puntos}</span>
+                        <span className="text-center">{p.partidos_jugados}</span>
+                        <span className="text-center">{p.sets_ganados}</span>
+                      </div>
+                    ))}
+                    <div className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-[10px] uppercase tracking-wider text-[#61896b] pt-1 border-t border-[#dbe6de] dark:border-[#2a3c2e]">
+                      <span></span>
+                      <span>Jugador</span>
+                      <span className="text-center">Pts</span>
+                      <span className="text-center">PJ</span>
+                      <span className="text-center">Sets</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {loadError && (
             <div className="rounded-xl bg-red-50 dark:bg-red-900/10 p-4 border border-red-100 dark:border-red-800/20 flex gap-3 mb-4">
