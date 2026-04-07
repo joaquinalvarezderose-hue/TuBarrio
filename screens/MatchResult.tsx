@@ -109,6 +109,58 @@ const MatchResult: React.FC = () => {
   const isWaitingValidation = partido?.estado === 'esperando_validacion';
   const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason && !isWaitingValidation, [matchWinner, partido?.id, isParticipant, blockReason, isWaitingValidation]);
   const hasDbPlayers = useMemo(() => Boolean(players[0]?.perfil_id && players[1]?.perfil_id), [players]);
+  const submitErrorUi = useMemo(() => {
+    if (!submitError) return null;
+
+    const normalized = submitError.toLowerCase();
+
+    if (normalized.includes('esperando validacion')) {
+      return {
+        message: 'Este resultado ya fue enviado y esta esperando validacion del rival.',
+        hint: 'No hace falta reenviar. Espera la confirmacion del Jugador 2.',
+      };
+    }
+
+    if (normalized.includes('solo el jugador 2')) {
+      return {
+        message: 'Solo el Jugador 2 puede confirmar o rechazar este resultado.',
+        hint: 'Ingresa con la cuenta del segundo jugador para validar el marcador.',
+      };
+    }
+
+    if (normalized.includes('estado cambio')) {
+      return {
+        message: 'El partido se actualizo mientras estabas en pantalla.',
+        hint: 'Recarga la vista para traer el estado mas reciente.',
+      };
+    }
+
+    if (normalized.includes('no esta esperando validacion')) {
+      return {
+        message: 'Este partido ya no esta en etapa de validacion.',
+        hint: 'Posiblemente ya fue confirmado o devuelto a programado.',
+      };
+    }
+
+    if (normalized.includes('partido no encontrado')) {
+      return {
+        message: 'No encontramos el partido en la base de datos.',
+        hint: 'Reintenta desde el listado de partidos del torneo.',
+      };
+    }
+
+    if (normalized.includes('finalizado')) {
+      return {
+        message: 'Este partido ya esta finalizado y no se puede modificar.',
+        hint: 'Puedes verlo en el historial o la tabla de posiciones.',
+      };
+    }
+
+    return {
+      message: submitError,
+      hint: 'Si el problema continua, actualiza la pantalla e intentalo nuevamente.',
+    };
+  }, [submitError]);
 
   const updateScore = (set: keyof ScoreState, player: 'player1' | 'player2', delta: number) => {
     setScores((prev) => {
@@ -359,47 +411,29 @@ const MatchResult: React.FC = () => {
   const handleConfirm = async () => {
     if (!canConfirm || !partido?.id) return;
 
-    // Verificación de estado antes de enviar: evitar double submit
-    const { data: currentPartido, error: checkError } = await supabase
-      .from('partidos')
-      .select('estado')
-      .eq('id', partido.id)
-      .single();
-
-    if (checkError) {
-      setSubmitError('No se pudo verificar el estado del partido. Intenta nuevamente.');
-      return;
-    }
-
-    if (currentPartido.estado === 'esperando_validacion') {
-      setSubmitError('Este resultado ya fue enviado y está esperando validación del rival.');
-      return;
-    }
-
-    if (currentPartido.estado === 'finalizado') {
-      setSubmitError('Este partido ya fue finalizado y no se puede modificar.');
-      return;
-    }
-
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitMessage(null);
 
     try {
-      const { error } = await supabase
-        .from('partidos')
-        .update({
-          set1_j1: scores.set1.player1,
-          set1_j2: scores.set1.player2,
-          set2_j1: scores.set2.player1,
-          set2_j2: scores.set2.player2,
-          set3_j1: isDrawInSets ? scores.set3.player1 : null,
-          set3_j2: isDrawInSets ? scores.set3.player2 : null,
-          estado: 'esperando_validacion',
-        })
-        .eq('id', partido.id);
+      const { data, error } = await supabase.rpc('enviar_resultado_seguro', {
+        p_partido_id: partido.id,
+        p_user_id: currentUserId,
+        p_set1_j1: scores.set1.player1,
+        p_set1_j2: scores.set1.player2,
+        p_set2_j1: scores.set2.player1,
+        p_set2_j2: scores.set2.player2,
+        p_set3_j1: isDrawInSets ? scores.set3.player1 : null,
+        p_set3_j2: isDrawInSets ? scores.set3.player2 : null,
+      });
 
       if (error) throw error;
+
+      const result = String(data || '');
+      if (result !== 'OK') {
+        setSubmitError(result || 'No se pudo enviar el resultado.');
+        return;
+      }
 
       setPartido((prev) => prev ? { ...prev, estado: 'esperando_validacion' } : prev);
       setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
@@ -416,11 +450,20 @@ const MatchResult: React.FC = () => {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const { error } = await supabase
-        .from('partidos')
-        .update({ estado: 'finalizado' })
-        .eq('id', partido.id);
+      const { data, error } = await supabase.rpc('validar_resultado_seguro', {
+        p_partido_id: partido.id,
+        p_user_id: currentUserId,
+        p_accion: 'confirmar',
+      });
       if (error) throw error;
+
+      const result = String(data || '');
+      if (result !== 'OK_CONFIRMADO') {
+        setSubmitError(result || 'No se pudo confirmar el resultado.');
+        return;
+      }
+
+      setPartido((prev) => prev ? { ...prev, estado: 'finalizado' } : prev);
       navigate('/standings', { state: { tournament } });
     } catch (error) {
       console.error('Error confirmando el resultado', error);
@@ -435,16 +478,19 @@ const MatchResult: React.FC = () => {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const { error } = await supabase
-        .from('partidos')
-        .update({
-          estado: 'programado',
-          set1_j1: null, set1_j2: null,
-          set2_j1: null, set2_j2: null,
-          set3_j1: null, set3_j2: null,
-        })
-        .eq('id', partido.id);
+      const { data, error } = await supabase.rpc('validar_resultado_seguro', {
+        p_partido_id: partido.id,
+        p_user_id: currentUserId,
+        p_accion: 'rechazar',
+      });
       if (error) throw error;
+
+      const result = String(data || '');
+      if (result !== 'OK_RECHAZADO') {
+        setSubmitError(result || 'No se pudo rechazar el resultado.');
+        return;
+      }
+
       setPartido((prev) => prev ? {
         ...prev,
         estado: 'programado',
@@ -674,12 +720,13 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {submitError && (
+        {submitError && submitErrorUi && (
           <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-red-500 text-lg">error</span>
             <div className="flex-1">
-              <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed font-medium">{submitError}</p>
-              {!saving && (
+              <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed font-bold">{submitErrorUi.message}</p>
+              <p className="text-[11px] mt-1 text-red-700/80 dark:text-red-300/80 leading-relaxed font-medium">{submitErrorUi.hint}</p>
+              {!isSubmitting && (
                 <button
                   onClick={() => setRetryTick((prev) => prev + 1)}
                   className="mt-2 text-[11px] font-bold uppercase tracking-wide text-red-700 dark:text-red-300 underline"
