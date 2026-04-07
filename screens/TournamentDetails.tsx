@@ -105,8 +105,7 @@ const TournamentDetails: React.FC = () => {
         </div>
         <div className="flex flex-1 flex-col py-2 pb-6">
           <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">FECHAS DEL TORNEO</p>
-          <p className="text-gray-900 text-lg font-medium leading-normal">{tournament.date}</p>
-          <p className="text-xs text-gray-400 mt-1">El primer partido arranca a las 9:00 AM</p>
+          <p className="text-gray-900 text-lg font-medium leading-normal">Mayo a Julio</p>
         </div>
 
         <div className="flex flex-col items-center gap-1">
@@ -117,7 +116,7 @@ const TournamentDetails: React.FC = () => {
         </div>
         <div className="flex flex-1 flex-col py-2">
           <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">UBICACIÓN</p>
-          <p className="text-gray-900 text-lg font-medium leading-normal">Canchas del Barrio</p>
+          <p className="text-gray-900 text-lg font-medium leading-normal">Canchas del Barrio El Canton</p>
           <div className="mt-3 h-24 w-full overflow-hidden rounded-xl relative border border-gray-200">
             <div 
               className="absolute inset-0 bg-cover bg-center opacity-80" 
@@ -137,7 +136,7 @@ const TournamentDetails: React.FC = () => {
             <span className="material-symbols-outlined text-[20px]">payments</span>
             <span className="text-sm font-medium">Inscripción</span>
           </div>
-          <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$25</p>
+          <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$50.000</p>
         </div>
         <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 size-20 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
@@ -145,7 +144,7 @@ const TournamentDetails: React.FC = () => {
             <span className="material-symbols-outlined text-[20px]">emoji_events</span>
             <span className="text-sm font-medium">Premios</span>
           </div>
-          <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$500</p>
+          <p className="relative z-10 text-gray-900 text-lg font-bold leading-snug">Diversos premios para los mejores</p>
         </div>
       </div>
 
@@ -160,20 +159,8 @@ const TournamentDetails: React.FC = () => {
               <span className="material-symbols-outlined">verified_user</span>
             </div>
             <div className="flex flex-col">
-              <p className="text-sm font-bold text-gray-900">Residente Verificado</p>
-              <p className="text-xs text-gray-500">Debe tener dirección verificada en TuBarrio.</p>
-            </div>
-            <div className="ml-auto">
-              <span className="material-symbols-outlined text-green-500 text-[20px] filled">check_circle</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 rounded-xl bg-white p-4 border border-gray-100">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#6dec13]/20 text-green-700">
-              <span className="material-symbols-outlined">water_drop</span>
-            </div>
-            <div className="flex flex-col">
-              <p className="text-sm font-bold text-gray-900">Liquid Rank 3.5+</p>
-              <p className="text-xs text-gray-500">Nivel mínimo requerido.</p>
+              <p className="text-sm font-bold text-gray-900">Pertenecer al Barrio El Canton</p>
+              <p className="text-xs text-gray-500">Es el único requisito obligatorio para participar.</p>
             </div>
             <div className="ml-auto">
               <span className="material-symbols-outlined text-green-500 text-[20px] filled">check_circle</span>
