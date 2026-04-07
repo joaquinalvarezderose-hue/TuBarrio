@@ -1,5 +1,5 @@
 {
-  "name": "Mi Barrio - Gestión Comunitaria",
+  "name": "Tu Barrio - Gestión Comunitaria",
   "description": "Una aplicación integral para la gestión de vecindarios, permitiendo reportes de incidentes, visualización de alertas de seguridad y registro de domicilios mediante búsqueda inteligente.",
   "requestFramePermissions": [
     "geolocation"
