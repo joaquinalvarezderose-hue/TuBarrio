@@ -514,7 +514,6 @@ const Fixture: React.FC = () => {
 
         <div className="px-4 pb-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-[#61896b] font-bold">{tournament.title}</p>
-          <p className="text-sm text-[#111813] dark:text-white font-semibold">{tournament.subtitle || 'General'}</p>
         </div>
 
         <div className="overflow-x-auto no-scrollbar">

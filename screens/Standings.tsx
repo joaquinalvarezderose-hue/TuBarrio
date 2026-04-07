@@ -439,7 +439,6 @@ const Standings: React.FC = () => {
         <div className="px-4 pb-4 pt-2">
           <div className="flex items-baseline gap-2">
             <h3 className="text-2xl font-bold">Tabla General</h3>
-            <span className="text-slate-500 font-medium text-lg">{scope?.categoria || tournament.subtitle || 'General'}</span>
           </div>
           <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mt-1">{tournament.title || 'Torneo TuBarrio'}</p>
         </div>
@@ -451,7 +450,7 @@ const Standings: React.FC = () => {
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
                 <th className="px-4 py-3 sticky left-0 z-20 bg-slate-50 dark:bg-slate-800 w-12 text-center">Pos</th>
-                <th className="px-4 py-3 sticky left-12 z-20 bg-slate-50 dark:bg-slate-800 min-w-[160px]">Jugador</th>
+                <th className="px-4 py-3 sticky left-12 z-20 bg-slate-50 dark:bg-slate-800 min-w-[160px] shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)]">Jugador</th>
                 <th className="px-3 py-3 text-center">PJ</th>
                 <th className="px-3 py-3 text-center">Pts</th>
                 <th className="px-3 py-3 text-center">S. Dif</th>
@@ -462,7 +461,7 @@ const Standings: React.FC = () => {
               {calculatedStandings.map((p, idx) => (
                 <tr key={p.id} className={idx < 2 ? 'bg-primary/10 dark:bg-primary/5' : 'bg-white dark:bg-slate-900'}>
                   <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700' : 'bg-white dark:bg-slate-900'}`}>{idx + 1}</td>
-                  <td className={`px-4 py-4 sticky left-12 z-10 ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
+                  <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
                     <div className="flex items-center gap-3">
                       <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
                         {String(p.name || 'Jugador')
@@ -490,7 +489,6 @@ const Standings: React.FC = () => {
               )}
             </tbody>
           </table>
-          <div className="absolute top-0 left-[212px] bottom-0 w-4 bg-gradient-to-r from-black/5 to-transparent pointer-events-none z-30"></div>
         </div>
 
         <div className="p-4 mx-4 my-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
