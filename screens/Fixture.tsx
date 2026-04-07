@@ -723,12 +723,6 @@ const Fixture: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-8 mt-4 flex flex-col items-center text-center">
-          <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] mb-4">
-            <span className="material-symbols-outlined text-4xl">event_available</span>
-          </div>
-          <h4 className="text-[#111813] dark:text-white font-bold mb-1">Calendario oficial</h4>
-        </div>
       </main>
 
       <div className="fixed bottom-6 right-6 z-30">
