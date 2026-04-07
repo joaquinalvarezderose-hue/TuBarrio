@@ -409,11 +409,6 @@ const TournamentPanel: React.FC = () => {
                   {rivalWaLink ? 'WhatsApp del Rival' : 'Rival sin WhatsApp'}
                 </button>
               ) : null}
-              
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <span className="material-symbols-outlined text-gray-400">location_on</span>
-                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Sede Central - Cancha 3 (Polvo)</span>
-              </div>
             </div>
           </div>
         </section>

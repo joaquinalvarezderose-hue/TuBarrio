@@ -546,6 +546,7 @@ const MatchResult: React.FC = () => {
       </header>
 
       <main className="flex-1 p-4 space-y-6">
+        {partido && (
         <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-white/10">
           <div className="p-4 bg-gradient-to-r from-primary/10 to-transparent">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{tournament.title} - {tournament.subtitle}</p>
@@ -582,14 +583,33 @@ const MatchResult: React.FC = () => {
             </div>
           </div>
         </section>
+        )}
 
         {blockReason && !loadingMatch && (
-          <section className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm">
-            <span className="material-symbols-outlined text-amber-500 text-lg">block</span>
-            <div>
-              <p className="text-sm text-amber-800 dark:text-amber-200 font-bold">Carga deshabilitada</p>
-              <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">{blockReason}</p>
-            </div>
+          <section
+            className={`rounded-xl border shadow-sm ${
+              !partido
+                ? 'p-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-center'
+                : 'p-4 bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/20 flex gap-3'
+            }`}
+          >
+            {partido ? (
+              <>
+                <span className="material-symbols-outlined text-amber-500 text-lg">block</span>
+                <div>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-bold">Carga deshabilitada</p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">{blockReason}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mx-auto mb-3 size-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-amber-600 dark:text-amber-300 text-2xl">event_busy</span>
+                </div>
+                <p className="text-lg text-amber-900 dark:text-amber-100 font-black">Todavia no hay partido generado</p>
+                <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed font-semibold mt-1">Apenas se genere el cruce de esta jornada vas a poder cargar el resultado.</p>
+              </>
+            )}
           </section>
         )}
 
