@@ -221,14 +221,54 @@ const MatchResult: React.FC = () => {
           return;
         }
 
-        const grupo = `TORNEO_${tournament.id}`;
-        const categoria = tournament.subtitle || 'General';
+        let resolvedScope: { categoria: string; grupo: string } | null = null;
 
-        const { data: statusRow, error: statusError } = await supabase
-          .from('torneo_estado')
-          .select('estado')
+        const { data: playerScopeRows } = await supabase
+          .from('torneo_jugadores')
+          .select('categoria, grupo')
           .eq('torneo_id', tournament.id)
-          .maybeSingle();
+          .eq('perfil_id', currentUserId)
+          .limit(1);
+
+        const playerScope = Array.isArray(playerScopeRows) ? playerScopeRows[0] : null;
+        if (playerScope?.categoria && playerScope?.grupo) {
+          resolvedScope = {
+            categoria: String(playerScope.categoria),
+            grupo: String(playerScope.grupo),
+          };
+        }
+
+        if (!resolvedScope) {
+          const { data: inscriptionScopeRows } = await supabase
+            .from('inscripciones_torneo')
+            .select('categoria, grupo')
+            .eq('torneo_id', tournament.id)
+            .eq('perfil_id', currentUserId)
+            .in('estado', ['pagado_aprobado', 'pendiente_revision'])
+            .limit(1);
+
+          const inscriptionScope = Array.isArray(inscriptionScopeRows) ? inscriptionScopeRows[0] : null;
+          if (inscriptionScope?.categoria && inscriptionScope?.grupo) {
+            resolvedScope = {
+              categoria: String(inscriptionScope.categoria),
+              grupo: String(inscriptionScope.grupo),
+            };
+          }
+        }
+
+        const categoria = resolvedScope?.categoria || tournament.subtitle || 'General';
+        const grupo = resolvedScope?.grupo || null;
+
+        let statusQuery: any = supabase
+          .from('torneo_estado')
+          .select('estado, categoria, grupo')
+          .eq('torneo_id', tournament.id);
+
+        if (resolvedScope?.categoria) statusQuery = statusQuery.eq('categoria', resolvedScope.categoria);
+        if (resolvedScope?.grupo) statusQuery = statusQuery.eq('grupo', resolvedScope.grupo);
+
+        const { data: statusRows, error: statusError } = await statusQuery.limit(1);
+        const statusRow = Array.isArray(statusRows) ? statusRows[0] : null;
 
         if (statusError) throw statusError;
 
@@ -242,12 +282,15 @@ const MatchResult: React.FC = () => {
         }
 
         // Primero validamos si el torneo tiene suficientes inscriptos reales para habilitar la carga.
-        const { data: inscritosCategoria, error: inscritosCategoriaError } = await supabase
+        let inscritosCategoriaQuery: any = supabase
           .from('torneo_jugadores')
           .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
           .eq('torneo_id', tournament.id)
-          .eq('categoria', categoria)
-          .eq('grupo', grupo);
+          .eq('categoria', categoria);
+
+        if (grupo) inscritosCategoriaQuery = inscritosCategoriaQuery.eq('grupo', grupo);
+
+        const { data: inscritosCategoria, error: inscritosCategoriaError } = await inscritosCategoriaQuery;
 
         if (inscritosCategoriaError) throw inscritosCategoriaError;
 
@@ -305,12 +348,13 @@ const MatchResult: React.FC = () => {
           return;
         }
 
-        let partidoQuery = supabase
+        let partidoQuery: any = supabase
           .from('partidos')
           .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2')
           .eq('torneo_id', tournament.id)
-          .eq('categoria', categoria)
-          .eq('grupo', grupo);
+          .eq('categoria', categoria);
+
+        if (grupo) partidoQuery = partidoQuery.eq('grupo', grupo);
 
         if (selectedPartidoId) {
           partidoQuery = partidoQuery.eq('id', selectedPartidoId);
@@ -349,13 +393,17 @@ const MatchResult: React.FC = () => {
 
         const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
         const [{ data: jugadoresScoped, error: jugadoresScopedError }, { data: perfiles, error: perfilesError }, { data: propuesta }] = await Promise.all([
-          supabase
-            .from('torneo_jugadores')
-            .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
-            .eq('torneo_id', tournament.id)
-            .eq('categoria', categoria)
-            .eq('grupo', grupo)
-            .in('perfil_id', playerIds),
+          (() => {
+            let jugadoresScopedQuery: any = supabase
+              .from('torneo_jugadores')
+              .select('id, perfil_id, puntos, partidos_jugados, sets_ganados')
+              .eq('torneo_id', tournament.id)
+              .eq('categoria', categoria)
+              .in('perfil_id', playerIds);
+
+            if (grupo) jugadoresScopedQuery = jugadoresScopedQuery.eq('grupo', grupo);
+            return jugadoresScopedQuery;
+          })(),
           supabase
             .from('perfiles')
             .select('id, nombre_completo')

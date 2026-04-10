@@ -7,6 +7,8 @@ const TournamentDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isRegistered, setIsRegistered] = useState(false);
+  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
+  const isAdmin = String(appUser?.rol || '').trim().toLowerCase() === 'admin';
 
   const tournament = location.state?.tournament || {
     id: 1,
@@ -190,6 +192,30 @@ const TournamentDetails: React.FC = () => {
             >
               <span className="material-symbols-outlined font-black">sports_tennis</span>
               <span>Ir a mi Panel</span>
+            </button>
+          </div>
+        ) : isAdmin ? (
+          <div className="flex flex-col gap-3">
+            <div className="w-full flex items-center justify-center gap-3 bg-slate-100 border border-slate-200 rounded-xl py-4 px-5">
+              <span className="material-symbols-outlined text-slate-700 text-[24px] font-black">admin_panel_settings</span>
+              <div className="flex flex-col">
+                <span className="text-slate-900 font-black text-base leading-tight">Modo administrador</span>
+                <span className="text-slate-500 text-xs font-bold">Podés gestionar sorteo e inicio aunque no estés inscripto</span>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/tournament-panel', { state: { tournament } })}
+              className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] transition-all text-white font-black text-lg h-14 rounded-xl shadow-lg flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined font-black">tune</span>
+              <span>Administrar Torneo</span>
+            </button>
+            <button
+              onClick={() => navigate('/payment', { state: { tournament } })}
+              className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
+            >
+              <span>Inscribirme al Torneo</span>
+              <span className="material-symbols-outlined font-black">arrow_forward</span>
             </button>
           </div>
         ) : (

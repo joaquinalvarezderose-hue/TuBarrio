@@ -34,6 +34,21 @@ type TournamentScope = {
   grupo: string;
 };
 
+type TournamentConfigRow = {
+  jugadores_por_grupo: number;
+  sortear_grupos_en_sorteo: boolean;
+  grupo_base: string | null;
+};
+
+type GroupStatusRow = {
+  categoria: string;
+  grupo: string;
+  estado: string;
+  current_participantes: number;
+  max_participantes: number;
+  sorteo_realizado: boolean;
+};
+
 const TournamentPanel: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,6 +61,7 @@ const TournamentPanel: React.FC = () => {
   });
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
   const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
+  const isAdmin = String(appUser?.rol || '').trim().toLowerCase() === 'admin';
 
   const [loadingData, setLoadingData] = useState(true);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -53,6 +69,12 @@ const TournamentPanel: React.FC = () => {
   const [userScope, setUserScope] = useState<TournamentScope | null>(null);
   const [groupPosition, setGroupPosition] = useState<number | null>(null);
   const [groupSize, setGroupSize] = useState<number>(0);
+  const [tournamentConfig, setTournamentConfig] = useState<TournamentConfigRow | null>(null);
+  const [groupStatuses, setGroupStatuses] = useState<GroupStatusRow[]>([]);
+  const [adminActionLoading, setAdminActionLoading] = useState<'draw' | 'start' | null>(null);
+  const [adminMessage, setAdminMessage] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Hook centralizado para el próximo partido + datos del rival
   const { match: nextMatch, loading: loadingNextMatch } = useNextMatch(tournament.id);
@@ -83,7 +105,25 @@ const TournamentPanel: React.FC = () => {
     const loadPanelData = async () => {
       setLoadingData(true);
       try {
+        setAdminError(null);
         let resolvedScope: TournamentScope | null = null;
+        const fallbackCategory = String(tournament.subtitle || 'General');
+
+        const { data: configRow, error: configError } = await supabase
+          .from('torneo_configuracion')
+          .select('jugadores_por_grupo, sortear_grupos_en_sorteo, grupo_base')
+          .eq('torneo_id', tournament.id)
+          .maybeSingle();
+
+        if (!configError && configRow) {
+          setTournamentConfig({
+            jugadores_por_grupo: Number(configRow.jugadores_por_grupo || 0),
+            sortear_grupos_en_sorteo: Boolean(configRow.sortear_grupos_en_sorteo),
+            grupo_base: configRow.grupo_base ? String(configRow.grupo_base) : null,
+          });
+        } else {
+          setTournamentConfig(null);
+        }
 
         if (currentUserId) {
           const { data: jugadorScopeRows } = await supabase
@@ -121,6 +161,19 @@ const TournamentPanel: React.FC = () => {
         }
 
         setUserScope(resolvedScope);
+
+        let groupStatusQuery: any = supabase
+          .from('torneo_estado')
+          .select('categoria, grupo, estado, current_participantes, max_participantes, sorteo_realizado')
+          .eq('torneo_id', tournament.id);
+
+        const statusCategory = resolvedScope?.categoria || fallbackCategory;
+        if (statusCategory) {
+          groupStatusQuery = groupStatusQuery.eq('categoria', statusCategory);
+        }
+
+        const { data: groupStatusRows } = await groupStatusQuery.order('grupo', { ascending: true });
+        setGroupStatuses(Array.isArray(groupStatusRows) ? (groupStatusRows as GroupStatusRow[]) : []);
 
         let statusQuery: any = supabase
           .from('torneo_estado')
@@ -198,7 +251,90 @@ const TournamentPanel: React.FC = () => {
     };
 
     loadPanelData();
-  }, [currentUserId, tournament.id]);
+  }, [currentUserId, tournament.id, tournament.subtitle, refreshKey]);
+
+  const refreshPanel = () => setRefreshKey((value) => value + 1);
+
+  const handleDrawGroupsAndFixture = async () => {
+    if (!isAdmin) return;
+
+    setAdminActionLoading('draw');
+    setAdminError(null);
+    setAdminMessage(null);
+
+    try {
+      const categoria = userScope?.categoria || tournament.subtitle || null;
+      const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
+
+      const { data, error } = await supabase.rpc('sortear_grupos_y_fixture_torneo', {
+        p_torneo_id: Number(tournament.id),
+        p_categoria: categoria,
+        p_grupo_base: grupoBase,
+      });
+
+      if (error) throw error;
+
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) {
+        setAdminMessage(
+          `Sorteo realizado: ${Number(row.grupos_creados || 0)} grupo(s), ${Number(row.jugadores_sorteados || 0)} jugador(es), ${Number(row.partidos_creados || 0)} partido(s).`
+        );
+      } else {
+        setAdminMessage('Sorteo realizado correctamente.');
+      }
+
+      refreshPanel();
+    } catch (error: any) {
+      setAdminError(error?.message || 'No se pudo sortear grupos y fixture.');
+    } finally {
+      setAdminActionLoading(null);
+    }
+  };
+
+  const handleStartTournament = async () => {
+    if (!isAdmin) return;
+
+    setAdminActionLoading('start');
+    setAdminError(null);
+    setAdminMessage(null);
+
+    try {
+      const categoria = userScope?.categoria || tournament.subtitle || 'General';
+      const { data: statusRows, error: statusError } = await supabase
+        .from('torneo_estado')
+        .select('categoria, grupo, estado')
+        .eq('torneo_id', Number(tournament.id))
+        .eq('categoria', categoria)
+        .eq('estado', 'LOCKED');
+
+      if (statusError) throw statusError;
+
+      const lockedGroups = Array.isArray(statusRows) ? statusRows : [];
+      if (lockedGroups.length === 0) {
+        throw new Error('No hay grupos en estado LOCKED para iniciar.');
+      }
+
+      const results = await Promise.all(
+        lockedGroups.map((row: any) =>
+          supabase.rpc('iniciar_torneo_manual', {
+            p_torneo_id: Number(tournament.id),
+            p_categoria: String(row.categoria),
+            p_grupo: String(row.grupo),
+          })
+        )
+      );
+
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+
+      setAdminMessage(`Torneo iniciado en ${lockedGroups.length} grupo(s).`);
+      refreshPanel();
+    } catch (error: any) {
+      setAdminError(error?.message || 'No se pudo iniciar el torneo.');
+    } finally {
+      setAdminActionLoading(null);
+    }
+  };
 
   // El panel se considera "cargando" hasta que tanto el estado general
   // como los datos del próximo partido estén resueltos.
@@ -257,7 +393,7 @@ const TournamentPanel: React.FC = () => {
     return Math.max(8, Math.min(100, Math.round(progress)));
   }, [groupPosition, groupSize]);
 
-  if (!isLoading && !isReady) {
+  if (!isLoading && !isReady && !isAdmin) {
     return (
       <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark font-display">
         <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
@@ -317,6 +453,70 @@ const TournamentPanel: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {isAdmin && (
+          <section className="space-y-3">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Admin</p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Control de Sorteo</h3>
+                </div>
+                <span className="rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide">Admin</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs text-slate-600 dark:text-slate-300">
+                <div className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Jugadores por grupo</p>
+                  <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">{tournamentConfig?.jugadores_por_grupo || '-'}</p>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Modo grupos</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
+                    {tournamentConfig?.sortear_grupos_en_sorteo ? 'Diferido al sorteo' : 'Asignación inmediata'}
+                  </p>
+                </div>
+              </div>
+
+              {groupStatuses.length > 0 && (
+                <div className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Grupos</p>
+                  <div className="space-y-2">
+                    {groupStatuses.map((row) => (
+                      <div key={`${row.categoria}-${row.grupo}`} className="flex items-center justify-between gap-3 text-sm">
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">{row.grupo}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{row.current_participantes}/{row.max_participantes} jugadores</p>
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">{normalizeStatus(row.estado)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {adminMessage && <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 p-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">{adminMessage}</div>}
+              {adminError && <div className="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 p-3 text-sm font-medium text-red-700 dark:text-red-300">{adminError}</div>}
+
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={handleDrawGroupsAndFixture}
+                  disabled={adminActionLoading !== null || !tournamentConfig?.sortear_grupos_en_sorteo}
+                  className="w-full rounded-lg bg-[#4a9c40] text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {adminActionLoading === 'draw' ? 'Sorteando...' : 'Sortear Grupos y Fixture'}
+                </button>
+                <button
+                  onClick={handleStartTournament}
+                  disabled={adminActionLoading !== null || !groupStatuses.some((row) => normalizeStatus(row.estado) === 'LOCKED')}
+                  className="w-full rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {adminActionLoading === 'start' ? 'Iniciando...' : 'Iniciar Torneo'}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Quick Action Grid 2x2 */}
         <section className="grid grid-cols-2 gap-4">
