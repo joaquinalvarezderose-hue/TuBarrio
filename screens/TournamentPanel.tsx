@@ -38,6 +38,9 @@ type TournamentConfigRow = {
   jugadores_por_grupo: number;
   sortear_grupos_en_sorteo: boolean;
   grupo_base: string | null;
+  grupo_base_id: string | null;
+  clasificados_por_grupo: number;
+  crear_playoffs_eliminacion_directa: boolean;
 };
 
 type GroupStatusRow = {
@@ -71,7 +74,7 @@ const TournamentPanel: React.FC = () => {
   const [groupSize, setGroupSize] = useState<number>(0);
   const [tournamentConfig, setTournamentConfig] = useState<TournamentConfigRow | null>(null);
   const [groupStatuses, setGroupStatuses] = useState<GroupStatusRow[]>([]);
-  const [adminActionLoading, setAdminActionLoading] = useState<'draw' | 'start' | null>(null);
+  const [adminActionLoading, setAdminActionLoading] = useState<'draw' | 'start' | 'playoffs' | null>(null);
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -111,7 +114,7 @@ const TournamentPanel: React.FC = () => {
 
         const { data: configRow, error: configError } = await supabase
           .from('torneo_configuracion')
-          .select('jugadores_por_grupo, sortear_grupos_en_sorteo, grupo_base')
+          .select('jugadores_por_grupo, sortear_grupos_en_sorteo, grupo_base, grupo_base_id, clasificados_por_grupo, crear_playoffs_eliminacion_directa')
           .eq('torneo_id', tournament.id)
           .maybeSingle();
 
@@ -120,6 +123,9 @@ const TournamentPanel: React.FC = () => {
             jugadores_por_grupo: Number(configRow.jugadores_por_grupo || 0),
             sortear_grupos_en_sorteo: Boolean(configRow.sortear_grupos_en_sorteo),
             grupo_base: configRow.grupo_base ? String(configRow.grupo_base) : null,
+            grupo_base_id: configRow.grupo_base_id ? String(configRow.grupo_base_id) : null,
+            clasificados_por_grupo: Number(configRow.clasificados_por_grupo || 0),
+            crear_playoffs_eliminacion_directa: Boolean(configRow.crear_playoffs_eliminacion_directa),
           });
         } else {
           setTournamentConfig(null);
@@ -336,6 +342,42 @@ const TournamentPanel: React.FC = () => {
     }
   };
 
+  const handleGeneratePlayoffs = async () => {
+    if (!isAdmin) return;
+
+    setAdminActionLoading('playoffs');
+    setAdminError(null);
+    setAdminMessage(null);
+
+    try {
+      const categoria = userScope?.categoria || tournament.subtitle || null;
+      const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
+
+      const { data, error } = await supabase.rpc('generar_playoffs_eliminacion_directa_torneo', {
+        p_torneo_id: Number(tournament.id),
+        p_categoria: categoria,
+        p_grupo_base: grupoBase,
+      });
+
+      if (error) throw error;
+
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) {
+        setAdminMessage(
+          `Playoffs generado: ${Number(row.clasificados_totales || 0)} clasificado(s), ${Number(row.partidos_creados || 0)} cruce(s).`
+        );
+      } else {
+        setAdminMessage('Playoffs generado correctamente.');
+      }
+
+      refreshPanel();
+    } catch (error: any) {
+      setAdminError(error?.message || 'No se pudo generar el playoff eliminatorio.');
+    } finally {
+      setAdminActionLoading(null);
+    }
+  };
+
   // El panel se considera "cargando" hasta que tanto el estado general
   // como los datos del próximo partido estén resueltos.
   const isLoading = loadingData || loadingNextMatch;
@@ -476,6 +518,21 @@ const TournamentPanel: React.FC = () => {
                     {tournamentConfig?.sortear_grupos_en_sorteo ? 'Diferido al sorteo' : 'Asignación inmediata'}
                   </p>
                 </div>
+                <div className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Clasifican por grupo</p>
+                  <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">{tournamentConfig?.clasificados_por_grupo || '-'}</p>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3">
+                  <p className="font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Etapa final</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
+                    {tournamentConfig?.crear_playoffs_eliminacion_directa ? 'Eliminacion directa' : 'Sin playoffs'}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 col-span-2">
+                  <p className="font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Grupo base visible</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">{tournamentConfig?.grupo_base || 'Sin definir'}</p>
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 break-all">{tournamentConfig?.grupo_base_id || 'Sin grupo_base_id'}</p>
+                </div>
               </div>
 
               {groupStatuses.length > 0 && (
@@ -505,6 +562,13 @@ const TournamentPanel: React.FC = () => {
                   className="w-full rounded-lg bg-[#4a9c40] text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {adminActionLoading === 'draw' ? 'Sorteando...' : 'Sortear Grupos y Fixture'}
+                </button>
+                <button
+                  onClick={handleGeneratePlayoffs}
+                  disabled={adminActionLoading !== null || !tournamentConfig?.crear_playoffs_eliminacion_directa}
+                  className="w-full rounded-lg bg-indigo-700 text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {adminActionLoading === 'playoffs' ? 'Generando cruces...' : 'Generar Cruces Playoffs'}
                 </button>
                 <button
                   onClick={handleStartTournament}
