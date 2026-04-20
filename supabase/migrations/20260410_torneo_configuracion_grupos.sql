@@ -4,12 +4,15 @@
 create table if not exists public.torneo_configuracion (
   torneo_id bigint primary key references public.torneos(id) on delete cascade,
   jugadores_por_grupo integer not null default 4 check (jugadores_por_grupo >= 2),
-  max_participantes_total integer check (max_participantes_total >= 2),
   sortear_grupos_en_sorteo boolean not null default false,
   grupo_base text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Agregar columna max_participantes_total si no existe
+alter table public.torneo_configuracion
+add column if not exists max_participantes_total integer check (max_participantes_total >= 2);
 
 drop trigger if exists trg_torneo_configuracion_updated_at on public.torneo_configuracion;
 create trigger trg_torneo_configuracion_updated_at
