@@ -33,7 +33,7 @@ begin
     and te.categoria = p_categoria
     and (
       te.grupo = v_base
-      or te.grupo like (v_base || '\\_G%') escape '\\'
+      or te.grupo like (v_base || '\_G%') escape '\'
     )
     and coalesce(te.estado, 'RECRUITING') = 'RECRUITING'
     and coalesce(te.current_participantes, 0) < greatest(2, coalesce(te.max_participantes, v_cap))
@@ -61,7 +61,7 @@ begin
     and te.categoria = p_categoria
     and (
       te.grupo = v_base
-      or te.grupo like (v_base || '\\_G%') escape '\\'
+      or te.grupo like (v_base || '\_G%') escape '\'
     );
 
   v_next_idx := v_max_idx + 1;
