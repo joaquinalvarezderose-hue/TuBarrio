@@ -105,7 +105,9 @@ const Tournaments: React.FC = () => {
 
   const [registeredIds, setRegisteredIds] = useState<number[]>([]);
   const [statusByTournamentId, setStatusByTournamentId] = useState<Record<number, string>>({});
-  const [capacityByTournamentId, setCapacityByTournamentId] = useState<Record<number, { current: number; max: number }>>({});
+  const [capacityByTournamentId, setCapacityByTournamentId] = useState<
+    Record<number, { current: number; max: number | null }>
+  >({});
   const [torneos, setTorneos] = useState<Torneo[]>([]);
   const [cargandoTorneos, setCargandoTorneos] = useState(true);
   const [torneosError, setTorneosError] = useState<string | null>(null);
@@ -163,17 +165,33 @@ const Tournaments: React.FC = () => {
   useEffect(() => {
     const loadTournamentLifecycle = async () => {
       try {
-        const { data, error } = await supabase
-          .from('torneo_estado')
-          .select('torneo_id, estado, current_participantes, max_participantes');
+        const [{ data: estadoData, error: estadoError }, { data: configData, error: configError }] = await Promise.all([
+          supabase.from('torneo_estado').select('torneo_id, estado, current_participantes, max_participantes'),
+          supabase.from('torneo_configuracion').select('torneo_id, max_participantes_total'),
+        ]);
 
-        if (error) throw error;
+        if (estadoError) throw estadoError;
+        if (configError) throw configError;
+
+        const maxTotalByTournamentId: Record<number, number | null | undefined> = {};
+        (configData || []).forEach((row: any) => {
+          const id = Number(row.torneo_id);
+          const v = row.max_participantes_total;
+          maxTotalByTournamentId[id] = v === null || v === undefined ? null : Number(v);
+        });
+
+        const sumCurrentByTorneo: Record<number, number> = {};
+        const sumMaxEstadoByTorneo: Record<number, number> = {};
+        (estadoData || []).forEach((row: any) => {
+          const id = Number(row.torneo_id);
+          sumCurrentByTorneo[id] = (sumCurrentByTorneo[id] || 0) + Number(row.current_participantes || 0);
+          sumMaxEstadoByTorneo[id] = (sumMaxEstadoByTorneo[id] || 0) + Number(row.max_participantes || 0);
+        });
 
         const nextStatus: Record<number, string> = {};
         const nextStatusPriority: Record<number, number> = {};
-        const nextCapacity: Record<number, { current: number; max: number }> = {};
 
-        (data || []).forEach((row: any) => {
+        (estadoData || []).forEach((row: any) => {
           const id = Number(row.torneo_id);
           const normalized = normalizeStatus(row.estado);
           const priority = getStatusPriority(normalized);
@@ -181,11 +199,28 @@ const Tournaments: React.FC = () => {
           if ((nextStatusPriority[id] ?? -1) <= priority) {
             nextStatus[id] = normalized;
             nextStatusPriority[id] = priority;
-            nextCapacity[id] = {
-              current: Number(row.current_participantes || 0),
-              max: Number(row.max_participantes || 0),
-            };
           }
+        });
+
+        const nextCapacity: Record<number, { current: number; max: number | null }> = {};
+        const allIds = new Set<number>();
+        Object.keys(sumCurrentByTorneo).forEach((k) => allIds.add(Number(k)));
+        Object.keys(maxTotalByTournamentId).forEach((k) => allIds.add(Number(k)));
+
+        allIds.forEach((id) => {
+          const configured = maxTotalByTournamentId[id];
+          const fallbackGrupoMaxSum = sumMaxEstadoByTorneo[id] || 0;
+          const max =
+            configured !== null && configured !== undefined && configured > 0
+              ? configured
+              : fallbackGrupoMaxSum > 0
+                ? fallbackGrupoMaxSum
+                : null;
+
+          nextCapacity[id] = {
+            current: sumCurrentByTorneo[id] || 0,
+            max,
+          };
         });
 
         setStatusByTournamentId(nextStatus);
@@ -319,11 +354,15 @@ const Tournaments: React.FC = () => {
                     <div className="flex items-center gap-2 text-secondary-text dark:text-gray-400 text-sm">
                       <span className="material-symbols-outlined text-[16px]">calendar_today</span>
                       <span>
-                        {formatearFecha(tournament.fecha_inicio, tournament.fecha_fin)} • {
-                          capacityByTournamentId[tournament.id]
-                            ? `${capacityByTournamentId[tournament.id].current}/${capacityByTournamentId[tournament.id].max} Inscriptos`
-                            : 'Cupo disponible'
-                        }
+                        {formatearFecha(tournament.fecha_inicio, tournament.fecha_fin)} • {(() => {
+                          const cap = capacityByTournamentId[tournament.id];
+                          if (!cap) return 'Cupo disponible';
+                          const m = cap.max;
+                          if (m !== null && m > 0) {
+                            return `${cap.current}/${m} Inscriptos`;
+                          }
+                          return cap.current > 0 ? `${cap.current} Inscriptos` : 'Cupo disponible';
+                        })()}
                       </span>
                     </div>
                   </div>
