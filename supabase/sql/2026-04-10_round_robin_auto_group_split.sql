@@ -381,6 +381,7 @@ declare
   v_grupo_base text;
   v_grupo_resuelto text;
   v_max_participantes integer := 8;
+  v_sortear_grupos_en_sorteo boolean := false;
   v_current integer := 0;
   v_needs_fallback boolean := false;
 begin
@@ -411,16 +412,62 @@ begin
     v_grupo_base := format('TORNEO_%s', new.torneo_id);
   end if;
 
-  select te.max_participantes
-    into v_max_participantes
-  from public.torneo_estado te
-  where te.torneo_id = new.torneo_id
-    and te.categoria = v_categoria
-    and te.grupo = v_grupo_base
-  order by te.updated_at desc
+  select
+    greatest(2, coalesce(tc.jugadores_por_grupo, 8)),
+    coalesce(tc.sortear_grupos_en_sorteo, false)
+    into v_max_participantes, v_sortear_grupos_en_sorteo
+  from public.torneo_configuracion tc
+  where tc.torneo_id = new.torneo_id
   limit 1;
 
   v_max_participantes := greatest(2, coalesce(v_max_participantes, 8));
+  v_sortear_grupos_en_sorteo := coalesce(v_sortear_grupos_en_sorteo, false);
+
+  if v_sortear_grupos_en_sorteo then
+    new.categoria := v_categoria;
+    new.grupo := v_grupo_base;
+
+    insert into public.torneo_estado (
+      torneo_id,
+      categoria,
+      grupo,
+      estado,
+      max_participantes,
+      current_participantes,
+      sorteo_realizado
+    )
+    values (
+      new.torneo_id,
+      v_categoria,
+      v_grupo_base,
+      'RECRUITING',
+      v_max_participantes,
+      0,
+      false
+    )
+    on conflict on constraint uq_torneo_estado_scope
+    do update set
+      max_participantes = greatest(public.torneo_estado.max_participantes, excluded.max_participantes),
+      updated_at = now();
+
+    select count(distinct i.perfil_id)::integer
+      into v_current
+    from public.inscripciones_torneo i
+    where i.torneo_id = new.torneo_id
+      and coalesce(nullif(trim(i.categoria), ''), v_categoria) = v_categoria
+      and i.estado = 'pagado_aprobado';
+
+    update public.torneo_estado te
+    set current_participantes = v_current,
+        estado = 'RECRUITING',
+        sorteo_realizado = false,
+        updated_at = now()
+    where te.torneo_id = new.torneo_id
+      and te.categoria = v_categoria
+      and te.grupo = v_grupo_base;
+
+    return new;
+  end if;
 
   v_grupo_resuelto := public.resolver_grupo_inscripcion(
     new.torneo_id,
