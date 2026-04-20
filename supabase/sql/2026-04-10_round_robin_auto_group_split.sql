@@ -407,6 +407,19 @@ begin
   end if;
   v_categoria := coalesce(v_categoria, 'General');
 
+  -- Verificar límite total del torneo
+  select count(distinct i.perfil_id)::integer
+    into v_current
+  from public.inscripciones_torneo i
+  where i.torneo_id = new.torneo_id
+    and coalesce(nullif(trim(i.categoria), ''), v_categoria) = v_categoria
+    and i.estado = 'pagado_aprobado';
+
+  if v_current >= coalesce((select tc.max_participantes_total from public.torneo_configuracion tc where tc.torneo_id = new.torneo_id), 999999) then
+    raise exception 'El torneo % ya alcanzó el límite total de participantes (%). No se pueden aceptar más inscripciones.',
+      new.torneo_id, coalesce((select tc.max_participantes_total from public.torneo_configuracion tc where tc.torneo_id = new.torneo_id), 999999);
+  end if;
+
   v_grupo_base := nullif(trim(coalesce(new.grupo, '')), '');
   if v_grupo_base is null then
     v_grupo_base := format('TORNEO_%s', new.torneo_id);

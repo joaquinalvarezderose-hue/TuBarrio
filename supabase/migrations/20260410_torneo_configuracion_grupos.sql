@@ -4,6 +4,7 @@
 create table if not exists public.torneo_configuracion (
   torneo_id bigint primary key references public.torneos(id) on delete cascade,
   jugadores_por_grupo integer not null default 4 check (jugadores_por_grupo >= 2),
+  max_participantes_total integer check (max_participantes_total >= 2),
   sortear_grupos_en_sorteo boolean not null default false,
   grupo_base text,
   created_at timestamptz not null default now(),
@@ -38,8 +39,8 @@ create policy "torneo_configuracion_delete_admin"
   on public.torneo_configuracion for delete
   using (public.is_admin());
 
-insert into public.torneo_configuracion (torneo_id, jugadores_por_grupo, sortear_grupos_en_sorteo, grupo_base)
-select t.id, 4, false, format('TORNEO_%s', t.id)
+insert into public.torneo_configuracion (torneo_id, jugadores_por_grupo, max_participantes_total, sortear_grupos_en_sorteo, grupo_base)
+select t.id, 4, null, false, format('TORNEO_%s', t.id)
 from public.torneos t
 on conflict (torneo_id) do nothing;
 

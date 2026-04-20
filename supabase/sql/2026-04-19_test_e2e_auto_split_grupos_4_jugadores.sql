@@ -17,6 +17,16 @@ declare
   v_categoria text := 'Singles Caballeros';
   v_grupo_base text := 'TORNEO_3';
 begin
+  -- Configurar torneo: 2 jugadores por grupo, sorteo inmediato, límite total 4
+  insert into public.torneo_configuracion (torneo_id, jugadores_por_grupo, max_participantes_total, sortear_grupos_en_sorteo, grupo_base)
+  values (v_torneo_id, 2, 4, false, v_grupo_base)
+  on conflict (torneo_id) do update set
+    jugadores_por_grupo = excluded.jugadores_por_grupo,
+    max_participantes_total = excluded.max_participantes_total,
+    sortear_grupos_en_sorteo = excluded.sortear_grupos_en_sorteo,
+    grupo_base = excluded.grupo_base,
+    updated_at = now();
+
   delete from public.torneo_propuestas_partido
    where torneo_id = v_torneo_id
      and categoria = v_categoria
@@ -95,3 +105,15 @@ where torneo_id = 3
   and (grupo = 'TORNEO_3' or grupo like ('TORNEO_3\_G%') escape '\')
 group by grupo, jornada
 order by grupo, jornada;
+
+-- PASO 7: Probar límite total - intentar inscribir un 5to jugador (debe fallar).
+insert into public.inscripciones_torneo (torneo_id, perfil_id, estado, monto, alias_destino, whatsapp_destino, categoria, grupo)
+values
+  (3, 'UUID5', 'pendiente_revision', 5000, 'tubarrio.torneos', '+5491155551234', 'Singles Caballeros', 'TORNEO_3')
+on conflict on constraint uq_inscripcion_torneo_perfil
+  do update set estado = excluded.estado, updated_at = now();
+
+update public.inscripciones_torneo
+set estado = 'pagado_aprobado'
+where torneo_id = 3
+  and perfil_id = 'UUID5';
