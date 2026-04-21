@@ -214,9 +214,8 @@ const Fixture: React.FC = () => {
       const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
         supabase
           .from('torneo_estado')
-          .select('estado')
-          .eq('torneo_id', parsedTournamentId)
-          .maybeSingle(),
+          .select('estado, categoria, grupo')
+          .eq('torneo_id', parsedTournamentId),
         jugadoresQuery,
         partidosQuery,
         historialQuery,
@@ -229,7 +228,17 @@ const Fixture: React.FC = () => {
       if (historialResp.error) throw historialResp.error;
       if (propuestasResp.error) throw propuestasResp.error;
 
-      const estadoNormalizado = String(estadoResp.data?.estado || '').trim().toUpperCase();
+      const estadoRows = Array.isArray(estadoResp.data) ? estadoResp.data : [];
+      const estadoNormalizado = (resolvedScope
+        ? String(
+            estadoRows.find(
+              (row: any) =>
+                String(row?.categoria || '') === resolvedScope?.categoria &&
+                String(row?.grupo || '') === resolvedScope?.grupo
+            )?.estado || ''
+          )
+        : String(estadoRows[0]?.estado || '')
+      ).trim().toUpperCase();
       setTorneoFinalizado(estadoNormalizado === 'FINALIZADO');
 
       const jugadores = jugadoresResp.data || [];
