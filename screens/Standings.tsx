@@ -35,6 +35,17 @@ type TournamentHistoryRow = {
   sets_jugador2: number | null;
 };
 
+const getGroupOrder = (groupCode: string): number => {
+  const value = String(groupCode || '').trim();
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const suffixMatch = value.match(/_G(\d+)$/i);
+  if (!suffixMatch) return 1;
+  const parsed = Number(suffixMatch[1]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.MAX_SAFE_INTEGER;
+};
+
+const getGroupLabel = (groupCode: string): string => `Grupo ${getGroupOrder(groupCode)}`;
+
 const Standings: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,7 +141,7 @@ const Standings: React.FC = () => {
               .map((row: any) => String(row?.grupo || '').trim())
               .filter(Boolean)
           )
-        ).sort((a, b) => a.localeCompare(b));
+        ).sort((a, b) => getGroupOrder(a) - getGroupOrder(b));
         setAvailableGroups(groups);
         if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
           setSelectedGroup(String(resolvedScope.grupo));
@@ -482,7 +493,7 @@ const Standings: React.FC = () => {
                 className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20"
               >
                 {(selectedGroup ? availableGroups : (scope?.grupo ? [scope.grupo, ...availableGroups.filter((g) => g !== scope.grupo)] : availableGroups)).map((group) => (
-                  <option key={group} value={group}>{group}</option>
+                  <option key={group} value={group}>{getGroupLabel(group)}</option>
                 ))}
               </select>
             </div>
