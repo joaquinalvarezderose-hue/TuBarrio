@@ -21,6 +21,30 @@ USING (
 );
 
 -- ============================================================
+-- Fix RLS para torneo_jugadores - Ver todos los jugadores si estás inscrito
+-- ============================================================
+-- Usuario debe poder ver todos los jugadores del torneo en todos los grupos
+-- si está inscrito (aunque sea en otro grupo)
+
+DROP POLICY IF EXISTS torneo_jugadores_select_visible_scope ON public.torneo_jugadores;
+
+CREATE POLICY torneo_jugadores_select_visible_scope
+ON public.torneo_jugadores
+FOR SELECT
+TO authenticated
+USING (
+  perfil_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1
+    FROM public.inscripciones_torneo it
+    WHERE it.torneo_id = torneo_jugadores.torneo_id
+      AND it.perfil_id = auth.uid()
+      AND it.estado IN ('pagado_aprobado', 'pendiente_revision')
+  )
+);
+
+-- ============================================================
 -- Fix RLS para inscripciones_torneo - Permitir cambios SEGUROS
 -- ============================================================
 -- Usuario solo puede modificar:
