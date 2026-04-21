@@ -88,6 +88,8 @@ const Fixture: React.FC = () => {
   const [torneoFinalizado, setTorneoFinalizado] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
+  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
   const isLoadingRef = useRef(false);
   const refreshTimerRef = useRef<number | null>(null);
 
@@ -152,6 +154,27 @@ const Fixture: React.FC = () => {
         }
       }
 
+      const targetCategory = String(resolvedScope?.categoria || tournament.subtitle || '').trim();
+      let groupsQuery: any = supabase
+        .from('torneo_estado')
+        .select('grupo, categoria')
+        .eq('torneo_id', parsedTournamentId);
+      if (targetCategory) groupsQuery = groupsQuery.eq('categoria', targetCategory);
+      const { data: groupsRows } = await groupsQuery;
+      const groups = Array.from(
+        new Set(
+          (groupsRows || [])
+            .map((row: any) => String(row?.grupo || '').trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b));
+      setAvailableGroups(groups);
+      if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
+        setSelectedGroup(String(resolvedScope.grupo));
+      }
+
+      const effectiveGroup = selectedGroup || resolvedScope?.grupo || '';
+
       let partidosScopeQuery: any = supabase
         .from('partidos')
         .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, categoria, grupo')
@@ -160,9 +183,10 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosScopeQuery = partidosScopeQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) partidosScopeQuery = partidosScopeQuery.eq('grupo', resolvedScope.grupo);
+      if (effectiveGroup) partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
 
-      if (currentUserId) {
+      const viewingOwnGroup = Boolean(resolvedScope?.grupo && effectiveGroup && resolvedScope.grupo === effectiveGroup);
+      if (currentUserId && viewingOwnGroup) {
         partidosScopeQuery = partidosScopeQuery.or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`);
       }
 
@@ -183,7 +207,7 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) jugadoresQuery = jugadoresQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) jugadoresQuery = jugadoresQuery.eq('grupo', resolvedScope.grupo);
+      if (effectiveGroup) jugadoresQuery = jugadoresQuery.eq('grupo', effectiveGroup);
 
       let partidosQuery: any = supabase
         .from('partidos')
@@ -193,7 +217,7 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
+      if (effectiveGroup) partidosQuery = partidosQuery.eq('grupo', effectiveGroup);
 
       let historialQuery: any = supabase
         .from('torneo_partidos_historial')
@@ -201,7 +225,7 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) historialQuery = historialQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) historialQuery = historialQuery.eq('grupo', resolvedScope.grupo);
+      if (effectiveGroup) historialQuery = historialQuery.eq('grupo', effectiveGroup);
 
       let propuestasQuery: any = supabase
         .from('torneo_propuestas_partido')
@@ -209,7 +233,7 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) propuestasQuery = propuestasQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) propuestasQuery = propuestasQuery.eq('grupo', resolvedScope.grupo);
+      if (effectiveGroup) propuestasQuery = propuestasQuery.eq('grupo', effectiveGroup);
 
       const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
         supabase
@@ -229,12 +253,12 @@ const Fixture: React.FC = () => {
       if (propuestasResp.error) throw propuestasResp.error;
 
       const estadoRows = Array.isArray(estadoResp.data) ? estadoResp.data : [];
-      const estadoNormalizado = (resolvedScope
+      const estadoNormalizado = (effectiveGroup
         ? String(
             estadoRows.find(
               (row: any) =>
                 String(row?.categoria || '') === resolvedScope?.categoria &&
-                String(row?.grupo || '') === resolvedScope?.grupo
+                String(row?.grupo || '') === effectiveGroup
             )?.estado || ''
           )
         : String(estadoRows[0]?.estado || '')
@@ -399,7 +423,7 @@ const Fixture: React.FC = () => {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [currentUserId, refetchNextMatch, tournament.id]);
+  }, [currentUserId, refetchNextMatch, selectedGroup, tournament.id, tournament.subtitle]);
 
   const fechas = useMemo(() => {
     const unique = Array.from(new Set(matches.map((match) => match.jornada))).sort((a, b) => a - b);
@@ -523,6 +547,20 @@ const Fixture: React.FC = () => {
 
         <div className="px-4 pb-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-[#61896b] font-bold">{tournament.title}</p>
+          {availableGroups.length > 0 && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-[#61896b] font-bold">Grupo</span>
+              <select
+                value={selectedGroup || ''}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="rounded-lg border border-[#dbe6de] bg-white px-2 py-1 text-xs font-semibold text-[#111813]"
+              >
+                {availableGroups.map((group) => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto no-scrollbar">
