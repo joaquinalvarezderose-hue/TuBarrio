@@ -221,7 +221,11 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) jugadoresQuery = jugadoresQuery.eq('categoria', resolvedScope.categoria);
-      if (effectiveGroup) jugadoresQuery = jugadoresQuery.eq('grupo', effectiveGroup);
+      if (selectedGroup) {
+        jugadoresQuery = jugadoresQuery.eq('grupo', selectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        jugadoresQuery = jugadoresQuery.eq('grupo', effectiveGroup);
+      }
 
       let partidosQuery: any = supabase
         .from('partidos')
@@ -231,7 +235,11 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-      if (effectiveGroup) partidosQuery = partidosQuery.eq('grupo', effectiveGroup);
+      if (selectedGroup) {
+        partidosQuery = partidosQuery.eq('grupo', selectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        partidosQuery = partidosQuery.eq('grupo', effectiveGroup);
+      }
 
       let historialQuery: any = supabase
         .from('torneo_partidos_historial')
@@ -239,7 +247,11 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) historialQuery = historialQuery.eq('categoria', resolvedScope.categoria);
-      if (effectiveGroup) historialQuery = historialQuery.eq('grupo', effectiveGroup);
+      if (selectedGroup) {
+        historialQuery = historialQuery.eq('grupo', selectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        historialQuery = historialQuery.eq('grupo', effectiveGroup);
+      }
 
       let propuestasQuery: any = supabase
         .from('torneo_propuestas_partido')
@@ -247,7 +259,11 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) propuestasQuery = propuestasQuery.eq('categoria', resolvedScope.categoria);
-      if (effectiveGroup) propuestasQuery = propuestasQuery.eq('grupo', effectiveGroup);
+      if (selectedGroup) {
+        propuestasQuery = propuestasQuery.eq('grupo', selectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        propuestasQuery = propuestasQuery.eq('grupo', effectiveGroup);
+      }
 
       const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
         supabase
