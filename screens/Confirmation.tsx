@@ -15,6 +15,13 @@ const Confirmation: React.FC = () => {
 
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
+  const seasonLabel = "Mayo a Julio";
+
+  const handleShareWhatsapp = () => {
+    const message = `Hola! Me inscribi en ${tournament.title} (${tournament.subtitle}) - temporada ${seasonLabel}. Sumate en TuBarrio.`;
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden bg-background-light font-display">
@@ -47,7 +54,7 @@ const Confirmation: React.FC = () => {
             <>
               <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Pago en revisión</h1>
               <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
-                Recibimos tu solicitud para {tournament.title}. Te habilitaremos cuando validemos la transferencia.
+                Ya recibimos tu comprobante para {tournament.title}. Te avisaremos en cuanto validemos la transferencia y tu lugar quede confirmado.
               </p>
             </>
           )}
@@ -86,8 +93,8 @@ const Confirmation: React.FC = () => {
                     <span className="material-symbols-outlined text-[20px] font-black">calendar_month</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Fecha</span>
-                    <span className="text-sm font-black text-secondary">{tournament.date.split('•')[0]}</span>
+                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Temporada</span>
+                    <span className="text-sm font-black text-secondary">{seasonLabel}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -95,8 +102,8 @@ const Confirmation: React.FC = () => {
                     <span className="material-symbols-outlined text-[20px] font-black">schedule</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Hora</span>
-                    <span className="text-sm font-black text-secondary">09:00 AM</span>
+                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Horario</span>
+                    <span className="text-sm font-black text-secondary">A confirmar</span>
                   </div>
                 </div>
               </div>
@@ -108,20 +115,20 @@ const Confirmation: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-b-[2rem] p-8 flex flex-col items-center justify-center border-x border-b border-slate-100">
-            <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-50 mb-4 transition-transform hover:scale-105">
-              <img 
-                alt="QR Code" 
-                className="size-36" 
-                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TB-REG-83920"
-              />
-            </div>
-            <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">ESCANEAR EN EL INGRESO</p>
-            <p className="text-[10px] text-slate-300 font-mono font-bold">ID: #83920-TB</p>
+            <p className="text-sm text-slate-500 font-bold text-center">
+              Tu inscripción está en revisión administrativa.
+            </p>
+            <p className="text-xs text-slate-400 font-semibold text-center mt-1">
+              Cuando quede aprobada, vas a ver tus partidos en el panel del torneo.
+            </p>
           </div>
         </div>
 
         <div className="mt-auto pt-6 space-y-4">
-          <button className="w-full flex items-center justify-center gap-3 bg-primary hover:bg-[#0fd641] text-secondary font-black text-lg py-5 rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-[0.98]">
+          <button
+            onClick={handleShareWhatsapp}
+            className="w-full flex items-center justify-center gap-3 bg-primary hover:bg-[#0fd641] text-secondary font-black text-lg py-5 rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-[0.98]"
+          >
             <span className="material-symbols-outlined font-black">share</span>
             Compartir con Vecinos
           </button>
