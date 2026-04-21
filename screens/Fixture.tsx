@@ -193,7 +193,11 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosScopeQuery = partidosScopeQuery.eq('categoria', resolvedScope.categoria);
-      if (effectiveGroup && !hasMultipleGroups) partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
+      if (selectedGroup) {
+        partidosScopeQuery = partidosScopeQuery.eq('grupo', selectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
+      }
 
       const viewingOwnGroup = Boolean(resolvedScope?.grupo && effectiveGroup && resolvedScope.grupo === effectiveGroup);
       if (currentUserId && viewingOwnGroup && !hasMultipleGroups) {
