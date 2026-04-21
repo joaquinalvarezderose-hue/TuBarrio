@@ -24,7 +24,8 @@ const Confirmation: React.FC = () => {
   };
 
   return (
-    <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden bg-background-light font-display">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-background-light font-display">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
       <header className="flex items-center p-4 justify-between sticky top-0 z-50 bg-background-light/90 backdrop-blur-md border-b border-gray-100">
         <div className="flex w-10 justify-start">
           <button 
@@ -38,31 +39,31 @@ const Confirmation: React.FC = () => {
         <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 flex flex-col px-4 pb-12 overflow-y-auto no-scrollbar">
-        <div className="text-center pt-2 pb-6">
+      <main className="flex-1 flex flex-col px-4 md:px-6 pb-12 overflow-y-auto no-scrollbar">
+        <div className="text-center pt-5 pb-8">
           <div className="inline-flex items-center justify-center size-16 rounded-full bg-primary/20 text-primary mb-4 animate-bounce">
             <span className="material-symbols-outlined text-[32px] font-black">check_circle</span>
           </div>
           {enrollmentStatus === 'pagado_aprobado' ? (
             <>
-              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Inscripción ya aprobada</h1>
-              <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
+              <h1 className="mx-auto max-w-[20ch] text-[32px] font-black leading-tight tracking-tight mb-3 text-secondary">Inscripción ya aprobada</h1>
+              <p className="mx-auto max-w-[34ch] text-slate-600 text-base font-bold leading-relaxed px-2 opacity-80">
                 Tu lugar en {tournament.title} ya estaba confirmado. No registramos una nueva inscripción.
               </p>
             </>
           ) : (
             <>
-              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Pago en revisión</h1>
-              <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
+              <h1 className="mx-auto max-w-[18ch] text-[32px] font-black leading-tight tracking-tight mb-3 text-secondary">Pago en revisión</h1>
+              <p className="mx-auto max-w-[36ch] text-slate-600 text-base font-bold leading-relaxed px-2 opacity-80">
                 Ya recibimos tu comprobante para {tournament.title}. Te avisaremos en cuanto validemos la transferencia y tu lugar quede confirmado.
               </p>
             </>
           )}
         </div>
 
-        <div className="relative w-full mb-8 drop-shadow-2xl">
+        <div className="relative w-full mb-10 drop-shadow-2xl">
           <div className="bg-white rounded-t-[2rem] overflow-hidden relative border-x border-t border-slate-100 shadow-sm">
-            <div className="h-36 w-full relative">
+            <div className="h-44 md:h-56 w-full relative">
               <img 
                 alt="Tennis" 
                 className="w-full h-full object-cover" 
@@ -75,7 +76,7 @@ const Confirmation: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 space-y-5">
+            <div className="p-6 md:p-7 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Jugador</p>
@@ -124,7 +125,7 @@ const Confirmation: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-auto pt-6 space-y-4">
+        <div className="mt-auto pt-6 pb-2 space-y-4">
           <button
             onClick={handleShareWhatsapp}
             className="w-full flex items-center justify-center gap-3 bg-primary hover:bg-[#0fd641] text-secondary font-black text-lg py-5 rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-[0.98]"
@@ -140,6 +141,7 @@ const Confirmation: React.FC = () => {
           </button>
         </div>
       </main>
+      </div>
     </div>
   );
 };

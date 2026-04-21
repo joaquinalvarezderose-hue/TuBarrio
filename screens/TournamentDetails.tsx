@@ -14,7 +14,7 @@ const TournamentDetails: React.FC = () => {
     id: 1,
     title: "Abierto de Tenis TuBarrio",
     subtitle: "Singles Damas y Caballeros",
-    date: "15 de Julio - 20 de Julio, 2024"
+    date: "Mayo a Julio"
   };
 
   useEffect(() => {

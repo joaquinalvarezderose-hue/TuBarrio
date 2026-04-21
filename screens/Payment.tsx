@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
+const TOURNAMENT_SEASON_LABEL = 'Mayo a Julio';
+
 const Payment: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,7 +131,7 @@ const Payment: React.FC = () => {
             <div className="flex flex-col justify-center">
               <h2 className="text-[#111813] font-black text-lg leading-tight">{tournament.title}</h2>
               <p className="text-gray-500 text-sm mt-1 font-bold">{tournament.subtitle}</p>
-              <p className="text-gray-400 text-[11px] mt-0.5 font-bold uppercase tracking-tighter opacity-80">{tournament.date}</p>
+              <p className="text-gray-400 text-[11px] mt-0.5 font-bold uppercase tracking-tighter opacity-80">{TOURNAMENT_SEASON_LABEL}</p>
             </div>
           </div>
         </div>
