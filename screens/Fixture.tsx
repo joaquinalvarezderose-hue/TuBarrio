@@ -603,7 +603,7 @@ const Fixture: React.FC = () => {
         <div className="px-4 py-4">
           {activeFecha === 0 && (
             <>
-              <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
+              <div className="rounded-xl bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a5a32] mb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Proximo partido</h3>
