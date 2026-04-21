@@ -65,6 +65,15 @@ const formatGameScore = (games: Array<{ p1: number; p2: number; tb?: number }> |
   return formatted;
 };
 
+const formatGroupName = (groupCode: string): string => {
+  if (!groupCode) return '';
+  const match = groupCode.match(/_G(\d+)$/);
+  if (match) {
+    return `Grupo ${parseInt(match[1], 10)}`;
+  }
+  return 'Grupo 1';
+};
+
 const resolveWinnerId = (
   ganadorId: string | null | undefined,
   p1Id: string,
@@ -174,6 +183,7 @@ const Fixture: React.FC = () => {
       }
 
       const effectiveGroup = selectedGroup || resolvedScope?.grupo || '';
+      const hasMultipleGroups = groups.length > 1;
 
       let partidosScopeQuery: any = supabase
         .from('partidos')
@@ -183,11 +193,12 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosScopeQuery = partidosScopeQuery.eq('categoria', resolvedScope.categoria);
-      if (effectiveGroup) partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
+      if (effectiveGroup && !hasMultipleGroups) partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
 
       const viewingOwnGroup = Boolean(resolvedScope?.grupo && effectiveGroup && resolvedScope.grupo === effectiveGroup);
-      if (currentUserId && viewingOwnGroup) {
+      if (currentUserId && viewingOwnGroup && !hasMultipleGroups) {
         partidosScopeQuery = partidosScopeQuery.or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`);
+      }
       }
 
       const { data: partidosScopeRows, error: partidosScopeError } = await partidosScopeQuery;
@@ -556,7 +567,7 @@ const Fixture: React.FC = () => {
                 className="rounded-lg border border-[#dbe6de] bg-white px-2 py-1 text-xs font-semibold text-[#111813]"
               >
                 {availableGroups.map((group) => (
-                  <option key={group} value={group}>{group}</option>
+                  <option key={group} value={group}>{formatGroupName(group)}</option>
                 ))}
               </select>
             </div>
