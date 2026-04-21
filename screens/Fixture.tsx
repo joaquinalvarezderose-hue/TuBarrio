@@ -199,7 +199,6 @@ const Fixture: React.FC = () => {
       if (currentUserId && viewingOwnGroup && !hasMultipleGroups) {
         partidosScopeQuery = partidosScopeQuery.or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`);
       }
-      }
 
       const { data: partidosScopeRows, error: partidosScopeError } = await partidosScopeQuery;
       if (partidosScopeError) throw partidosScopeError;
