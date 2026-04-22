@@ -328,11 +328,20 @@ const Fixture: React.FC = () => {
         ));
 
         if (partidoPlayerIds.length > 0) {
-          const { data: jugadoresFallback, error: jugadoresFallbackError } = await supabase
+          let jugadoresFallbackQuery: any = supabase
             .from('torneo_jugadores')
             .select('perfil_id, puntos, partidos_jugados, sets_ganados')
             .eq('torneo_id', parsedTournamentId)
             .in('perfil_id', partidoPlayerIds);
+          
+          if (resolvedScope?.categoria) jugadoresFallbackQuery = jugadoresFallbackQuery.eq('categoria', resolvedScope.categoria);
+          if (selectedGroup) {
+            jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', selectedGroup);
+          } else if (effectiveGroup && !hasMultipleGroups) {
+            jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', effectiveGroup);
+          }
+          
+          const { data: jugadoresFallback, error: jugadoresFallbackError } = await jugadoresFallbackQuery;
 
           if (jugadoresFallbackError) throw jugadoresFallbackError;
 
