@@ -36,31 +36,29 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, grupo, se
         <div className="w-16 h-16 rounded-full bg-[#dbe6de] dark:bg-[#2a5a32] flex items-center justify-center">
           <span className="material-symbols-outlined text-2xl text-[#61896b]">sports_tennis</span>
         </div>
-        <div>
-          <h3 className="text-lg font-bold text-[#111813] dark:text-white mb-2">
+        <div className="text-center max-w-md">
+          <h3 className="text-lg font-bold text-[#111813] dark:text-white mb-3">
             Llaves no disponibles
           </h3>
-          <p className="text-sm text-[#61896b] max-w-md">
-            Las llaves de eliminación directa aún no han sido generadas para este torneo. 
+          <p className="text-sm text-[#61896b] leading-relaxed">
+            Las llaves de eliminación directa aún no han sido generadas para este torneo.
+            <br />
             Se crearán automáticamente cuando finalice la fase de grupos.
           </p>
         </div>
-        <div className="flex flex-col gap-2 text-xs text-[#61896b]">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 text-xs text-[#61896b] w-full max-w-sm">
+          <div className="flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-sm">schedule</span>
-            <span>Las llaves se generarán cuando todos los grupos finalicen</span>
+            <span className="text-center">Las llaves se generarán cuando todos los grupos finalicen</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-sm">groups</span>
-            <span>Los mejores jugadores de cada grupo clasificarán</span>
+            <span className="text-center">Los mejores jugadores de cada grupo clasificarán</span>
           </div>
         </div>
-        <div className="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-lg">
-          <p className="text-xs text-[#61896b]">
+        <div className="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-lg w-full max-w-sm">
+          <p className="text-xs text-[#61896b] text-center">
             <strong>Torneo:</strong> {categoria} {grupo && `- ${grupo}`}
-          </p>
-          <p className="text-xs text-[#61896b]">
-            <strong>ID:</strong> {torneo_id}
           </p>
         </div>
       </div>
