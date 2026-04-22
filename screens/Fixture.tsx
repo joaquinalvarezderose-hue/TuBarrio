@@ -525,7 +525,7 @@ const Fixture: React.FC = () => {
   }, [fixtureMatches, highlightedNextMatchId]);
 
   useEffect(() => {
-    if (activeFecha !== 0 && !fechas.includes(activeFecha)) {
+    if (activeFecha !== 0 && activeFecha !== -1 && !fechas.includes(activeFecha)) {
       setActiveFecha(0);
     }
   }, [activeFecha, fechas]);
