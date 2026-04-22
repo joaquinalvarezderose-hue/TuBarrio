@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useNextMatch } from '../hooks/useNextMatch';
+import BracketTab from '../components/BracketTab';
 
 type FixturePlayer = {
   perfil_id: string;
@@ -91,7 +92,7 @@ const Fixture: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const [activeFecha, setActiveFecha] = useState(0);
+  const [activeFecha, setActiveFecha] = useState(0); // 0=Todas, -1=LLAVES, >0=Jornada específica
   const [playersStats, setPlayersStats] = useState<FixturePlayer[]>([]);
   const [matches, setMatches] = useState<FixtureMatch[]>([]);
   const [torneoFinalizado, setTorneoFinalizado] = useState(false);
@@ -615,6 +616,14 @@ const Fixture: React.FC = () => {
             >
               <p className={`text-sm tracking-wide ${activeFecha === 0 ? 'font-bold' : 'font-semibold'}`}>TODAS</p>
             </button>
+            <button
+              onClick={() => setActiveFecha(-1)}
+              className={`flex flex-col items-center justify-center border-b-[3px] pb-3 pt-4 transition-all ${
+                activeFecha === -1 ? 'border-primary text-[#111813] dark:text-white' : 'border-transparent text-[#61896b]'
+              }`}
+            >
+              <p className={`text-sm tracking-wide ${activeFecha === -1 ? 'font-bold' : 'font-semibold'}`}>LLAVES</p>
+            </button>
             {fechasForTabs.map((f) => (
               <button
                 key={f}
@@ -701,6 +710,15 @@ const Fixture: React.FC = () => {
                 )}
               </div>
             </>
+          )}
+
+          {activeFecha === -1 && (
+            <BracketTab
+              torneo_id={tournament.id}
+              categoria={tournament.subtitle}
+              grupo={selectedGroup}
+              selectedGroup={selectedGroup}
+            />
           )}
 
           {loadError && (
