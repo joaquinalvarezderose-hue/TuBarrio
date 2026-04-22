@@ -176,7 +176,7 @@ const Fixture: React.FC = () => {
             .map((row: any) => String(row?.grupo || '').trim())
             .filter(Boolean)
         )
-      ).sort((a, b) => a.localeCompare(b));
+      ).sort((a: string, b: string) => a.localeCompare(b));
       setAvailableGroups(groups);
       if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
         setSelectedGroup(String(resolvedScope.grupo));
@@ -456,7 +456,7 @@ const Fixture: React.FC = () => {
   }, [currentUserId, refetchNextMatch, selectedGroup, tournament.id, tournament.subtitle]);
 
   const fechas = useMemo(() => {
-    const unique = Array.from(new Set(matches.map((match) => match.jornada))).sort((a, b) => a - b);
+    const unique = Array.from(new Set(matches.map((match) => match.jornada))).sort((a: number, b: number) => a - b);
     if (unique.length === 0) return [1];
 
     const maxJornada = unique[unique.length - 1];
@@ -465,7 +465,7 @@ const Fixture: React.FC = () => {
       && maxJornadaMatches.every((match) => match.estado === 'finalizado' || Boolean(match.finalScore));
 
     if (maxJornadaFinalizada) {
-      return [...unique, maxJornada + 1];
+      return [...unique, (maxJornada as number) + 1];
     }
 
     return unique;
@@ -583,7 +583,7 @@ const Fixture: React.FC = () => {
               <select
                 value={selectedGroup || ''}
                 onChange={(e) => setSelectedGroup(e.target.value)}
-                className="rounded-lg border border-[#dbe6de] bg-white px-2 py-1 text-xs font-semibold text-[#111813]"
+                className="rounded-lg border border-[#dbe6de] bg-white px-3 py-1 pr-8 text-xs font-semibold text-[#111813] appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjE4OTZiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-center"
               >
                 {availableGroups.map((group) => (
                   <option key={group} value={group}>{formatGroupName(group)}</option>

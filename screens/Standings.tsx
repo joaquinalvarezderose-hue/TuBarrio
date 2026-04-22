@@ -492,7 +492,7 @@ const Standings: React.FC = () => {
               <select
                 value={selectedGroup || scope?.grupo || ''}
                 onChange={(e) => setSelectedGroup(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1 pr-8 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-center"
               >
                 {(selectedGroup ? availableGroups : (scope?.grupo ? [scope.grupo, ...availableGroups.filter((g) => g !== scope.grupo)] : availableGroups)).map((group) => (
                   <option key={group} value={group}>{getGroupLabel(group)}</option>
