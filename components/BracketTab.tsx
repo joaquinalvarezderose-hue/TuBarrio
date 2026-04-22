@@ -11,27 +11,18 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, grupo, se
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Debug: Log the values to see what's coming in
+    console.log('BracketTab Debug - categoria:', categoria);
+    console.log('BracketTab Debug - selectedGroup:', selectedGroup);
+    console.log('BracketTab Debug - grupo:', grupo);
+    
     // Simulate loading
     const timer = setTimeout(() => {
       setLoading(false);
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, []);
-
-  // Format tournament name to remove backend prefixes
-  const formatTournamentName = (name: string) => {
-    if (!name) return 'Torneo';
-    // Remove common backend prefixes
-    return name.replace(/TORNEO_\d+_?/i, '').replace(/_/g, ' ').trim() || 'Torneo';
-  };
-
-  // Format group name to remove backend prefixes
-  const formatGroupName = (name: string) => {
-    if (!name) return '';
-    // Remove common backend prefixes
-    return name.replace(/TORNEO_\d+_?/i, '').replace(/_/g, ' ').trim() || name;
-  };
+  }, [categoria, selectedGroup, grupo]);
 
   if (loading) {
     return (
@@ -69,11 +60,6 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, grupo, se
             <span className="material-symbols-outlined text-sm flex-shrink-0">groups</span>
             <span className="text-center">Los mejores jugadores de cada grupo clasificarán</span>
           </div>
-        </div>
-        <div className="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-lg w-full max-w-sm">
-          <p className="text-xs text-[#61896b] text-center">
-            <strong>Torneo:</strong> {formatTournamentName(categoria)} {selectedGroup && `- ${formatGroupName(selectedGroup)}`}
-          </p>
         </div>
       </div>
     </div>
