@@ -151,33 +151,35 @@ const Standings: React.FC = () => {
       let participantIds: string[] = [];
       let partidosRows: TournamentMatchRow[] = [];
 
-      if (currentUserId) {
-        let partidosQuery: any = supabase
-          .from('partidos')
-          .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
-          .eq('torneo_id', parsedTournamentId)
-          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .order('jornada', { ascending: true });
+      // Cargar todos los partidos del grupo seleccionado, no solo los del usuario
+      let partidosQuery: any = supabase
+        .from('partidos')
+        .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
+        .eq('torneo_id', parsedTournamentId)
+        .order('jornada', { ascending: true });
 
-        if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-        if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
-
-        const { data: userMatchRows, error: userMatchError } = await partidosQuery;
-        if (userMatchError) throw userMatchError;
-        partidosRows = Array.isArray(userMatchRows) ? userMatchRows : [];
-
-        if (!resolvedScope && partidosRows[0]?.categoria && partidosRows[0]?.grupo) {
-          resolvedScope = {
-            categoria: String(partidosRows[0].categoria),
-            grupo: String(partidosRows[0].grupo),
-          };
-          setScope(resolvedScope);
-        }
-
-        participantIds = Array.from(new Set(
-          partidosRows.flatMap((row) => [row.jugador1_id, row.jugador2_id]).filter(Boolean).map((id) => String(id))
-        ));
+      if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
+      if (selectedGroup) {
+        partidosQuery = partidosQuery.eq('grupo', selectedGroup);
+      } else if (resolvedScope?.grupo) {
+        partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
       }
+
+      const { data: allMatchRows, error: allMatchError } = await partidosQuery;
+      if (allMatchError) throw allMatchError;
+      partidosRows = Array.isArray(allMatchRows) ? allMatchRows : [];
+
+      if (!resolvedScope && partidosRows[0]?.categoria && partidosRows[0]?.grupo) {
+        resolvedScope = {
+          categoria: String(partidosRows[0].categoria),
+          grupo: String(partidosRows[0].grupo),
+        };
+        setScope(resolvedScope);
+      }
+
+      participantIds = Array.from(new Set(
+        partidosRows.flatMap((row) => [row.jugador1_id, row.jugador2_id]).filter(Boolean).map((id) => String(id))
+      ));
 
       let standingsQuery: any = supabase
         .from('torneo_jugadores')
