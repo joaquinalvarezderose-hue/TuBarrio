@@ -178,11 +178,14 @@ const Fixture: React.FC = () => {
         )
       ).sort((a: string, b: string) => a.localeCompare(b));
       setAvailableGroups(groups);
-      if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
-        setSelectedGroup(String(resolvedScope.grupo));
+      
+      // Set selectedGroup immediately if we have a resolved scope
+      const initialSelectedGroup = selectedGroup || (resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo)) ? String(resolvedScope.grupo) : '');
+      if (initialSelectedGroup && !selectedGroup) {
+        setSelectedGroup(initialSelectedGroup);
       }
 
-      const effectiveGroup = selectedGroup || resolvedScope?.grupo || '';
+      const effectiveGroup = initialSelectedGroup || resolvedScope?.grupo || '';
       const hasMultipleGroups = groups.length > 1;
 
       let partidosScopeQuery: any = supabase
@@ -193,8 +196,8 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosScopeQuery = partidosScopeQuery.eq('categoria', resolvedScope.categoria);
-      if (selectedGroup) {
-        partidosScopeQuery = partidosScopeQuery.eq('grupo', selectedGroup);
+      if (initialSelectedGroup) {
+        partidosScopeQuery = partidosScopeQuery.eq('grupo', initialSelectedGroup);
       } else if (effectiveGroup && !hasMultipleGroups) {
         partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
       }
@@ -221,8 +224,8 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) jugadoresQuery = jugadoresQuery.eq('categoria', resolvedScope.categoria);
-      if (selectedGroup) {
-        jugadoresQuery = jugadoresQuery.eq('grupo', selectedGroup);
+      if (initialSelectedGroup) {
+        jugadoresQuery = jugadoresQuery.eq('grupo', initialSelectedGroup);
       } else if (effectiveGroup && !hasMultipleGroups) {
         jugadoresQuery = jugadoresQuery.eq('grupo', effectiveGroup);
       }
@@ -235,8 +238,8 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-      if (selectedGroup) {
-        partidosQuery = partidosQuery.eq('grupo', selectedGroup);
+      if (initialSelectedGroup) {
+        partidosQuery = partidosQuery.eq('grupo', initialSelectedGroup);
       } else if (effectiveGroup && !hasMultipleGroups) {
         partidosQuery = partidosQuery.eq('grupo', effectiveGroup);
       }
@@ -247,9 +250,9 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) historialQuery = historialQuery.eq('categoria', resolvedScope.categoria);
-      if (selectedGroup) {
-        historialQuery = historialQuery.eq('grupo', selectedGroup);
-      } else if (effectiveGroup && !hasMultipleGroups) {
+      if (initialSelectedGroup) {
+        historialQuery = historialQuery.eq('grupo', initialSelectedGroup);
+      } else if (effectiveGroup) {
         historialQuery = historialQuery.eq('grupo', effectiveGroup);
       }
 
@@ -259,8 +262,8 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) propuestasQuery = propuestasQuery.eq('categoria', resolvedScope.categoria);
-      if (selectedGroup) {
-        propuestasQuery = propuestasQuery.eq('grupo', selectedGroup);
+      if (initialSelectedGroup) {
+        propuestasQuery = propuestasQuery.eq('grupo', initialSelectedGroup);
       } else if (effectiveGroup && !hasMultipleGroups) {
         propuestasQuery = propuestasQuery.eq('grupo', effectiveGroup);
       }
@@ -335,8 +338,8 @@ const Fixture: React.FC = () => {
             .in('perfil_id', partidoPlayerIds);
           
           if (resolvedScope?.categoria) jugadoresFallbackQuery = jugadoresFallbackQuery.eq('categoria', resolvedScope.categoria);
-          if (selectedGroup) {
-            jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', selectedGroup);
+          if (initialSelectedGroup) {
+            jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', initialSelectedGroup);
           } else if (effectiveGroup && !hasMultipleGroups) {
             jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', effectiveGroup);
           }
