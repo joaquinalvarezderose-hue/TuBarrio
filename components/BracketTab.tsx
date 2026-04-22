@@ -26,6 +26,13 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, grupo, se
     return name.replace(/TORNEO_\d+_?/i, '').replace(/_/g, ' ').trim() || 'Torneo';
   };
 
+  // Format group name to remove backend prefixes
+  const formatGroupName = (name: string) => {
+    if (!name) return '';
+    // Remove common backend prefixes
+    return name.replace(/TORNEO_\d+_?/i, '').replace(/_/g, ' ').trim() || name;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -55,17 +62,17 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, grupo, se
         </div>
         <div className="flex flex-col gap-3 text-xs text-[#61896b] w-full max-w-sm">
           <div className="flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-sm">schedule</span>
-            <span>Las llaves se generarán cuando todos los grupos finalicen</span>
+            <span className="material-symbols-outlined text-sm flex-shrink-0">schedule</span>
+            <span className="text-center">Las llaves se generarán cuando todos los grupos finalicen</span>
           </div>
           <div className="flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-sm">groups</span>
-            <span>Los mejores jugadores de cada grupo clasificarán</span>
+            <span className="material-symbols-outlined text-sm flex-shrink-0">groups</span>
+            <span className="text-center">Los mejores jugadores de cada grupo clasificarán</span>
           </div>
         </div>
         <div className="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-lg w-full max-w-sm">
           <p className="text-xs text-[#61896b] text-center">
-            <strong>Torneo:</strong> {formatTournamentName(categoria)} {grupo && `- ${grupo}`}
+            <strong>Torneo:</strong> {formatTournamentName(categoria)} {selectedGroup && `- ${formatGroupName(selectedGroup)}`}
           </p>
         </div>
       </div>
