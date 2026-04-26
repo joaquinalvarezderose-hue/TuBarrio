@@ -91,6 +91,7 @@ const MatchResult: React.FC = () => {
   const [proposalState, setProposalState] = useState<'idle' | 'pendiente' | 'confirmado' | 'discrepancia'>('idle');
   const [rivalProposalScores, setRivalProposalScores] = useState<ProposalSets | null>(null);
   const [hasOwnProposal, setHasOwnProposal] = useState(false);
+  const [lastSubmittedBy, setLastSubmittedBy] = useState<string | null>(null);
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -219,6 +220,7 @@ const MatchResult: React.FC = () => {
       setBlockReason(null);
       setRivalProposalScores(null);
       setHasOwnProposal(false);
+      setLastSubmittedBy(null);
 
       try {
           if (!currentUserId) {
@@ -415,7 +417,7 @@ const MatchResult: React.FC = () => {
             .in('id', playerIds),
           supabase
             .from('torneo_propuestas_partido')
-            .select('estado, sets_json_j1, sets_json_j2')
+            .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por')
             .eq('partido_id', targetPartido.id)
             .maybeSingle(),
         ]);
@@ -459,6 +461,7 @@ const MatchResult: React.FC = () => {
 
         if (propuesta) {
           setProposalState(propuesta.estado || 'idle');
+          setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
           const ownSetsRaw = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j1 : propuesta.sets_json_j2;
           const rivalSetsRaw = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j2 : propuesta.sets_json_j1;
 
@@ -520,6 +523,7 @@ const MatchResult: React.FC = () => {
 
       setPartido((prev) => prev ? { ...prev, estado: 'esperando_validacion' } : prev);
       setHasOwnProposal(true);
+      setLastSubmittedBy(String(currentUserId));
       setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
     } catch (error) {
       console.error('Error enviando el resultado', error);
@@ -712,7 +716,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Jugador 2: panel de validación del resultado propuesto */}
-        {isPlayer2 && isWaitingValidation && !loadingMatch && hasOwnProposal && (
+        {isPlayer2 && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
             <div>
@@ -732,7 +736,7 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {isPlayer2 && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && (
+        {isPlayer2 && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && lastSubmittedBy !== currentUserId && (
           <section className="space-y-4">
             <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3">
               <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">pending</span>
