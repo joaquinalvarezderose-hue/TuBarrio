@@ -490,6 +490,11 @@ const MatchResult: React.FC = () => {
     setSubmitMessage(null);
 
     try {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(String(currentUserId || ''))) {
+        throw new Error('No pudimos validar tu sesion (usuario invalido). Volve a iniciar sesion para cargar resultados.');
+      }
+
       const { data, error } = await supabase.rpc('enviar_resultado_seguro', {
         p_partido_id: partido.id,
         p_user_id: currentUserId,
@@ -513,7 +518,8 @@ const MatchResult: React.FC = () => {
       setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
     } catch (error) {
       console.error('Error enviando el resultado', error);
-      setSubmitError('Hubo un error al enviar el resultado. Intenta nuevamente.');
+      const message = error instanceof Error ? error.message : String(error || '');
+      setSubmitError(message || 'Hubo un error al enviar el resultado. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);
     }
