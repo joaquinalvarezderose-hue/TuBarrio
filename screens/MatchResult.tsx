@@ -186,18 +186,12 @@ const MatchResult: React.FC = () => {
       const newP2 = player === 'player2' ? Math.max(0, current.player2 + delta) : current.player2;
 
       if (set !== 'set3') {
-        // Allow modification unless the set is completely finished
-        // A set is finished only when: 6-0/1/2/3/4 OR 7-5/6
-        const isSetCompletelyFinished = 
-          (current.player1 === 6 && current.player2 <= 4) ||
-          (current.player2 === 6 && current.player1 <= 4) ||
-          (current.player1 === 7 && (current.player2 === 5 || current.player2 === 6)) ||
-          (current.player2 === 7 && (current.player1 === 5 || current.player1 === 6));
-        
-        if (isSetCompletelyFinished && delta > 0) return prev;
+        // Valida el *nuevo* marcador (no el anterior) para evitar bloquear la carga
+        // cuando primero se ingresa el 6 (ej: 6-3).
         if (newP1 > 7 || newP2 > 7) return prev;
-        if (newP1 === 7 && newP2 < 5) return prev;
-        if (newP2 === 7 && newP1 < 5) return prev;
+        if (newP1 === 7 && !(newP2 === 5 || newP2 === 6)) return prev;
+        if (newP2 === 7 && !(newP1 === 5 || newP1 === 6)) return prev;
+        if (newP1 === 6 && newP2 === 6) return prev;
       }
 
       if (set === 'set3') {
