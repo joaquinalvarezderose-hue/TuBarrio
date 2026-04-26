@@ -707,7 +707,17 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Jugador 2: panel de validación del resultado propuesto */}
-        {isPlayer2 && isWaitingValidation && !loadingMatch && (
+        {isPlayer2 && isWaitingValidation && !loadingMatch && !rivalProposalScores && (
+          <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
+            <div>
+              <p className="text-sm font-bold text-sky-800 dark:text-sky-200">Esperando la carga del rival</p>
+              <p className="text-[11px] text-sky-600 dark:text-sky-300 mt-0.5">Tu rival todavia no envio su marcador para que puedas confirmarlo.</p>
+            </div>
+          </section>
+        )}
+
+        {isPlayer2 && isWaitingValidation && !loadingMatch && Boolean(rivalProposalScores) && (
           <section className="space-y-4">
             <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3">
               <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">pending</span>
