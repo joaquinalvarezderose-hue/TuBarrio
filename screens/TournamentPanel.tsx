@@ -451,7 +451,6 @@ const TournamentPanel: React.FC = () => {
 
         <main className="flex-1 p-4 flex items-center">
           <div className="w-full rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 p-6 text-center">
-            <span className="material-symbols-outlined text-amber-500 text-4xl">schedule</span>
             <h2 className="mt-3 text-xl font-bold text-amber-800 dark:text-amber-200">Torneo en preparación</h2>
             <p className="mt-2 text-sm text-amber-700 dark:text-amber-300 font-medium">
               Este torneo todavía no está listo para ver detalle deportivo. Volvé cuando la organización lo marque como activo.
