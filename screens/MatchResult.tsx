@@ -518,7 +518,24 @@ const MatchResult: React.FC = () => {
       setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
     } catch (error) {
       console.error('Error enviando el resultado', error);
-      const message = error instanceof Error ? error.message : String(error || '');
+      const anyErr: any = error as any;
+      const message =
+        (anyErr && typeof anyErr === 'object' && typeof anyErr.message === 'string' && anyErr.message.trim())
+          ? anyErr.message
+          : (anyErr && typeof anyErr === 'object' && typeof anyErr.error_description === 'string' && anyErr.error_description.trim())
+            ? anyErr.error_description
+            : (anyErr && typeof anyErr === 'object' && typeof anyErr.details === 'string' && anyErr.details.trim())
+              ? anyErr.details
+              : (anyErr && typeof anyErr === 'object')
+                ? (() => {
+                    try {
+                      return JSON.stringify(anyErr);
+                    } catch {
+                      return String(anyErr);
+                    }
+                  })()
+                : (error instanceof Error ? error.message : String(error || ''));
+
       setSubmitError(message || 'Hubo un error al enviar el resultado. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);
