@@ -465,7 +465,7 @@ const MatchResult: React.FC = () => {
           const ownSets = parseProposalSets(ownSetsRaw);
           const rivalSets = parseProposalSets(rivalSetsRaw);
 
-          setHasOwnProposal(Boolean(ownSetsRaw));
+          setHasOwnProposal(Boolean(ownSets));
 
           if (ownSets) {
             setScores(ownSets);
