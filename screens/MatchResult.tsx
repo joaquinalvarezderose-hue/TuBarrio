@@ -186,12 +186,10 @@ const MatchResult: React.FC = () => {
       const newP2 = player === 'player2' ? Math.max(0, current.player2 + delta) : current.player2;
 
       if (set !== 'set3') {
-        // Valida el *nuevo* marcador (no el anterior) para evitar bloquear la carga
-        // cuando primero se ingresa el 6 (ej: 6-3).
+        // Permite cargar valores intermedios (ej: 7-0, 6-6) para mejorar UX.
+        // La validación "tenística" final la resuelve getSetWinner/matchWinner.
         if (newP1 > 7 || newP2 > 7) return prev;
-        if (newP1 === 7 && !(newP2 === 5 || newP2 === 6)) return prev;
-        if (newP2 === 7 && !(newP1 === 5 || newP1 === 6)) return prev;
-        if (newP1 === 6 && newP2 === 6) return prev;
+        if (newP1 === 7 && newP2 === 7) return prev;
       }
 
       if (set === 'set3') {
