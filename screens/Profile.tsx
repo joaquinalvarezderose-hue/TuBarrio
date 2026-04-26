@@ -1,14 +1,23 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi", address: "Calle Falsa 123" };
 
-  const handleLogout = () => {
-    localStorage.removeItem('app_user');
-    window.location.reload();
+  const handleLogout = async () => {
+    try {
+      await (supabase as any).auth.signOut();
+    } catch {
+      // noop
+    } finally {
+      localStorage.removeItem('app_user');
+      localStorage.removeItem('active_tournament');
+      navigate('/login');
+      window.location.reload();
+    }
   };
 
   return (
