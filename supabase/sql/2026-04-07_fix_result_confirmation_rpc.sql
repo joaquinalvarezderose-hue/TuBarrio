@@ -46,6 +46,7 @@ set search_path = public
 as $$
 declare
   v_partido public.partidos%rowtype;
+  v_propuesta public.torneo_propuestas_partido%rowtype;
   v_match_pair_key text;
   v_sets jsonb;
 begin
@@ -90,43 +91,52 @@ begin
     jsonb_build_object('p1', greatest(0, coalesce(p_set3_j1, 0)), 'p2', greatest(0, coalesce(p_set3_j2, 0)))
   );
 
-  insert into public.torneo_propuestas_partido (
-    torneo_id,
-    categoria,
-    grupo,
-    jugador1_perfil_id,
-    jugador2_perfil_id,
-    match_pair_key,
-    partido_id,
-    jornada,
-    ultimo_cargado_por,
-    sets_json_j1,
-    sets_json_j2,
-    estado,
-    updated_at
-  )
-  values (
-    coalesce(v_partido.torneo_id, 0)::integer,
-    coalesce(v_partido.categoria, ''),
-    coalesce(v_partido.grupo, ''),
-    v_partido.jugador1_id,
-    v_partido.jugador2_id,
-    v_match_pair_key,
-    v_partido.id,
-    coalesce(v_partido.jornada, 1),
-    p_user_id,
-    case when p_user_id = v_partido.jugador1_id then v_sets else null end,
-    case when p_user_id = v_partido.jugador2_id then v_sets else null end,
-    'pendiente',
-    now()
-  )
-  on conflict (partido_id)
-  do update
-    set sets_json_j1 = case when p_user_id = excluded.jugador1_perfil_id then excluded.sets_json_j1 else public.torneo_propuestas_partido.sets_json_j1 end,
-        sets_json_j2 = case when p_user_id = excluded.jugador2_perfil_id then excluded.sets_json_j2 else public.torneo_propuestas_partido.sets_json_j2 end,
+  select *
+  into v_propuesta
+  from public.torneo_propuestas_partido tpp
+  where tpp.partido_id = p_partido_id
+  for update;
+
+  if not found then
+    insert into public.torneo_propuestas_partido (
+      torneo_id,
+      categoria,
+      grupo,
+      jugador1_perfil_id,
+      jugador2_perfil_id,
+      match_pair_key,
+      partido_id,
+      jornada,
+      ultimo_cargado_por,
+      sets_json_j1,
+      sets_json_j2,
+      estado,
+      updated_at
+    )
+    values (
+      coalesce(v_partido.torneo_id, 0)::integer,
+      coalesce(v_partido.categoria, ''),
+      coalesce(v_partido.grupo, ''),
+      v_partido.jugador1_id,
+      v_partido.jugador2_id,
+      v_match_pair_key,
+      v_partido.id,
+      coalesce(v_partido.jornada, 1),
+      p_user_id,
+      case when p_user_id = v_partido.jugador1_id then v_sets else null end,
+      case when p_user_id = v_partido.jugador2_id then v_sets else null end,
+      'pendiente',
+      now()
+    );
+  else
+    update public.torneo_propuestas_partido
+    set sets_json_j1 = case when p_user_id = v_partido.jugador1_id then v_sets else sets_json_j1 end,
+        sets_json_j2 = case when p_user_id = v_partido.jugador2_id then v_sets else sets_json_j2 end,
         ultimo_cargado_por = p_user_id,
         estado = 'pendiente',
-        updated_at = now();
+        updated_at = now()
+    where partido_id = p_partido_id;
+  end if;
 
   update public.partidos
   set estado = 'esperando_validacion',
