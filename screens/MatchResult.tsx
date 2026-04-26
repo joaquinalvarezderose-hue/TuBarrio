@@ -90,6 +90,7 @@ const MatchResult: React.FC = () => {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [proposalState, setProposalState] = useState<'idle' | 'pendiente' | 'confirmado' | 'discrepancia'>('idle');
   const [rivalProposalScores, setRivalProposalScores] = useState<ProposalSets | null>(null);
+  const [hasOwnProposal, setHasOwnProposal] = useState(false);
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -217,6 +218,7 @@ const MatchResult: React.FC = () => {
       setSubmitError(null);
       setBlockReason(null);
       setRivalProposalScores(null);
+      setHasOwnProposal(false);
 
       try {
           if (!currentUserId) {
@@ -463,6 +465,8 @@ const MatchResult: React.FC = () => {
           const ownSets = parseProposalSets(ownSetsRaw);
           const rivalSets = parseProposalSets(rivalSetsRaw);
 
+          setHasOwnProposal(Boolean(ownSetsRaw));
+
           if (ownSets) {
             setScores(ownSets);
           }
@@ -515,6 +519,7 @@ const MatchResult: React.FC = () => {
       }
 
       setPartido((prev) => prev ? { ...prev, estado: 'esperando_validacion' } : prev);
+      setHasOwnProposal(true);
       setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
     } catch (error) {
       console.error('Error enviando el resultado', error);
@@ -707,7 +712,17 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Jugador 2: panel de validación del resultado propuesto */}
-        {isPlayer2 && isWaitingValidation && !loadingMatch && !rivalProposalScores && (
+        {isPlayer2 && isWaitingValidation && !loadingMatch && hasOwnProposal && (
+          <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
+            <div>
+              <p className="text-sm font-bold text-sky-800 dark:text-sky-200">Resultado enviado</p>
+              <p className="text-[11px] text-sky-600 dark:text-sky-300 mt-0.5">Esperando que tu rival envie su marcador para poder confirmarlo.</p>
+            </div>
+          </section>
+        )}
+
+        {isPlayer2 && isWaitingValidation && !loadingMatch && !hasOwnProposal && !rivalProposalScores && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
             <div>
@@ -717,7 +732,7 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {isPlayer2 && isWaitingValidation && !loadingMatch && Boolean(rivalProposalScores) && (
+        {isPlayer2 && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && (
           <section className="space-y-4">
             <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3">
               <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">pending</span>
@@ -756,24 +771,24 @@ const MatchResult: React.FC = () => {
               <button
                 onClick={handleRejectResult}
                 disabled={isSubmitting}
-                className="flex items-center justify-center gap-2 py-5 rounded-xl border-2 border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400 font-black text-base transition-all active:scale-[0.97] disabled:opacity-50"
+                className="flex items-center justify-center gap-2 py-4 rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300 font-bold text-sm transition-all active:scale-[0.98] hover:bg-red-100 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="text-xl">❌</span>
-                Es Incorrecto
+                <span className="material-symbols-outlined text-lg">close</span>
+                Rechazar
               </button>
               <button
                 onClick={handleConfirmResult}
                 disabled={isSubmitting}
-                className="flex items-center justify-center gap-2 py-5 rounded-xl bg-primary text-gray-900 font-black text-base shadow-lg shadow-primary/30 transition-all active:scale-[0.97] disabled:opacity-50"
+                className="flex items-center justify-center gap-2 py-4 rounded-xl bg-primary text-gray-900 font-bold text-sm shadow-lg shadow-primary/30 transition-all active:scale-[0.98] hover:brightness-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? <span className="w-5 h-5 border-2 border-gray-700/40 border-t-gray-900 rounded-full animate-spin"></span> : <span className="text-xl">✅</span>}
+                {isSubmitting ? <span className="w-5 h-5 border-2 border-gray-700/40 border-t-gray-900 rounded-full animate-spin"></span> : <span className="material-symbols-outlined text-lg">check</span>}
                 Confirmar
               </button>
             </div>
           </section>
         )}
 
-        {!blockReason && !(isPlayer2 && isWaitingValidation) && (
+        {!blockReason && !(isPlayer2 && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
           <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
@@ -866,6 +881,22 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
+        {isWaitingValidation && hasOwnProposal && !loadingMatch && (
+          <section className="p-5 bg-sky-50 dark:bg-sky-900/10 rounded-2xl border border-sky-200 dark:border-sky-800/30 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="size-11 rounded-xl bg-sky-100 dark:bg-sky-900/20 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-sky-600 dark:text-sky-300 text-2xl">check_circle</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-black text-sky-900 dark:text-sky-100">Resultado enviado correctamente</p>
+                <p className="mt-1 text-[11px] text-sky-700 dark:text-sky-300 leading-relaxed font-medium">
+                  Esperando a que tu rival lo confirme.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
         {submitError && submitErrorUi && (
           <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-red-500 text-lg">error</span>
@@ -885,7 +916,7 @@ const MatchResult: React.FC = () => {
         )}
       </main>
 
-      {!(isPlayer2 && isWaitingValidation) && (
+      {!(isPlayer2 && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
       <footer className="fixed bottom-0 left-0 right-0 md:static max-w-2xl mx-auto p-6 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-[60] md:bg-none">
         <button
           onClick={handleConfirm}
