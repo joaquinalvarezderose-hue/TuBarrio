@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useNextMatch } from '../hooks/useNextMatch';
+import BracketTab from '../components/BracketTab';
 
 type FixturePlayer = {
   perfil_id: string;
@@ -65,6 +66,15 @@ const formatGameScore = (games: Array<{ p1: number; p2: number; tb?: number }> |
   return formatted;
 };
 
+const formatGroupName = (groupCode: string): string => {
+  if (!groupCode) return '';
+  const match = groupCode.match(/_G(\d+)$/);
+  if (match) {
+    return `Grupo ${parseInt(match[1], 10)}`;
+  }
+  return 'Grupo 1';
+};
+
 const resolveWinnerId = (
   ganadorId: string | null | undefined,
   p1Id: string,
@@ -82,12 +92,14 @@ const Fixture: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  const [activeFecha, setActiveFecha] = useState(0);
+  const [activeFecha, setActiveFecha] = useState(0); // 0=Todas, -1=LLAVES, >0=Jornada específica
   const [playersStats, setPlayersStats] = useState<FixturePlayer[]>([]);
   const [matches, setMatches] = useState<FixtureMatch[]>([]);
   const [torneoFinalizado, setTorneoFinalizado] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
+  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
   const isLoadingRef = useRef(false);
   const refreshTimerRef = useRef<number | null>(null);
 
@@ -152,6 +164,31 @@ const Fixture: React.FC = () => {
         }
       }
 
+      const targetCategory = String(resolvedScope?.categoria || tournament.subtitle || '').trim();
+      let groupsQuery: any = supabase
+        .from('torneo_estado')
+        .select('grupo, categoria')
+        .eq('torneo_id', parsedTournamentId);
+      if (targetCategory) groupsQuery = groupsQuery.eq('categoria', targetCategory);
+      const { data: groupsRows } = await groupsQuery;
+      const groups = Array.from(
+        new Set(
+          (groupsRows || [])
+            .map((row: any) => String(row?.grupo || '').trim())
+            .filter(Boolean)
+        )
+      ).sort((a: string, b: string) => a.localeCompare(b));
+      setAvailableGroups(groups);
+      
+      // Set selectedGroup immediately if we have a resolved scope
+      const initialSelectedGroup = selectedGroup || (resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo)) ? String(resolvedScope.grupo) : '');
+      if (initialSelectedGroup && !selectedGroup) {
+        setSelectedGroup(initialSelectedGroup);
+      }
+
+      const effectiveGroup = initialSelectedGroup || resolvedScope?.grupo || '';
+      const hasMultipleGroups = groups.length > 1;
+
       let partidosScopeQuery: any = supabase
         .from('partidos')
         .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, categoria, grupo')
@@ -160,9 +197,14 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosScopeQuery = partidosScopeQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) partidosScopeQuery = partidosScopeQuery.eq('grupo', resolvedScope.grupo);
+      if (initialSelectedGroup) {
+        partidosScopeQuery = partidosScopeQuery.eq('grupo', initialSelectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        partidosScopeQuery = partidosScopeQuery.eq('grupo', effectiveGroup);
+      }
 
-      if (currentUserId) {
+      const viewingOwnGroup = Boolean(resolvedScope?.grupo && effectiveGroup && resolvedScope.grupo === effectiveGroup);
+      if (currentUserId && viewingOwnGroup && !hasMultipleGroups) {
         partidosScopeQuery = partidosScopeQuery.or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`);
       }
 
@@ -183,7 +225,11 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) jugadoresQuery = jugadoresQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) jugadoresQuery = jugadoresQuery.eq('grupo', resolvedScope.grupo);
+      if (initialSelectedGroup) {
+        jugadoresQuery = jugadoresQuery.eq('grupo', initialSelectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        jugadoresQuery = jugadoresQuery.eq('grupo', effectiveGroup);
+      }
 
       let partidosQuery: any = supabase
         .from('partidos')
@@ -193,7 +239,11 @@ const Fixture: React.FC = () => {
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
       if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
+      if (initialSelectedGroup) {
+        partidosQuery = partidosQuery.eq('grupo', initialSelectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        partidosQuery = partidosQuery.eq('grupo', effectiveGroup);
+      }
 
       let historialQuery: any = supabase
         .from('torneo_partidos_historial')
@@ -201,7 +251,11 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) historialQuery = historialQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) historialQuery = historialQuery.eq('grupo', resolvedScope.grupo);
+      if (initialSelectedGroup) {
+        historialQuery = historialQuery.eq('grupo', initialSelectedGroup);
+      } else if (effectiveGroup) {
+        historialQuery = historialQuery.eq('grupo', effectiveGroup);
+      }
 
       let propuestasQuery: any = supabase
         .from('torneo_propuestas_partido')
@@ -209,14 +263,17 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) propuestasQuery = propuestasQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) propuestasQuery = propuestasQuery.eq('grupo', resolvedScope.grupo);
+      if (initialSelectedGroup) {
+        propuestasQuery = propuestasQuery.eq('grupo', initialSelectedGroup);
+      } else if (effectiveGroup && !hasMultipleGroups) {
+        propuestasQuery = propuestasQuery.eq('grupo', effectiveGroup);
+      }
 
       const [estadoResp, jugadoresResp, partidosResp, historialResp, propuestasResp] = await Promise.all([
         supabase
           .from('torneo_estado')
-          .select('estado')
-          .eq('torneo_id', parsedTournamentId)
-          .maybeSingle(),
+          .select('estado, categoria, grupo')
+          .eq('torneo_id', parsedTournamentId),
         jugadoresQuery,
         partidosQuery,
         historialQuery,
@@ -229,7 +286,17 @@ const Fixture: React.FC = () => {
       if (historialResp.error) throw historialResp.error;
       if (propuestasResp.error) throw propuestasResp.error;
 
-      const estadoNormalizado = String(estadoResp.data?.estado || '').trim().toUpperCase();
+      const estadoRows = Array.isArray(estadoResp.data) ? estadoResp.data : [];
+      const estadoNormalizado = (effectiveGroup
+        ? String(
+            estadoRows.find(
+              (row: any) =>
+                String(row?.categoria || '') === resolvedScope?.categoria &&
+                String(row?.grupo || '') === effectiveGroup
+            )?.estado || ''
+          )
+        : String(estadoRows[0]?.estado || '')
+      ).trim().toUpperCase();
       setTorneoFinalizado(estadoNormalizado === 'FINALIZADO');
 
       const jugadores = jugadoresResp.data || [];
@@ -265,11 +332,20 @@ const Fixture: React.FC = () => {
         ));
 
         if (partidoPlayerIds.length > 0) {
-          const { data: jugadoresFallback, error: jugadoresFallbackError } = await supabase
+          let jugadoresFallbackQuery: any = supabase
             .from('torneo_jugadores')
             .select('perfil_id, puntos, partidos_jugados, sets_ganados')
             .eq('torneo_id', parsedTournamentId)
             .in('perfil_id', partidoPlayerIds);
+          
+          if (resolvedScope?.categoria) jugadoresFallbackQuery = jugadoresFallbackQuery.eq('categoria', resolvedScope.categoria);
+          if (initialSelectedGroup) {
+            jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', initialSelectedGroup);
+          } else if (effectiveGroup && !hasMultipleGroups) {
+            jugadoresFallbackQuery = jugadoresFallbackQuery.eq('grupo', effectiveGroup);
+          }
+          
+          const { data: jugadoresFallback, error: jugadoresFallbackError } = await jugadoresFallbackQuery;
 
           if (jugadoresFallbackError) throw jugadoresFallbackError;
 
@@ -390,10 +466,10 @@ const Fixture: React.FC = () => {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [currentUserId, refetchNextMatch, tournament.id]);
+  }, [currentUserId, refetchNextMatch, selectedGroup, tournament.id, tournament.subtitle]);
 
   const fechas = useMemo(() => {
-    const unique = Array.from(new Set(matches.map((match) => match.jornada))).sort((a, b) => a - b);
+    const unique = Array.from(new Set(matches.map((match) => match.jornada))).sort((a: number, b: number) => a - b);
     if (unique.length === 0) return [1];
 
     const maxJornada = unique[unique.length - 1];
@@ -402,7 +478,7 @@ const Fixture: React.FC = () => {
       && maxJornadaMatches.every((match) => match.estado === 'finalizado' || Boolean(match.finalScore));
 
     if (maxJornadaFinalizada) {
-      return [...unique, maxJornada + 1];
+      return [...unique, (maxJornada as number) + 1];
     }
 
     return unique;
@@ -449,7 +525,7 @@ const Fixture: React.FC = () => {
   }, [fixtureMatches, highlightedNextMatchId]);
 
   useEffect(() => {
-    if (activeFecha !== 0 && !fechas.includes(activeFecha)) {
+    if (activeFecha !== 0 && activeFecha !== -1 && !fechas.includes(activeFecha)) {
       setActiveFecha(0);
     }
   }, [activeFecha, fechas]);
@@ -514,6 +590,20 @@ const Fixture: React.FC = () => {
 
         <div className="px-4 pb-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-[#61896b] font-bold">{tournament.title}</p>
+          {availableGroups.length > 0 && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-[#61896b] font-bold">Grupo</span>
+              <select
+                value={selectedGroup || ''}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="rounded-lg border border-[#dbe6de] bg-white px-3 py-1 pr-8 text-xs font-semibold text-[#111813] appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjE4OTZiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-center"
+              >
+                {availableGroups.map((group) => (
+                  <option key={group} value={group}>{formatGroupName(group)}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto no-scrollbar">
@@ -525,6 +615,14 @@ const Fixture: React.FC = () => {
               }`}
             >
               <p className={`text-sm tracking-wide ${activeFecha === 0 ? 'font-bold' : 'font-semibold'}`}>TODAS</p>
+            </button>
+            <button
+              onClick={() => setActiveFecha(-1)}
+              className={`flex flex-col items-center justify-center border-b-[3px] pb-3 pt-4 transition-all ${
+                activeFecha === -1 ? 'border-primary text-[#111813] dark:text-white' : 'border-transparent text-[#61896b]'
+              }`}
+            >
+              <p className={`text-sm tracking-wide ${activeFecha === -1 ? 'font-bold' : 'font-semibold'}`}>LLAVES</p>
             </button>
             {fechasForTabs.map((f) => (
               <button
@@ -545,7 +643,7 @@ const Fixture: React.FC = () => {
         <div className="px-4 py-4">
           {activeFecha === 0 && (
             <>
-              <div className="rounded-xl bg-white dark:bg-[#1a2e1f] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a3c2e] mb-4">
+              <div className="rounded-xl bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a5a32] mb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Proximo partido</h3>
@@ -612,6 +710,15 @@ const Fixture: React.FC = () => {
                 )}
               </div>
             </>
+          )}
+
+          {activeFecha === -1 && (
+            <BracketTab
+              torneo_id={tournament.id}
+              categoria={tournament.subtitle}
+              grupo={selectedGroup}
+              selectedGroup={selectedGroup}
+            />
           )}
 
           {loadError && (

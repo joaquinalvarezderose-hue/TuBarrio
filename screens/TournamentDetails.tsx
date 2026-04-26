@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 
 const TournamentDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const TournamentDetails: React.FC = () => {
     id: 1,
     title: "Abierto de Tenis TuBarrio",
     subtitle: "Singles Damas y Caballeros",
-    date: "15 de Julio - 20 de Julio, 2024"
+    date: "Mayo a Julio"
   };
 
   useEffect(() => {
@@ -61,21 +62,22 @@ const TournamentDetails: React.FC = () => {
     checkRegistration();
   }, [tournament.id]);
 
-  return (
-    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-background-light text-gray-900 font-display transition-colors duration-200 antialiased selection:bg-primary selection:text-black pb-28">
-      <div className="sticky top-0 z-30 flex items-center justify-between bg-background-light/95 backdrop-blur-md p-4 pb-2 transition-colors duration-200">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex size-10 items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-900 group"
-        >
-          <span className="material-symbols-outlined group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
-        </button>
-        <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Detalles del Torneo</h2>
-      </div>
+  const header = (
+    <div className="sticky top-0 z-30 flex items-center justify-between bg-background-light/95 p-4 pb-2 backdrop-blur-md transition-colors duration-200 md:px-8">
+      <button
+        onClick={() => navigate(-1)}
+        className="group flex size-10 items-center justify-center rounded-full text-gray-900 transition-colors hover:bg-gray-200"
+      >
+        <span className="material-symbols-outlined transition-transform group-hover:-translate-x-0.5">arrow_back</span>
+      </button>
+      <h2 className="flex-1 pr-10 text-center text-lg font-bold leading-tight tracking-tight">Detalles del Torneo</h2>
+    </div>
+  );
 
-      <div className="w-full">
-        <div className="px-0 sm:px-4 sm:py-3">
-          <div className="relative flex flex-col justify-end overflow-hidden bg-gray-200 sm:rounded-xl min-h-[260px] shadow-sm">
+  const main = (
+    <div className="w-full px-4 sm:px-5 md:px-8">
+      <div className="py-3">
+        <div className="relative flex min-h-[280px] flex-col justify-end overflow-hidden rounded-xl bg-gray-200 shadow-sm">
             <div 
               className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" 
               role="img" 
@@ -96,9 +98,8 @@ const TournamentDetails: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-[40px_1fr] gap-x-2 px-5 mt-4">
+      <div className="grid grid-cols-[40px_1fr] gap-x-2 px-5 mt-2">
         <div className="flex flex-col items-center gap-1 pt-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 text-[#6dec13]">
             <span className="material-symbols-outlined">calendar_today</span>
@@ -175,10 +176,13 @@ const TournamentDetails: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
+  );
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8 bg-background-light/80 backdrop-blur-lg border-t border-gray-200/50 max-w-md mx-auto shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
+  const footer = (
+    <>
         {isRegistered ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 md:w-[420px]">
             <div className="w-full flex items-center justify-center gap-3 bg-primary/10 border-2 border-primary/30 rounded-xl py-4 px-5">
               <span className="material-symbols-outlined text-primary text-[24px] font-black">check_circle</span>
               <div className="flex flex-col">
@@ -195,7 +199,7 @@ const TournamentDetails: React.FC = () => {
             </button>
           </div>
         ) : isAdmin ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 md:w-[420px]">
             <div className="w-full flex items-center justify-center gap-3 bg-slate-100 border border-slate-200 rounded-xl py-4 px-5">
               <span className="material-symbols-outlined text-slate-700 text-[24px] font-black">admin_panel_settings</span>
               <div className="flex flex-col">
@@ -221,14 +225,23 @@ const TournamentDetails: React.FC = () => {
         ) : (
           <button
             onClick={() => navigate('/payment', { state: { tournament } })}
-            className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
+            className="w-full md:w-[420px] bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
           >
             <span>Inscribirme al Torneo</span>
             <span className="material-symbols-outlined font-black">arrow_forward</span>
           </button>
         )}
-      </div>
-    </div>
+    </>
+  );
+
+  return (
+    <ResponsiveScreen
+      header={header}
+      main={main}
+      footer={footer}
+      contentClassName="pb-28"
+      footerContainerClassName="md:flex md:justify-end"
+    />
   );
 };
 

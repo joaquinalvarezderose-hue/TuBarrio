@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 
 const Confirmation: React.FC = () => {
   const navigate = useNavigate();
@@ -15,47 +16,58 @@ const Confirmation: React.FC = () => {
 
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
+  const seasonLabel = "Mayo a Julio";
 
-  return (
-    <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden bg-background-light font-display">
-      <header className="flex items-center p-4 justify-between sticky top-0 z-50 bg-background-light/90 backdrop-blur-md border-b border-gray-100">
-        <div className="flex w-10 justify-start">
-          <button 
-            onClick={() => navigate('/tournaments')}
-            className="flex size-10 items-center justify-center rounded-full hover:bg-black/5 transition-colors text-slate-900"
-          >
-            <span className="material-symbols-outlined text-[24px]">close</span>
-          </button>
-        </div>
-        <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center truncate">Confirmación</h2>
-        <div className="w-10"></div>
-      </header>
+  const handleShareWhatsapp = () => {
+    const message = `Hola! Me inscribi en ${tournament.title} (${tournament.subtitle}) - temporada ${seasonLabel}. Sumate en TuBarrio.`;
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
 
-      <main className="flex-1 flex flex-col px-4 pb-12 overflow-y-auto no-scrollbar">
-        <div className="text-center pt-2 pb-6">
+  const header = (
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-background-light/90 p-4 backdrop-blur-md">
+      <div className="flex w-10 justify-start">
+        <button
+          onClick={() => navigate('/tournaments')}
+          className="flex size-10 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-black/5"
+        >
+          <span className="material-symbols-outlined text-[24px]">close</span>
+        </button>
+      </div>
+      <h2 className="flex-1 truncate text-center text-lg font-bold leading-tight tracking-tight">Confirmación</h2>
+      <div className="w-10"></div>
+    </header>
+  );
+
+  const main = (
+    <>
+      <div className="pb-8 pt-5 text-center md:max-w-xl md:pb-0 md:pt-14 md:text-left">
           <div className="inline-flex items-center justify-center size-16 rounded-full bg-primary/20 text-primary mb-4 animate-bounce">
             <span className="material-symbols-outlined text-[32px] font-black">check_circle</span>
           </div>
           {enrollmentStatus === 'pagado_aprobado' ? (
             <>
-              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Inscripción ya aprobada</h1>
-              <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
+              <h1 className="mx-auto max-w-[20ch] md:mx-0 text-[32px] font-black leading-tight tracking-tight mb-3 text-secondary">Inscripción ya aprobada</h1>
+              <p className="mx-auto max-w-[34ch] md:mx-0 md:max-w-[42ch] text-slate-600 text-base font-bold leading-relaxed px-2 md:px-0 opacity-80">
                 Tu lugar en {tournament.title} ya estaba confirmado. No registramos una nueva inscripción.
               </p>
             </>
           ) : (
             <>
-              <h1 className="text-[32px] font-black leading-tight tracking-tight mb-2 text-secondary">Pago en revisión</h1>
-              <p className="text-slate-600 text-base font-bold leading-relaxed px-4 opacity-80">
-                Recibimos tu solicitud para {tournament.title}. Te habilitaremos cuando validemos la transferencia.
+              <h1 className="mx-auto max-w-[18ch] md:mx-0 text-[32px] font-black leading-tight tracking-tight mb-3 text-secondary">Pago en revisión</h1>
+              <p className="mx-auto max-w-[36ch] md:mx-0 md:max-w-[42ch] text-slate-600 text-base font-bold leading-relaxed px-2 md:px-0 opacity-80">
+                Ya recibimos tu comprobante para {tournament.title}. Te avisaremos en cuanto validemos la transferencia y tu lugar quede confirmado.
               </p>
             </>
           )}
-        </div>
+      </div>
+    </>
+  );
 
-        <div className="relative w-full mb-8 drop-shadow-2xl">
+  const aside = (
+    <div className="relative mb-10 w-full drop-shadow-2xl md:mb-0 md:mt-10 md:w-[380px] md:justify-self-end">
           <div className="bg-white rounded-t-[2rem] overflow-hidden relative border-x border-t border-slate-100 shadow-sm">
-            <div className="h-36 w-full relative">
+            <div className="h-44 md:h-56 w-full relative">
               <img 
                 alt="Tennis" 
                 className="w-full h-full object-cover" 
@@ -68,7 +80,7 @@ const Confirmation: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 space-y-5">
+            <div className="p-6 md:p-7 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Jugador</p>
@@ -86,8 +98,8 @@ const Confirmation: React.FC = () => {
                     <span className="material-symbols-outlined text-[20px] font-black">calendar_month</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Fecha</span>
-                    <span className="text-sm font-black text-secondary">{tournament.date.split('•')[0]}</span>
+                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Temporada</span>
+                    <span className="text-sm font-black text-secondary">{seasonLabel}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -95,8 +107,8 @@ const Confirmation: React.FC = () => {
                     <span className="material-symbols-outlined text-[20px] font-black">schedule</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Hora</span>
-                    <span className="text-sm font-black text-secondary">09:00 AM</span>
+                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Horario</span>
+                    <span className="text-sm font-black text-secondary">A confirmar</span>
                   </div>
                 </div>
               </div>
@@ -108,32 +120,43 @@ const Confirmation: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-b-[2rem] p-8 flex flex-col items-center justify-center border-x border-b border-slate-100">
-            <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-50 mb-4 transition-transform hover:scale-105">
-              <img 
-                alt="QR Code" 
-                className="size-36" 
-                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TB-REG-83920"
-              />
-            </div>
-            <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">ESCANEAR EN EL INGRESO</p>
-            <p className="text-[10px] text-slate-300 font-mono font-bold">ID: #83920-TB</p>
+            <p className="text-sm text-slate-500 font-bold text-center">
+              Tu inscripción está en revisión administrativa.
+            </p>
+            <p className="text-xs text-slate-400 font-semibold text-center mt-1">
+              Cuando quede aprobada, vas a ver tus partidos en el panel del torneo.
+            </p>
           </div>
-        </div>
-
-        <div className="mt-auto pt-6 space-y-4">
-          <button className="w-full flex items-center justify-center gap-3 bg-primary hover:bg-[#0fd641] text-secondary font-black text-lg py-5 rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-[0.98]">
-            <span className="material-symbols-outlined font-black">share</span>
-            Compartir con Vecinos
-          </button>
-          <button 
-            onClick={() => navigate('/tournaments')}
-            className="w-full py-2 text-sm font-black text-slate-400 hover:text-secondary transition-colors uppercase tracking-[0.1em]"
-          >
-            Volver al Centro de Torneos
-          </button>
-        </div>
-      </main>
     </div>
+  );
+
+  const footer = (
+    <div className="space-y-4 md:w-[380px] md:justify-self-end">
+      <button
+        onClick={handleShareWhatsapp}
+        className="w-full flex items-center justify-center gap-3 bg-primary hover:bg-[#0fd641] text-secondary font-black text-lg py-5 rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-[0.98]"
+      >
+        <span className="material-symbols-outlined font-black">share</span>
+        Compartir con Vecinos
+      </button>
+      <button
+        onClick={() => navigate('/tournaments')}
+        className="w-full py-2 text-sm font-black text-slate-400 hover:text-secondary transition-colors uppercase tracking-[0.1em]"
+      >
+        Volver al Centro de Torneos
+      </button>
+    </div>
+  );
+
+  return (
+    <ResponsiveScreen
+      header={header}
+      main={main}
+      aside={aside}
+      footer={footer}
+      contentClassName="px-4 md:px-8 pb-12"
+      footerContainerClassName="md:flex md:justify-end"
+    />
   );
 };
 

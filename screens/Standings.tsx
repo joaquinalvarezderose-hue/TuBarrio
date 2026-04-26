@@ -35,11 +35,24 @@ type TournamentHistoryRow = {
   sets_jugador2: number | null;
 };
 
+const getGroupOrder = (groupCode: string): number => {
+  const value = String(groupCode || '').trim();
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const suffixMatch = value.match(/_G(\d+)$/i);
+  if (!suffixMatch) return 1;
+  const parsed = Number(suffixMatch[1]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.MAX_SAFE_INTEGER;
+};
+
+const getGroupLabel = (groupCode: string): string => `Grupo ${getGroupOrder(groupCode)}`;
+
 const Standings: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [dbRows, setDbRows] = useState<any[] | null>(null);
   const [scope, setScope] = useState<TournamentScope | null>(null);
+  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -113,37 +126,60 @@ const Standings: React.FC = () => {
       }
 
       setScope(resolvedScope);
+      const targetCategory = String(resolvedScope?.categoria || tournament.subtitle || '').trim();
+
+      let groupsQuery: any = supabase
+        .from('torneo_estado')
+        .select('grupo, categoria')
+        .eq('torneo_id', parsedTournamentId);
+      if (targetCategory) groupsQuery = groupsQuery.eq('categoria', targetCategory);
+      const { data: groupsRows, error: groupsError } = await groupsQuery;
+      if (!groupsError) {
+        const groups = Array.from(
+          new Set(
+            (groupsRows || [])
+              .map((row: any) => String(row?.grupo || '').trim())
+              .filter(Boolean)
+          )
+        ).sort((a, b) => getGroupOrder(a) - getGroupOrder(b));
+        setAvailableGroups(groups);
+        if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
+          setSelectedGroup(String(resolvedScope.grupo));
+        }
+      }
 
       let participantIds: string[] = [];
       let partidosRows: TournamentMatchRow[] = [];
 
-      if (currentUserId) {
-        let partidosQuery: any = supabase
-          .from('partidos')
-          .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
-          .eq('torneo_id', parsedTournamentId)
-          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .order('jornada', { ascending: true });
+      // Cargar todos los partidos del grupo seleccionado, no solo los del usuario
+      let partidosQuery: any = supabase
+        .from('partidos')
+        .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
+        .eq('torneo_id', parsedTournamentId)
+        .order('jornada', { ascending: true });
 
-        if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
-        if (resolvedScope?.grupo) partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
-
-        const { data: userMatchRows, error: userMatchError } = await partidosQuery;
-        if (userMatchError) throw userMatchError;
-        partidosRows = Array.isArray(userMatchRows) ? userMatchRows : [];
-
-        if (!resolvedScope && partidosRows[0]?.categoria && partidosRows[0]?.grupo) {
-          resolvedScope = {
-            categoria: String(partidosRows[0].categoria),
-            grupo: String(partidosRows[0].grupo),
-          };
-          setScope(resolvedScope);
-        }
-
-        participantIds = Array.from(new Set(
-          partidosRows.flatMap((row) => [row.jugador1_id, row.jugador2_id]).filter(Boolean).map((id) => String(id))
-        ));
+      if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);
+      if (selectedGroup) {
+        partidosQuery = partidosQuery.eq('grupo', selectedGroup);
+      } else if (resolvedScope?.grupo) {
+        partidosQuery = partidosQuery.eq('grupo', resolvedScope.grupo);
       }
+
+      const { data: allMatchRows, error: allMatchError } = await partidosQuery;
+      if (allMatchError) throw allMatchError;
+      partidosRows = Array.isArray(allMatchRows) ? allMatchRows : [];
+
+      if (!resolvedScope && partidosRows[0]?.categoria && partidosRows[0]?.grupo) {
+        resolvedScope = {
+          categoria: String(partidosRows[0].categoria),
+          grupo: String(partidosRows[0].grupo),
+        };
+        setScope(resolvedScope);
+      }
+
+      participantIds = Array.from(new Set(
+        partidosRows.flatMap((row) => [row.jugador1_id, row.jugador2_id]).filter(Boolean).map((id) => String(id))
+      ));
 
       let standingsQuery: any = supabase
         .from('torneo_jugadores')
@@ -151,7 +187,11 @@ const Standings: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) standingsQuery = standingsQuery.eq('categoria', resolvedScope.categoria);
-      if (resolvedScope?.grupo) standingsQuery = standingsQuery.eq('grupo', resolvedScope.grupo);
+      if (selectedGroup) {
+        standingsQuery = standingsQuery.eq('grupo', selectedGroup);
+      } else if (resolvedScope?.grupo) {
+        standingsQuery = standingsQuery.eq('grupo', resolvedScope.grupo);
+      }
 
       const { data, error } = await standingsQuery;
 
@@ -196,13 +236,15 @@ const Standings: React.FC = () => {
         uniqueRows = participantIds.map((perfilId) => rowsByProfile.get(perfilId)).filter(Boolean) as TournamentPlayerRow[];
       }
 
-      if (uniqueRows.length === 0 && resolvedScope) {
+      const effectiveGroup = selectedGroup || resolvedScope?.grupo || '';
+
+      if (uniqueRows.length === 0 && resolvedScope && effectiveGroup) {
         const { data: approvedPlayers, error: approvedPlayersError } = await supabase
           .from('inscripciones_torneo')
           .select('perfil_id')
           .eq('torneo_id', parsedTournamentId)
           .eq('categoria', resolvedScope.categoria)
-          .eq('grupo', resolvedScope.grupo)
+          .eq('grupo', effectiveGroup)
           .in('estado', ['pagado_aprobado', 'pendiente_revision']);
 
         if (approvedPlayersError) throw approvedPlayersError;
@@ -264,10 +306,13 @@ const Standings: React.FC = () => {
         }
       }
 
-      const { data: historyRows, error: historyError } = await supabase
+      let historyQuery: any = supabase
         .from('torneo_partidos_historial')
         .select('categoria, grupo, jugador1_perfil_id, jugador2_perfil_id, puntos_jugador1, puntos_jugador2, sets_jugador1, sets_jugador2')
         .eq('torneo_id', parsedTournamentId);
+      if (resolvedScope?.categoria) historyQuery = historyQuery.eq('categoria', resolvedScope.categoria);
+      if (effectiveGroup) historyQuery = historyQuery.eq('grupo', effectiveGroup);
+      const { data: historyRows, error: historyError } = await historyQuery;
 
       if (historyError) throw historyError;
 
@@ -275,9 +320,9 @@ const Standings: React.FC = () => {
         const scopedHistoryRows = (historyRows as TournamentHistoryRow[]).filter((row) => {
           const matchesScope = Boolean(
             resolvedScope?.categoria &&
-            resolvedScope?.grupo &&
+            effectiveGroup &&
             row.categoria === resolvedScope.categoria &&
-            row.grupo === resolvedScope.grupo
+            row.grupo === effectiveGroup
           );
 
           if (matchesScope) return true;
@@ -384,7 +429,7 @@ const Standings: React.FC = () => {
       console.error('No se pudo cargar la tabla desde Supabase', err);
       setDbRows([]);
     }
-  }, [tournament.id, tournament.subtitle]);
+  }, [selectedGroup, tournament.id, tournament.subtitle]);
 
   useEffect(() => {
     loadDbStandings();
@@ -441,6 +486,20 @@ const Standings: React.FC = () => {
             <h3 className="text-2xl font-bold">Tabla General</h3>
           </div>
           <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mt-1">{tournament.title || 'Torneo TuBarrio'}</p>
+          {availableGroups.length > 0 && (
+            <div className="mt-3 flex items-center gap-2">
+              <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Grupo</label>
+              <select
+                value={selectedGroup || scope?.grupo || ''}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1 pr-8 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-center"
+              >
+                {(selectedGroup ? availableGroups : (scope?.grupo ? [scope.grupo, ...availableGroups.filter((g) => g !== scope.grupo)] : availableGroups)).map((group) => (
+                  <option key={group} value={group}>{getGroupLabel(group)}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 

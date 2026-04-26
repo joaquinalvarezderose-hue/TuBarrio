@@ -2,6 +2,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
+
+const TOURNAMENT_SEASON_LABEL = 'Mayo a Julio';
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();
@@ -106,18 +109,18 @@ const Payment: React.FC = () => {
     }
   };
 
-  return (
-    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-background-light text-[#111813] font-display">
-      <header className="sticky top-0 z-30 bg-background-light/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-100">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <h1 className="text-lg font-bold">Pago</h1>
-        <div className="w-10"></div>
-      </header>
+  const header = (
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-100 bg-background-light/95 px-4 py-3 backdrop-blur-md md:px-8">
+      <button onClick={() => navigate(-1)} className="-ml-2 rounded-full p-2 transition-colors hover:bg-gray-100">
+        <span className="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 className="text-lg font-bold">Pago</h1>
+      <div className="w-10"></div>
+    </header>
+  );
 
-      <main className="flex-1 overflow-y-auto no-scrollbar pb-40">
-        <div className="px-4 py-6">
+  const main = (
+    <div className="px-4 py-6 md:max-w-xl md:px-0 md:pt-10">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex gap-4">
             <div className="h-20 w-20 rounded-lg bg-gray-200 flex-shrink-0 overflow-hidden relative border border-gray-50">
               <img 
@@ -129,12 +132,10 @@ const Payment: React.FC = () => {
             <div className="flex flex-col justify-center">
               <h2 className="text-[#111813] font-black text-lg leading-tight">{tournament.title}</h2>
               <p className="text-gray-500 text-sm mt-1 font-bold">{tournament.subtitle}</p>
-              <p className="text-gray-400 text-[11px] mt-0.5 font-bold uppercase tracking-tighter opacity-80">{tournament.date}</p>
+              <p className="text-gray-400 text-[11px] mt-0.5 font-bold uppercase tracking-tighter opacity-80">{TOURNAMENT_SEASON_LABEL}</p>
             </div>
           </div>
-        </div>
-
-        <section className="px-4 mb-2">
+        <section className="mb-2 md:max-w-xl">
           <h3 className="text-[#111813] text-base font-black mb-3 px-1">Resumen de Pago</h3>
           <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center text-sm">
@@ -152,8 +153,11 @@ const Payment: React.FC = () => {
             </div>
           </div>
         </section>
+    </div>
+  );
 
-        <section className="px-4 py-6">
+  const aside = (
+    <section className="px-4 py-6 md:w-[420px] md:justify-self-end md:px-0 md:pb-8 md:pt-10">
           <h3 className="text-[#111813] text-base font-black mb-3 px-1">Método de Pago</h3>
           <div className="space-y-3">
             <div className="group relative flex items-center justify-between p-4 rounded-[1.5rem] border-2 border-primary bg-primary/5 transition-all shadow-md shadow-primary/5">
@@ -212,20 +216,29 @@ const Payment: React.FC = () => {
               </div>
             )}
           </div>
-        </section>
-      </main>
+    </section>
+  );
 
-      <div className="fixed bottom-0 left-0 right-0 w-full max-w-md mx-auto bg-white/90 backdrop-blur-xl border-t border-gray-50 p-5 pb-10 z-[60] shadow-[0_-10px_40px_-15px_rgba(19,236,73,0.15)]">
-        <button 
-          onClick={handleManualPaymentSubmit}
-          disabled={loading}
-          className="w-full bg-primary hover:bg-[#0fdc41] active:scale-[0.98] transition-all text-[#111813] font-black text-lg h-16 rounded-[1.5rem] shadow-xl shadow-primary/40 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <span>{loading ? 'Enviando solicitud...' : 'Ya transferí y envié comprobante'}</span>
-          <span className="material-symbols-outlined font-black">check_circle</span>
-        </button>
-      </div>
-    </div>
+  const footer = (
+    <button
+      onClick={handleManualPaymentSubmit}
+      disabled={loading}
+      className="flex h-16 w-full items-center justify-center gap-2 rounded-[1.5rem] bg-primary text-lg font-black text-[#111813] shadow-xl shadow-primary/40 transition-all hover:bg-[#0fdc41] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:w-[420px]"
+    >
+      <span>{loading ? 'Enviando solicitud...' : 'Ya transferí y envié comprobante'}</span>
+      <span className="material-symbols-outlined font-black">check_circle</span>
+    </button>
+  );
+
+  return (
+    <ResponsiveScreen
+      header={header}
+      main={main}
+      aside={aside}
+      footer={footer}
+      contentClassName="pb-40 md:px-8"
+      footerContainerClassName="md:flex md:justify-end"
+    />
   );
 };
 

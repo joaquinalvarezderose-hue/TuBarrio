@@ -27,6 +27,7 @@ const STATUS_PRIORITY: Record<string, number> = {
 };
 
 const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
+const TOURNAMENT_SEASON_LABEL = 'Mayo a Julio';
 
 const isTournamentOpenForSignup = (status?: string) => OPEN_SIGNUP_STATUSES.has(normalizeStatus(status));
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
@@ -88,13 +89,6 @@ const FALLBACK_TORNEOS: Torneo[] = [
     activo: true,
   },
 ];
-
-const formatearFecha = (inicio: string | null, fin: string | null): string => {
-  if (!inicio) return 'Fecha a confirmar';
-  const fmt = (d: string) =>
-    new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
-  return fin ? `${fmt(inicio)} - ${fmt(fin)}` : `Desde ${fmt(inicio)}`;
-};
 
 const Tournaments: React.FC = () => {
   const navigate = useNavigate();
@@ -273,7 +267,7 @@ const Tournaments: React.FC = () => {
     title: t.titulo,
     subtitle: t.subtitulo,
     image: t.imagen_url || '',
-    date: formatearFecha(t.fecha_inicio, t.fecha_fin),
+    date: TOURNAMENT_SEASON_LABEL,
   });
 
   const myRegisteredTournaments = torneos.filter(t => registeredIds.includes(t.id));
@@ -354,7 +348,7 @@ const Tournaments: React.FC = () => {
                     <div className="flex items-center gap-2 text-secondary-text dark:text-gray-400 text-sm">
                       <span className="material-symbols-outlined text-[16px]">calendar_today</span>
                       <span>
-                        {formatearFecha(tournament.fecha_inicio, tournament.fecha_fin)} • {(() => {
+                        {TOURNAMENT_SEASON_LABEL} • {(() => {
                           const cap = capacityByTournamentId[tournament.id];
                           if (!cap) return 'Cupo disponible';
                           const m = cap.max;
