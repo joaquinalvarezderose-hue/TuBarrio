@@ -67,6 +67,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
           .order('posicion_bracket', { ascending: true });
 
         if (queryError) {
+          console.error('Supabase query error:', queryError);
           throw queryError;
         }
 
@@ -83,7 +84,15 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
         }
       } catch (err: any) {
         console.error('Error loading bracket matches:', err);
-        setError('Error al cargar las llaves. Intentá de nuevo.');
+        console.error('Error details:', {
+          message: err?.message,
+          code: err?.code,
+          details: err?.details,
+          hint: err?.hint,
+          torneo_id,
+          categoria
+        });
+        setError(`Error: ${err?.message || 'Error al cargar las llaves'}`);
       } finally {
         setLoading(false);
       }
