@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
@@ -132,6 +132,27 @@ const MatchResult: React.FC = () => {
 
   const isParticipant = useMemo(() => {
     return currentUserId !== '' && [players[0]?.perfil_id, players[1]?.perfil_id].includes(currentUserId);
+  }, [currentUserId, players]);
+
+  // Helper to order players: current user first, then opponent
+  // This ensures the current user is always on the left/top in UI
+  const orderedPlayers = useMemo(() => {
+    if (!currentUserId || !players[0]?.perfil_id || !players[1]?.perfil_id) {
+      return players; // Default order if we can't determine
+    }
+    // Check if current user is player 1
+    const isUserPlayer1 = String(players[0].perfil_id).toLowerCase() === String(currentUserId).toLowerCase();
+    if (isUserPlayer1) {
+      return [players[0], players[1]]; // Current user is already first
+    }
+    // Current user is player 2, swap order
+    return [players[1], players[0]];
+  }, [currentUserId, players]);
+
+  // Determine if current user is player 1 (for score mapping)
+  const isCurrentUserPlayer1 = useMemo(() => {
+    if (!currentUserId || !players[0]?.perfil_id) return true; // Default
+    return String(players[0].perfil_id).toLowerCase() === String(currentUserId).toLowerCase();
   }, [currentUserId, players]);
   // OLD: const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
   // NEW: Use mustConfirmBy from database - this is the single source of truth
@@ -700,27 +721,27 @@ const MatchResult: React.FC = () => {
             <div className="flex items-center justify-between mt-3">
               <div className="flex flex-col items-center gap-2 flex-1">
                 <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 1 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase transition-all`}>
-                  {String(players[0]?.name || 'Jugador')
+                  {String(orderedPlayers[0]?.name || 'Jugador')
                     .split(' ')
                     .filter(Boolean)
                     .slice(0, 2)
                     .map((chunk) => chunk[0])
                     .join('') || 'J'}
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{players[0].name}</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{orderedPlayers[0].name}</span>
                 {matchWinner === 1 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
               </div>
               <div className="flex flex-col items-center px-4"><span className="text-xs font-black text-gray-300 italic uppercase">VS</span></div>
               <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${matchWinner === 1 ? 'opacity-40' : ''}`}>
                 <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 2 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase`}>
-                  {String(players[1]?.name || 'Jugador')
+                  {String(orderedPlayers[1]?.name || 'Jugador')
                     .split(' ')
                     .filter(Boolean)
                     .slice(0, 2)
                     .map((chunk) => chunk[0])
                     .join('') || 'J'}
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{players[1].name}</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{orderedPlayers[1].name}</span>
                 {matchWinner === 2 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
               </div>
             </div>
@@ -830,22 +851,34 @@ const MatchResult: React.FC = () => {
             <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               <div className="p-4 space-y-1">
                 {[
-                  { label: 'Set 1', j1: rivalProposalScores?.set1.player1 ?? partido?.set1_j1, j2: rivalProposalScores?.set1.player2 ?? partido?.set1_j2 },
-                  { label: 'Set 2', j1: rivalProposalScores?.set2.player1 ?? partido?.set2_j1, j2: rivalProposalScores?.set2.player2 ?? partido?.set2_j2 },
+                  { 
+                    label: 'Set 1', 
+                    userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set1.player1 ?? partido?.set1_j1) : (rivalProposalScores?.set1.player2 ?? partido?.set1_j2),
+                    rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set1.player2 ?? partido?.set1_j2) : (rivalProposalScores?.set1.player1 ?? partido?.set1_j1)
+                  },
+                  { 
+                    label: 'Set 2', 
+                    userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set2.player1 ?? partido?.set2_j1) : (rivalProposalScores?.set2.player2 ?? partido?.set2_j2),
+                    rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set2.player2 ?? partido?.set2_j2) : (rivalProposalScores?.set2.player1 ?? partido?.set2_j1)
+                  },
                   ...((rivalProposalScores
                     ? (rivalProposalScores.set3.player1 > 0 || rivalProposalScores.set3.player2 > 0)
                     : partido?.set3_j1 != null)
-                    ? [{ label: 'Set 3 (TB)', j1: rivalProposalScores?.set3.player1 ?? partido?.set3_j1, j2: rivalProposalScores?.set3.player2 ?? partido?.set3_j2 }]
+                    ? [{ 
+                        label: 'Set 3 (TB)', 
+                        userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set3.player1 ?? partido?.set3_j1) : (rivalProposalScores?.set3.player2 ?? partido?.set3_j2),
+                        rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set3.player2 ?? partido?.set3_j2) : (rivalProposalScores?.set3.player1 ?? partido?.set3_j1)
+                      }]
                     : []),
-                ].map(({ label, j1, j2 }) => (
+                ].map(({ label, userScore, rivalScore }) => (
                   <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
                     <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">{players[0].name}</span>
-                      <span className="text-2xl font-black text-primary">{j1 ?? '-'}</span>
+                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">{orderedPlayers[0].name}</span>
+                      <span className="text-2xl font-black text-primary">{userScore ?? '-'}</span>
                       <span className="text-xs text-gray-300">—</span>
-                      <span className="text-2xl font-black text-primary">{j2 ?? '-'}</span>
-                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">{players[1].name}</span>
+                      <span className="text-2xl font-black text-primary">{rivalScore ?? '-'}</span>
+                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">{orderedPlayers[1].name}</span>
                     </div>
                   </div>
                 ))}
@@ -885,16 +918,22 @@ const MatchResult: React.FC = () => {
                   {isComplete && <span className="material-symbols-outlined text-primary text-sm">check_circle</span>}
                 </div>
                 <div className="space-y-4">
-                  {(['player1', 'player2'] as const).map((pKey) => (
-                    <div key={pKey} className="flex items-center justify-between">
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">{pKey === 'player1' ? players[0].name : players[1].name}</span>
-                      <div className="flex items-center gap-3">
-                        <button disabled={isScoreInputLocked} onClick={() => updateScore(setKey, pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
-                        <span className="text-xl font-black text-gray-900 dark:text-white w-6 text-center">{scores[setKey][pKey]}</span>
-                        <button disabled={isScoreInputLocked} onClick={() => updateScore(setKey, pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold active:scale-90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                  {[0, 1].map((playerIndex) => {
+                    // Map ordered player index to actual player key
+                    const pKey = (isCurrentUserPlayer1 && playerIndex === 0) || (!isCurrentUserPlayer1 && playerIndex === 1) 
+                      ? 'player1' 
+                      : 'player2';
+                    return (
+                      <div key={playerIndex} className="flex items-center justify-between">
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">{orderedPlayers[playerIndex].name}</span>
+                        <div className="flex items-center gap-3">
+                          <button disabled={isScoreInputLocked} onClick={() => updateScore(setKey, pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
+                          <span className="text-xl font-black text-gray-900 dark:text-white w-6 text-center">{scores[setKey][pKey]}</span>
+                          <button disabled={isScoreInputLocked} onClick={() => updateScore(setKey, pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold active:scale-90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -910,22 +949,27 @@ const MatchResult: React.FC = () => {
                 <span className="material-symbols-outlined text-primary">info</span>
               </div>
               <div className="space-y-4">
-                {(['player1', 'player2'] as const).map((pKey) => (
-                  <div key={pKey} className="flex items-center justify-between">
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">{pKey === 'player1' ? players[0].name : players[1].name}</span>
-                    <div className="flex items-center gap-3">
-                      <button disabled={isScoreInputLocked} onClick={() => updateScore('set3', pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
-                      <input
-                        disabled={isScoreInputLocked}
-                        className="text-xl font-black text-gray-900 dark:text-white w-12 text-center bg-transparent border-none focus:ring-0 p-0"
-                        type="number"
-                        value={scores.set3[pKey]}
-                        onChange={(e) => setScores((prev) => ({ ...prev, set3: { ...prev.set3, [pKey]: parseInt(e.target.value, 10) || 0 } }))}
-                      />
-                      <button disabled={isScoreInputLocked} onClick={() => updateScore('set3', pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                {[0, 1].map((playerIndex) => {
+                  const pKey = (isCurrentUserPlayer1 && playerIndex === 0) || (!isCurrentUserPlayer1 && playerIndex === 1) 
+                    ? 'player1' 
+                    : 'player2';
+                  return (
+                    <div key={playerIndex} className="flex items-center justify-between">
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">{orderedPlayers[playerIndex].name}</span>
+                      <div className="flex items-center gap-3">
+                        <button disabled={isScoreInputLocked} onClick={() => updateScore('set3', pKey, -1)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
+                        <input
+                          disabled={isScoreInputLocked}
+                          className="text-xl font-black text-gray-900 dark:text-white w-12 text-center bg-transparent border-none focus:ring-0 p-0"
+                          type="number"
+                          value={scores.set3[pKey]}
+                          onChange={(e) => setScores((prev) => ({ ...prev, set3: { ...prev.set3, [pKey]: parseInt(e.target.value, 10) || 0 } }))}
+                        />
+                        <button disabled={isScoreInputLocked} onClick={() => updateScore('set3', pKey, 1)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
