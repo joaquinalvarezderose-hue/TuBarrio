@@ -462,13 +462,21 @@ const MatchResult: React.FC = () => {
         if (propuesta) {
           setProposalState(propuesta.estado || 'idle');
           setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
-          const ownSetsRaw = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j1 : propuesta.sets_json_j2;
-          const rivalSetsRaw = currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j2 : propuesta.sets_json_j1;
+
+          // Fix: Determine if current user submitted by comparing with ultimo_cargado_por,
+          // not by checking if they have sets in their column (which could be from the other player)
+          const submittedByCurrentUser = propuesta.ultimo_cargado_por === currentUserId;
+          setHasOwnProposal(submittedByCurrentUser);
+
+          const ownSetsRaw = submittedByCurrentUser
+            ? (currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j1 : propuesta.sets_json_j2)
+            : null;
+          const rivalSetsRaw = submittedByCurrentUser
+            ? (currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j2 : propuesta.sets_json_j1)
+            : (currentUserId === String(targetPartido.jugador1_id) ? propuesta.sets_json_j2 : propuesta.sets_json_j1);
 
           const ownSets = parseProposalSets(ownSetsRaw);
           const rivalSets = parseProposalSets(rivalSetsRaw);
-
-          setHasOwnProposal(Boolean(ownSets));
 
           if (ownSets) {
             setScores(ownSets);
