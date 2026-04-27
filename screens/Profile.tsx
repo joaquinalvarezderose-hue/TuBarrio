@@ -9,14 +9,21 @@ const Profile: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await (supabase as any).auth.signOut();
-    } catch {
-      // noop
+      // Sign out from Supabase with global scope (all devices/tabs)
+      await (supabase as any).auth.signOut({ scope: 'global' });
+    } catch (err) {
+      console.error('Logout error:', err);
     } finally {
-      localStorage.removeItem('app_user');
-      localStorage.removeItem('active_tournament');
-      navigate('/login');
-      window.location.reload();
+      // Clear ALL storage
+      localStorage.clear();  // Remove all localStorage including app_user
+      sessionStorage.clear();  // Remove all sessionStorage
+      
+      // Clear Supabase specific items
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-your-project-ref-auth-token');
+      
+      // Force navigation to login without reload race condition
+      window.location.href = '/login';
     }
   };
 
