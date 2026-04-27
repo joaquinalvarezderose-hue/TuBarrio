@@ -755,8 +755,11 @@ const MatchResult: React.FC = () => {
             <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 mb-1">DEBUG INFO (remove after fix):</p>
             <div className="text-[9px] text-amber-700 dark:text-amber-300 font-mono space-y-0.5">
               <p>currentUserId: {currentUserId?.slice(0,8)}...</p>
+              <p>partido?.j1_id: {partido?.jugador1_id?.slice(0,8)}...</p>
+              <p>partido?.j2_id: {partido?.jugador2_id?.slice(0,8)}...</p>
               <p>mustConfirmBy: {mustConfirmBy?.slice(0,8)}...</p>
               <p>isMustConfirm: {String(isMustConfirm)}</p>
+              <p>isParticipant: {String(isParticipant)}</p>
               <p>isWaitingValidation: {String(isWaitingValidation)}</p>
               <p>hasOwnProposal: {String(hasOwnProposal)}</p>
               <p>lastSubmittedBy: {lastSubmittedBy?.slice(0,8)}...</p>
