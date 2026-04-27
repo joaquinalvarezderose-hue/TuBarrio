@@ -39,8 +39,8 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
       setError(null);
       
       try {
-        // Query partidos with bracket_tipo = 'eliminacion_directa'
-        const { data, error: queryError } = await supabase
+        // First query: get bracket matches
+        const { data: matchesData, error: queryError } = await supabase
           .from('partidos')
           .select(`
             id,
@@ -56,9 +56,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
             set2_j2,
             set3_j1,
             set3_j2,
-            siguiente_partido_id,
-            j1:jugador1_id(perfiles(nombre)),
-            j2:jugador2_id(perfiles(nombre))
+            siguiente_partido_id
           `)
           .eq('torneo_id', torneo_id)
           .eq('categoria', categoria)
@@ -71,12 +69,34 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
           throw queryError;
         }
 
-        if (data && data.length > 0) {
+        if (matchesData && matchesData.length > 0) {
+          // Get unique player IDs
+          const playerIds = [...new Set([
+            ...matchesData.map(m => m.jugador1_id).filter(Boolean),
+            ...matchesData.map(m => m.jugador2_id).filter(Boolean)
+          ])];
+
+          // Fetch player names
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('perfiles')
+            .select('id, nombre')
+            .in('id', playerIds);
+
+          if (profilesError) {
+            console.error('Profiles query error:', profilesError);
+          }
+
+          // Create name lookup map
+          const nameMap: Record<string, string> = {};
+          profilesData?.forEach((p: any) => {
+            nameMap[p.id] = p.nombre || 'Jugador';
+          });
+
           // Transform data to include player names
-          const transformedMatches: BracketMatch[] = data.map((match: any) => ({
+          const transformedMatches: BracketMatch[] = matchesData.map((match: any) => ({
             ...match,
-            jugador1_nombre: match.j1?.perfiles?.nombre || 'TBD',
-            jugador2_nombre: match.j2?.perfiles?.nombre || 'TBD',
+            jugador1_nombre: nameMap[match.jugador1_id] || 'TBD',
+            jugador2_nombre: nameMap[match.jugador2_id] || 'TBD',
           }));
           setMatches(transformedMatches);
         } else {
