@@ -2,22 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
-// IMMEDIATE: Clear potentially stale app_user on module load
-// This runs before component renders to ensure fresh data
-const checkAndClearStaleUser = () => {
-  try {
-    const stored = localStorage.getItem('app_user');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      console.log('[MODULE LOAD] Found app_user:', parsed?.id);
-      // We'll validate this against Supabase auth in the component
-    }
-  } catch (e) {
-    localStorage.removeItem('app_user');
-  }
-};
-checkAndClearStaleUser();
-
 type ScoreState = {
   set1: { player1: number; player2: number };
   set2: { player1: number; player2: number };
@@ -99,7 +83,6 @@ const MatchResult: React.FC = () => {
   });
 
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
-  console.log('[MatchResult] app_user from localStorage:', appUser);
   const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
   // Use empty string initially - will be set from Supabase auth in useEffect
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -120,7 +103,6 @@ const MatchResult: React.FC = () => {
   const [lastSubmittedBy, setLastSubmittedBy] = useState<string | null>(null);
   const [mustConfirmBy, setMustConfirmBy] = useState<string | null>(null);  // NEW: who must confirm (from DB)
   const [enrolledCount, setEnrolledCount] = useState(0);
-  const [authSession, setAuthSession] = useState<any>(null);  // DEBUG: store full auth session
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
   const [retryTick, setRetryTick] = useState(0);
@@ -241,61 +223,36 @@ const MatchResult: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('[DEBUG] Initial currentUserId from localStorage:', appUser?.id);
-    
     const checkAuth = async () => {
       try {
-        // First, try to refresh the session
-        console.log('[DEBUG] Refreshing session...');
-        const { data: refreshData, error: refreshError } = await (supabase as any).auth.refreshSession();
-        console.log('[DEBUG] Refresh result:', refreshData, refreshError);
-        
-        // Now get the user
-        const { data, error } = await (supabase as any).auth.getUser();
-        console.log('[DEBUG] ==== AUTH CHECK ====');
-        console.log('[DEBUG] appUser.id from localStorage:', appUser?.id);
-        console.log('[DEBUG] Supabase auth user ID:', data?.user?.id);
-        console.log('[DEBUG] Supabase auth user email:', data?.user?.email);
+        const { data: refreshData } = await (supabase as any).auth.refreshSession();
+        const { data } = await (supabase as any).auth.getUser();
         
         if (data?.user?.id) {
           const authId = String(data.user.id).toLowerCase();
           const storedId = String(appUser?.id || '').toLowerCase();
-          const authEmail = String(data.user.email || '').toLowerCase();
-          
-          console.log('[DEBUG] Auth ID:', authId);
-          console.log('[DEBUG] Auth Email:', authEmail);
-          console.log('[DEBUG] Stored ID:', storedId);
           
           // Check for mismatch between stored and auth
           if (storedId && storedId !== authId) {
-            console.log('[DEBUG] ⚠️ MISMATCH! Clearing localStorage...');
             localStorage.clear();
             localStorage.setItem('app_user', JSON.stringify({ 
               id: data.user.id, 
               email: data.user.email
             }));
-            console.log('[DEBUG] Reloading page...');
             window.location.reload();
             return;
           }
           
-          console.log('[DEBUG] ✓ Setting currentUserId:', data.user.id);
           setCurrentUserId(String(data.user.id));
-          setAuthSession(refreshData?.session || null);
-        } else {
-          console.log('[DEBUG] ❌ No auth user');
         }
       } catch (err) {
-        console.error('[DEBUG] Auth check error:', err);
+        console.error('Auth check error:', err);
       }
     };
     
     checkAuth();
 
-    // Escuchar cambios de auth
-    const { data: authListener } = (supabase as any).auth.onAuthStateChange((event: string, session: any) => {
-      console.log('[DEBUG] Auth state changed:', event, 'User:', session?.user?.id);
-    });
+    const { data: authListener } = (supabase as any).auth.onAuthStateChange(() => {});
 
     return () => {
       authListener?.subscription?.unsubscribe();
@@ -306,10 +263,8 @@ const MatchResult: React.FC = () => {
     const loadMatchContext = async () => {
       // Don't load until we have a valid currentUserId from Supabase auth
       if (!currentUserId) {
-        console.log('[DEBUG] Waiting for currentUserId from Supabase auth...');
         return;
       }
-      console.log('[DEBUG] loadMatchContext starting with currentUserId:', currentUserId);
       setLoadingMatch(true);
       setSubmitError(null);
       setBlockReason(null);
@@ -515,14 +470,7 @@ const MatchResult: React.FC = () => {
             .from('torneo_propuestas_partido')
             .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por, debe_confirmar_por')
             .eq('partido_id', targetPartido.id)
-            .maybeSingle()
-            .then((result: any) => {
-              console.log('[DEBUG] Proposal query result:', result);
-              if (!result.data) {
-                console.log('[DEBUG] ⚠️ No proposal found - could be RLS issue or no proposal yet');
-              }
-              return result;
-            }),
+            .maybeSingle(),
         ]);
 
         if (jugadoresScopedError) throw jugadoresScopedError;
@@ -568,22 +516,8 @@ const MatchResult: React.FC = () => {
           // NEW: Set who must confirm from database
           setMustConfirmBy(propuesta.debe_confirmar_por ? String(propuesta.debe_confirmar_por) : null);
 
-          // Debug: Log the values for troubleshooting
-          console.log('[DEBUG] Proposal check:', {
-            currentUserId,
-            ultimoCargadoPor: propuesta.ultimo_cargado_por,
-            debeConfirmarPor: propuesta.debe_confirmar_por,
-            jugador1_id: targetPartido.jugador1_id,
-            jugador2_id: targetPartido.jugador2_id,
-            currentUserLower: String(currentUserId).toLowerCase(),
-            ultimoLower: String(propuesta.ultimo_cargado_por).toLowerCase(),
-          });
-
-          // Fix: Determine if current user submitted by comparing with ultimo_cargado_por,
-          // not by checking if they have sets in their column (which could be from the other player)
-          // Use case-insensitive comparison since UUIDs may differ in case
+          // Determine if current user submitted by comparing with ultimo_cargado_por
           const submittedByCurrentUser = String(propuesta.ultimo_cargado_por || '').toLowerCase() === String(currentUserId).toLowerCase();
-          console.log('[DEBUG] submittedByCurrentUser:', submittedByCurrentUser);
           setHasOwnProposal(submittedByCurrentUser);
 
           const ownSetsRaw = submittedByCurrentUser
@@ -856,30 +790,6 @@ const MatchResult: React.FC = () => {
                   Cerrar sesión
                 </button>
               </div>
-            </div>
-          </section>
-        )}
-
-        {/* DEBUG PANEL - Remove after fixing */}
-        {!loadingMatch && (
-          <section className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/30 shadow-sm">
-            <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 mb-1">DEBUG INFO (remove after fix):</p>
-            <div className="text-[9px] text-amber-700 dark:text-amber-300 font-mono space-y-0.5">
-              <p><strong>Supabase Session Email: {authSession?.user?.email || 'N/A'}</strong></p>
-              <p>app_user.id: {appUser?.id?.slice(0,8)}... (from localStorage)</p>
-              <p>app_user.email: {appUser?.email || 'N/A'}</p>
-              <p>currentUserId: {currentUserId?.slice(0,20)}...</p>
-              <p>partido?.j1_id: {partido?.jugador1_id?.slice(0,20)}...</p>
-              <p>partido?.j2_id: {partido?.jugador2_id?.slice(0,20)}...</p>
-              <p>mustConfirmBy: {mustConfirmBy?.slice(0,20) || 'NULL'}...</p>
-              <p>lastSubmittedBy: {lastSubmittedBy?.slice(0,20) || 'NULL'}...</p>
-              <p>isMustConfirm: {String(isMustConfirm)}</p>
-              <p>isParticipant: {String(isParticipant)}</p>
-              <p>isWaitingValidation: {String(isWaitingValidation)}</p>
-              <p>hasOwnProposal: {String(hasOwnProposal)}</p>
-              <p>lastSubmittedBy: {lastSubmittedBy?.slice(0,8)}...</p>
-              <p>rivalProposalScores: {rivalProposalScores ? 'YES' : 'NO'}</p>
-              <p>partido?.estado: {partido?.estado}</p>
             </div>
           </section>
         )}
