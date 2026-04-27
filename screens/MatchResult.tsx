@@ -85,7 +85,8 @@ const MatchResult: React.FC = () => {
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
   console.log('[MatchResult] app_user from localStorage:', appUser);
   const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
-  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
+  // Use empty string initially - will be set from Supabase auth in useEffect
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   const [players, setPlayers] = useState<PlayerCard[]>([
     { id: '', perfil_id: '', name: 'Jugador 1', puntos: 0, partidos_jugados: 0, sets_ganados: 0 },
@@ -239,6 +240,15 @@ const MatchResult: React.FC = () => {
       if (data?.user?.id) {
         console.log('[DEBUG] Setting currentUserId from Supabase auth:', data.user.id);
         setCurrentUserId(String(data.user.id));
+        // Sync localStorage if it's different from auth user
+        if (appUser?.id !== data.user.id) {
+          console.log('[DEBUG] Syncing localStorage app_user with auth user');
+          localStorage.setItem('app_user', JSON.stringify({ 
+            id: data.user.id, 
+            email: data.user.email,
+            ...data.user.user_metadata 
+          }));
+        }
       }
     }).catch(() => {});
 
@@ -254,6 +264,11 @@ const MatchResult: React.FC = () => {
 
   useEffect(() => {
     const loadMatchContext = async () => {
+      // Don't load until we have a valid currentUserId from Supabase auth
+      if (!currentUserId) {
+        console.log('[DEBUG] Waiting for currentUserId from Supabase auth...');
+        return;
+      }
       console.log('[DEBUG] loadMatchContext starting with currentUserId:', currentUserId);
       setLoadingMatch(true);
       setSubmitError(null);
