@@ -243,53 +243,58 @@ const MatchResult: React.FC = () => {
   useEffect(() => {
     console.log('[DEBUG] Initial currentUserId from localStorage:', appUser?.id);
     
-    // Verificar la sesión actual completa
-    (supabase as any).auth.getSession().then(({ data: { session } }: any) => {
-      console.log('[DEBUG] Full session:', session);
-      console.log('[DEBUG] Session user ID:', session?.user?.id);
-      console.log('[DEBUG] Session user email:', session?.user?.email);
-      setAuthSession(session);  // Store for debug display
-    }).catch(() => {});
-    
-    (supabase as any).auth.getUser().then(({ data, error }: any) => {
-      console.log('[DEBUG] ==== AUTH CHECK ====');
-      console.log('[DEBUG] appUser.id from localStorage:', appUser?.id);
-      console.log('[DEBUG] Supabase auth data:', data);
-      console.log('[DEBUG] Supabase auth error:', error);
-      console.log('[DEBUG] Supabase auth user ID:', data?.user?.id);
-      console.log('[DEBUG] Supabase auth user email:', data?.user?.email);
-      
-      if (data?.user?.id) {
-        const authId = String(data.user.id).toLowerCase();
-        const storedId = String(appUser?.id || '').toLowerCase();
+    const checkAuth = async () => {
+      try {
+        // First, try to refresh the session
+        console.log('[DEBUG] Refreshing session...');
+        const { data: refreshData, error: refreshError } = await (supabase as any).auth.refreshSession();
+        console.log('[DEBUG] Refresh result:', refreshData, refreshError);
         
-        console.log('[DEBUG] Comparing - stored:', storedId, 'auth:', authId);
-        console.log('[DEBUG] Are they different?', storedId !== authId);
+        // Now get the user
+        const { data, error } = await (supabase as any).auth.getUser();
+        console.log('[DEBUG] ==== AUTH CHECK ====');
+        console.log('[DEBUG] appUser.id from localStorage:', appUser?.id);
+        console.log('[DEBUG] Supabase auth user ID:', data?.user?.id);
+        console.log('[DEBUG] Supabase auth user email:', data?.user?.email);
         
-        if (storedId && storedId !== authId) {
-          console.log('[DEBUG] ⚠️ MISMATCH DETECTED! Clearing and reloading...');
-          // Clear everything
-          localStorage.clear();
-          sessionStorage.clear();
-          // Set correct user
-          localStorage.setItem('app_user', JSON.stringify({ 
-            id: data.user.id, 
-            email: data.user.email,
-            ...data.user.user_metadata 
-          }));
-          console.log('[DEBUG] localStorage cleared and set with correct user. Reloading...');
-          window.location.href = window.location.href; // Force hard reload
-          return;
+        if (data?.user?.id) {
+          const authId = String(data.user.id).toLowerCase();
+          const storedId = String(appUser?.id || '').toLowerCase();
+          const authEmail = String(data.user.email || '').toLowerCase();
+          
+          console.log('[DEBUG] Auth ID:', authId);
+          console.log('[DEBUG] Auth Email:', authEmail);
+          console.log('[DEBUG] Stored ID:', storedId);
+          
+          // Check if email of B has ID of A (data corruption)
+          if (authEmail.includes('torneo4') && authId === '318dcb9b-ac07-4076-9280-c4a64245cfb9') {
+            console.log('[DEBUG] 🚨 CRITICAL: Email torneo4 has ID of torneo3! Session corruption!');
+          }
+          
+          if (storedId && storedId !== authId) {
+            console.log('[DEBUG] ⚠️ MISMATCH! Clearing localStorage...');
+            localStorage.clear();
+            localStorage.setItem('app_user', JSON.stringify({ 
+              id: data.user.id, 
+              email: data.user.email
+            }));
+            console.log('[DEBUG] Reloading page...');
+            window.location.reload();
+            return;
+          }
+          
+          console.log('[DEBUG] ✓ Setting currentUserId:', data.user.id);
+          setCurrentUserId(String(data.user.id));
+          setAuthSession(refreshData?.session || null);
+        } else {
+          console.log('[DEBUG] ❌ No auth user');
         }
-        
-        console.log('[DEBUG] ✓ IDs match or no stored user. Setting currentUserId:', data.user.id);
-        setCurrentUserId(String(data.user.id));
-      } else {
-        console.log('[DEBUG] ❌ No auth user found!');
+      } catch (err) {
+        console.error('[DEBUG] Auth check error:', err);
       }
-    }).catch((err: any) => {
-      console.error('[DEBUG] getUser error:', err);
-    });
+    };
+    
+    checkAuth();
 
     // Escuchar cambios de auth
     const { data: authListener } = (supabase as any).auth.onAuthStateChange((event: string, session: any) => {
