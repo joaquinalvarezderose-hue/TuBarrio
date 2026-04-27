@@ -208,13 +208,19 @@ const MatchResult: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('[DEBUG] Initial currentUserId from localStorage:', appUser?.id);
     (supabase as any).auth.getUser().then(({ data }: any) => {
-      if (data?.user?.id) setCurrentUserId(String(data.user.id));
+      console.log('[DEBUG] Supabase auth user:', data?.user?.id);
+      if (data?.user?.id) {
+        console.log('[DEBUG] Setting currentUserId from Supabase auth:', data.user.id);
+        setCurrentUserId(String(data.user.id));
+      }
     }).catch(() => {});
   }, []);
 
   useEffect(() => {
     const loadMatchContext = async () => {
+      console.log('[DEBUG] loadMatchContext starting with currentUserId:', currentUserId);
       setLoadingMatch(true);
       setSubmitError(null);
       setBlockReason(null);
@@ -463,9 +469,21 @@ const MatchResult: React.FC = () => {
           setProposalState(propuesta.estado || 'idle');
           setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
 
+          // Debug: Log the values for troubleshooting
+          console.log('[DEBUG] Proposal check:', {
+            currentUserId,
+            ultimoCargadoPor: propuesta.ultimo_cargado_por,
+            jugador1_id: targetPartido.jugador1_id,
+            jugador2_id: targetPartido.jugador2_id,
+            currentUserLower: String(currentUserId).toLowerCase(),
+            ultimoLower: String(propuesta.ultimo_cargado_por).toLowerCase(),
+          });
+
           // Fix: Determine if current user submitted by comparing with ultimo_cargado_por,
           // not by checking if they have sets in their column (which could be from the other player)
-          const submittedByCurrentUser = propuesta.ultimo_cargado_por === currentUserId;
+          // Use case-insensitive comparison since UUIDs may differ in case
+          const submittedByCurrentUser = String(propuesta.ultimo_cargado_por || '').toLowerCase() === String(currentUserId).toLowerCase();
+          console.log('[DEBUG] submittedByCurrentUser:', submittedByCurrentUser);
           setHasOwnProposal(submittedByCurrentUser);
 
           const ownSetsRaw = submittedByCurrentUser
