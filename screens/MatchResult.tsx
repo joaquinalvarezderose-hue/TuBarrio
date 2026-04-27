@@ -749,6 +749,23 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
+        {/* DEBUG PANEL - Remove after fixing */}
+        {!loadingMatch && (
+          <section className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/30 shadow-sm">
+            <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 mb-1">DEBUG INFO (remove after fix):</p>
+            <div className="text-[9px] text-amber-700 dark:text-amber-300 font-mono space-y-0.5">
+              <p>currentUserId: {currentUserId?.slice(0,8)}...</p>
+              <p>mustConfirmBy: {mustConfirmBy?.slice(0,8)}...</p>
+              <p>isMustConfirm: {String(isMustConfirm)}</p>
+              <p>isWaitingValidation: {String(isWaitingValidation)}</p>
+              <p>hasOwnProposal: {String(hasOwnProposal)}</p>
+              <p>lastSubmittedBy: {lastSubmittedBy?.slice(0,8)}...</p>
+              <p>rivalProposalScores: {rivalProposalScores ? 'YES' : 'NO'}</p>
+              <p>partido?.estado: {partido?.estado}</p>
+            </div>
+          </section>
+        )}
+
         {/* Quien debe confirmar pero ya envió su propia propuesta - caso edge */}
         {isMustConfirm && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
