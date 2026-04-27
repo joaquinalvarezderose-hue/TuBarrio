@@ -515,7 +515,14 @@ const MatchResult: React.FC = () => {
             .from('torneo_propuestas_partido')
             .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por, debe_confirmar_por')
             .eq('partido_id', targetPartido.id)
-            .maybeSingle(),
+            .maybeSingle()
+            .then((result: any) => {
+              console.log('[DEBUG] Proposal query result:', result);
+              if (!result.data) {
+                console.log('[DEBUG] ⚠️ No proposal found - could be RLS issue or no proposal yet');
+              }
+              return result;
+            }),
         ]);
 
         if (jugadoresScopedError) throw jugadoresScopedError;
