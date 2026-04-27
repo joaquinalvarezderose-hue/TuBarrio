@@ -22,8 +22,8 @@ const Profile: React.FC = () => {
       localStorage.removeItem('supabase.auth.token');
       localStorage.removeItem('sb-your-project-ref-auth-token');
       
-      // Force navigation to login without reload race condition
-      window.location.href = '/login';
+      // Force navigation to login using HashRouter format
+      window.location.href = '/#/login';
     }
   };
 

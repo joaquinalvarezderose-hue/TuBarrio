@@ -802,7 +802,7 @@ const MatchResult: React.FC = () => {
                     await supabase.auth.signOut({ scope: 'global' });
                     localStorage.clear();
                     sessionStorage.clear();
-                    window.location.href = '/login';
+                    window.location.href = '/#/login';
                   }}
                   className="mt-2 px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors"
                 >

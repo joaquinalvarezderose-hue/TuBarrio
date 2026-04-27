@@ -36,8 +36,8 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
           console.log('[LOGIN] Saved fallback to app_user:', fallbackUser);
         }
         if (onSuccess) onSuccess();
-        // Force reload to ensure Supabase session is read correctly from cookies
-        window.location.href = '/';
+        // Force reload using HashRouter format
+        window.location.href = '/#/';
       }
     } catch (err: any) {
       console.error('login error', err);
