@@ -749,16 +749,6 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {/* Enviado por este usuario: esperando que el rival confirme */}
-        {isWaitingValidation && !isMustConfirm && !loadingMatch && (
-          <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
-            <span className="material-symbols-outlined text-sky-500 text-lg">schedule</span>
-            <p className="text-sm text-sky-700 dark:text-sky-300 font-bold leading-relaxed">
-              Resultado enviado. Esperando que tu rival confirme el marcador.
-            </p>
-          </section>
-        )}
-
         {/* Quien debe confirmar pero ya envió su propia propuesta - caso edge */}
         {isMustConfirm && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
@@ -932,11 +922,12 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {isWaitingValidation && hasOwnProposal && !loadingMatch && (
+        {/* Resultado enviado por este usuario - esperando confirmacion del rival */}
+        {isWaitingValidation && !isMustConfirm && !loadingMatch && (
           <section className="p-5 bg-sky-50 dark:bg-sky-900/10 rounded-2xl border border-sky-200 dark:border-sky-800/30 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="size-11 rounded-xl bg-sky-100 dark:bg-sky-900/20 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-sky-600 dark:text-sky-300 text-2xl">check_circle</span>
+                <span className="material-symbols-outlined text-sky-600 dark:text-sky-300 text-2xl">schedule</span>
               </div>
               <div className="flex-1">
                 <p className="text-sm font-black text-sky-900 dark:text-sky-100">Resultado enviado correctamente</p>
