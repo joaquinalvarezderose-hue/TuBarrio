@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.generar_playoffs_eliminacion_directa_torneo(
   p_grupo_base text DEFAULT NULL
 )
 RETURNS TABLE (
-  categoria text,
+  out_categoria text,
   grupo_playoffs text,
   grupos_fuente integer,
   clasificados_totales integer,
@@ -162,6 +162,12 @@ BEGIN
     false
   );
 
+  -- Delete existing record to avoid conflict, then insert fresh
+  DELETE FROM public.torneo_estado
+  WHERE torneo_estado.torneo_id = p_torneo_id
+    AND torneo_estado.categoria = v_categoria
+    AND torneo_estado.grupo = v_grupo_playoffs;
+
   INSERT INTO public.torneo_estado (
     torneo_id, categoria, grupo, estado, max_participantes, current_participantes
   ) VALUES (
@@ -171,9 +177,7 @@ BEGIN
     'LOCKED',
     v_total,
     v_total
-  )
-  ON CONFLICT (torneo_id, categoria, grupo)
-  DO UPDATE SET estado = 'LOCKED', max_participantes = excluded.max_participantes, current_participantes = excluded.current_participantes;
+  );
 
   v_idx := 1;
   WHILE v_idx <= v_total LOOP
