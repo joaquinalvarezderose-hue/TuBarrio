@@ -48,6 +48,14 @@ type ProposalRpcRow = {
   mensaje: string;
 };
 
+type ProposalData = {
+  estado: 'pendiente' | 'confirmado' | 'discrepancia';
+  sets_json_j1: any;
+  sets_json_j2: any;
+  ultimo_cargado_por: string | null;
+  debe_confirmar_por: string | null;  // NEW: who must confirm (source of truth)
+};
+
 const emptyScores: ScoreState = {
   set1: { player1: 0, player2: 0 },
   set2: { player1: 0, player2: 0 },
@@ -92,6 +100,7 @@ const MatchResult: React.FC = () => {
   const [rivalProposalScores, setRivalProposalScores] = useState<ProposalSets | null>(null);
   const [hasOwnProposal, setHasOwnProposal] = useState(false);
   const [lastSubmittedBy, setLastSubmittedBy] = useState<string | null>(null);
+  const [mustConfirmBy, setMustConfirmBy] = useState<string | null>(null);  // NEW: who must confirm (from DB)
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -123,7 +132,12 @@ const MatchResult: React.FC = () => {
   const isParticipant = useMemo(() => {
     return currentUserId !== '' && [players[0]?.perfil_id, players[1]?.perfil_id].includes(currentUserId);
   }, [currentUserId, players]);
-  const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
+  // OLD: const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
+  // NEW: Use mustConfirmBy from database - this is the single source of truth
+  const isMustConfirm = useMemo(() => {
+    if (!mustConfirmBy || !currentUserId) return false;
+    return String(mustConfirmBy).toLowerCase() === String(currentUserId).toLowerCase();
+  }, [mustConfirmBy, currentUserId]);
   const isWaitingValidation = partido?.estado === 'esperando_validacion';
   const isScoreInputLocked = useMemo(() => isWaitingValidation || isSubmitting || loadingMatch || !isParticipant, [isWaitingValidation, isSubmitting, loadingMatch, isParticipant]);
   const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason && !isWaitingValidation, [matchWinner, partido?.id, isParticipant, blockReason, isWaitingValidation]);
@@ -227,6 +241,7 @@ const MatchResult: React.FC = () => {
       setRivalProposalScores(null);
       setHasOwnProposal(false);
       setLastSubmittedBy(null);
+      setMustConfirmBy(null);
 
       try {
           if (!currentUserId) {
@@ -423,7 +438,7 @@ const MatchResult: React.FC = () => {
             .in('id', playerIds),
           supabase
             .from('torneo_propuestas_partido')
-            .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por')
+            .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por, debe_confirmar_por')
             .eq('partido_id', targetPartido.id)
             .maybeSingle(),
         ]);
@@ -468,11 +483,14 @@ const MatchResult: React.FC = () => {
         if (propuesta) {
           setProposalState(propuesta.estado || 'idle');
           setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
+          // NEW: Set who must confirm from database
+          setMustConfirmBy(propuesta.debe_confirmar_por ? String(propuesta.debe_confirmar_por) : null);
 
           // Debug: Log the values for troubleshooting
           console.log('[DEBUG] Proposal check:', {
             currentUserId,
             ultimoCargadoPor: propuesta.ultimo_cargado_por,
+            debeConfirmarPor: propuesta.debe_confirmar_por,
             jugador1_id: targetPartido.jugador1_id,
             jugador2_id: targetPartido.jugador2_id,
             currentUserLower: String(currentUserId).toLowerCase(),
@@ -731,8 +749,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {/* Jugador 1: resultado ya enviado, esperando que el rival confirme */}
-        {isWaitingValidation && !isPlayer2 && !loadingMatch && (
+        {/* Enviado por este usuario: esperando que el rival confirme */}
+        {isWaitingValidation && !isMustConfirm && !loadingMatch && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg">schedule</span>
             <p className="text-sm text-sky-700 dark:text-sky-300 font-bold leading-relaxed">
@@ -741,8 +759,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {/* Jugador 2: panel de validación del resultado propuesto */}
-        {isPlayer2 && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && (
+        {/* Quien debe confirmar pero ya envió su propia propuesta - caso edge */}
+        {isMustConfirm && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
             <div>
@@ -752,7 +770,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {isPlayer2 && isWaitingValidation && !loadingMatch && !hasOwnProposal && !rivalProposalScores && (
+        {/* Quien debe confirmar esperando carga del rival */}
+        {isMustConfirm && isWaitingValidation && !loadingMatch && !hasOwnProposal && !rivalProposalScores && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
             <div>
@@ -762,7 +781,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {isPlayer2 && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && lastSubmittedBy !== currentUserId && (
+        {/* Panel de confirmación para quien debe confirmar */}
+        {isMustConfirm && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && lastSubmittedBy !== currentUserId && (
           <section className="space-y-4">
             <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3">
               <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">pending</span>
@@ -818,7 +838,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {!blockReason && !(isPlayer2 && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
+        {/* Mostrar controles de score si no estamos en estado de espera */}
+        {!blockReason && !(isMustConfirm && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
           <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
@@ -946,7 +967,7 @@ const MatchResult: React.FC = () => {
         )}
       </main>
 
-      {!(isPlayer2 && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
+      {!(isMustConfirm && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
       <footer className="fixed bottom-0 left-0 right-0 md:static max-w-2xl mx-auto p-6 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-[60] md:bg-none">
         <button
           onClick={handleConfirm}
