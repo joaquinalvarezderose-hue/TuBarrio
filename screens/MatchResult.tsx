@@ -864,38 +864,64 @@ const MatchResult: React.FC = () => {
 
             <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               <div className="p-4 space-y-1">
-                {[
-                  { 
-                    label: 'Set 1', 
-                    userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set1.player1 ?? partido?.set1_j1) : (rivalProposalScores?.set1.player2 ?? partido?.set1_j2),
-                    rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set1.player2 ?? partido?.set1_j2) : (rivalProposalScores?.set1.player1 ?? partido?.set1_j1)
-                  },
-                  { 
-                    label: 'Set 2', 
-                    userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set2.player1 ?? partido?.set2_j1) : (rivalProposalScores?.set2.player2 ?? partido?.set2_j2),
-                    rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set2.player2 ?? partido?.set2_j2) : (rivalProposalScores?.set2.player1 ?? partido?.set2_j1)
-                  },
-                  ...((rivalProposalScores
-                    ? (rivalProposalScores.set3.player1 > 0 || rivalProposalScores.set3.player2 > 0)
-                    : partido?.set3_j1 != null)
-                    ? [{ 
-                        label: 'Set 3 (TB)', 
-                        userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set3.player1 ?? partido?.set3_j1) : (rivalProposalScores?.set3.player2 ?? partido?.set3_j2),
-                        rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set3.player2 ?? partido?.set3_j2) : (rivalProposalScores?.set3.player1 ?? partido?.set3_j1)
-                      }]
-                    : []),
-                ].map(({ label, userScore, rivalScore }) => (
-                  <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
-                    <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">{orderedPlayers[0].name}</span>
-                      <span className="text-2xl font-black text-primary">{userScore ?? '-'}</span>
-                      <span className="text-xs text-gray-300">—</span>
-                      <span className="text-2xl font-black text-primary">{rivalScore ?? '-'}</span>
-                      <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">{orderedPlayers[1].name}</span>
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  // Calculate sets won by each player from the proposal
+                  let userSetsWon = 0;
+                  let rivalSetsWon = 0;
+                  
+                  const setResults = [
+                    { 
+                      label: 'Set 1', 
+                      userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set1.player1 ?? partido?.set1_j1) : (rivalProposalScores?.set1.player2 ?? partido?.set1_j2),
+                      rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set1.player2 ?? partido?.set1_j2) : (rivalProposalScores?.set1.player1 ?? partido?.set1_j1)
+                    },
+                    { 
+                      label: 'Set 2', 
+                      userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set2.player1 ?? partido?.set2_j1) : (rivalProposalScores?.set2.player2 ?? partido?.set2_j2),
+                      rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set2.player2 ?? partido?.set2_j2) : (rivalProposalScores?.set2.player1 ?? partido?.set2_j1)
+                    },
+                    ...((rivalProposalScores
+                      ? (rivalProposalScores.set3.player1 > 0 || rivalProposalScores.set3.player2 > 0)
+                      : partido?.set3_j1 != null)
+                      ? [{ 
+                          label: 'Set 3 (TB)', 
+                          userScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set3.player1 ?? partido?.set3_j1) : (rivalProposalScores?.set3.player2 ?? partido?.set3_j2),
+                          rivalScore: isCurrentUserPlayer1 ? (rivalProposalScores?.set3.player2 ?? partido?.set3_j2) : (rivalProposalScores?.set3.player1 ?? partido?.set3_j1)
+                        }]
+                      : []),
+                  ];
+                  
+                  // Count sets won
+                  setResults.forEach(({ userScore, rivalScore }) => {
+                    if (userScore > rivalScore) userSetsWon++;
+                    else if (rivalScore > userScore) rivalSetsWon++;
+                  });
+                  
+                  const proposalWinnerIndex = userSetsWon > rivalSetsWon ? 0 : rivalSetsWon > userSetsWon ? 1 : null;
+                  
+                  return (
+                    <>
+                      {setResults.map(({ label, userScore, rivalScore }) => (
+                        <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
+                          <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">
+                              {orderedPlayers[0].name}
+                              {proposalWinnerIndex === 0 && <span className="ml-2 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">GANADOR</span>}
+                            </span>
+                            <span className="text-2xl font-black text-primary">{userScore ?? '-'}</span>
+                            <span className="text-xs text-gray-300">—</span>
+                            <span className="text-2xl font-black text-primary">{rivalScore ?? '-'}</span>
+                            <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">
+                              {orderedPlayers[1].name}
+                              {proposalWinnerIndex === 1 && <span className="ml-2 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">GANADOR</span>}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
