@@ -838,8 +838,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {/* Mostrar controles de score si no estamos en estado de espera */}
-        {!blockReason && !(isMustConfirm && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
+        {/* Mostrar controles de score solo si no estamos esperando validacion (sin importar quien envio) */}
+        {!blockReason && !isWaitingValidation && (
           <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
@@ -967,7 +967,7 @@ const MatchResult: React.FC = () => {
         )}
       </main>
 
-      {!(isMustConfirm && isWaitingValidation) && !(isWaitingValidation && hasOwnProposal) && (
+      {!isWaitingValidation && (
       <footer className="fixed bottom-0 left-0 right-0 md:static max-w-2xl mx-auto p-6 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-[60] md:bg-none">
         <button
           onClick={handleConfirm}
