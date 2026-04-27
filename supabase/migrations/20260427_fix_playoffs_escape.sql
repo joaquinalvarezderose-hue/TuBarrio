@@ -5,7 +5,10 @@
 -- The pattern '_G%' with ESCAPE '\' is meant to match literal '_G' (underscore followed by G)
 -- We'll use starts_with() or a different LIKE pattern instead
 
-CREATE OR REPLACE FUNCTION public.generar_playoffs_eliminacion_directa_torneo(
+-- Drop existing function to allow return type change (column renamed from categoria to out_categoria)
+DROP FUNCTION IF EXISTS public.generar_playoffs_eliminacion_directa_torneo(bigint, text, text);
+
+CREATE FUNCTION public.generar_playoffs_eliminacion_directa_torneo(
   p_torneo_id bigint,
   p_categoria text DEFAULT NULL,
   p_grupo_base text DEFAULT NULL
