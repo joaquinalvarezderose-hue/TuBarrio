@@ -236,19 +236,22 @@ const MatchResult: React.FC = () => {
     }).catch(() => {});
     
     (supabase as any).auth.getUser().then(({ data }: any) => {
-      console.log('[DEBUG] Supabase auth user:', data?.user?.id);
+      console.log('[DEBUG] Supabase auth user:', data?.user?.id, data?.user?.email);
       if (data?.user?.id) {
-        console.log('[DEBUG] Setting currentUserId from Supabase auth:', data.user.id);
-        setCurrentUserId(String(data.user.id));
-        // Sync localStorage if it's different from auth user
-        if (appUser?.id !== data.user.id) {
-          console.log('[DEBUG] Syncing localStorage app_user with auth user');
+        // If auth user differs from localStorage, force reload to sync
+        if (appUser?.id && appUser.id !== data.user.id) {
+          console.log('[DEBUG] MISMATCH! appUser:', appUser.id, 'auth:', data.user.id);
+          console.log('[DEBUG] Forcing reload to sync...');
           localStorage.setItem('app_user', JSON.stringify({ 
             id: data.user.id, 
             email: data.user.email,
             ...data.user.user_metadata 
           }));
+          window.location.reload();
+          return;
         }
+        console.log('[DEBUG] Setting currentUserId from Supabase auth:', data.user.id);
+        setCurrentUserId(String(data.user.id));
       }
     }).catch(() => {});
 
