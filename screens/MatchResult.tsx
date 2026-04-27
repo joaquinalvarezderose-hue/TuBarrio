@@ -154,6 +154,20 @@ const MatchResult: React.FC = () => {
     if (!currentUserId || !players[0]?.perfil_id) return true; // Default
     return String(players[0].perfil_id).toLowerCase() === String(currentUserId).toLowerCase();
   }, [currentUserId, players]);
+
+  // Map match winner (1 or 2 referring to original players) to orderedPlayers index (0 or 1)
+  // If user is player 1 and matchWinner is 1 -> winner is at orderedPlayers[0]
+  // If user is player 2 and matchWinner is 1 -> winner is at orderedPlayers[1]
+  const winnerOrderedIndex = useMemo(() => {
+    if (!matchWinner) return null;
+    if (isCurrentUserPlayer1) {
+      // User is player 1, so matchWinner 1 -> index 0, matchWinner 2 -> index 1
+      return matchWinner === 1 ? 0 : 1;
+    } else {
+      // User is player 2, so matchWinner 1 -> index 1, matchWinner 2 -> index 0
+      return matchWinner === 1 ? 1 : 0;
+    }
+  }, [matchWinner, isCurrentUserPlayer1]);
   // OLD: const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
   // NEW: Use mustConfirmBy from database - this is the single source of truth
   const isMustConfirm = useMemo(() => {
@@ -719,8 +733,8 @@ const MatchResult: React.FC = () => {
               {!isWaitingValidation && <span className="font-bold uppercase">{partido?.estado || 'sin partido'}</span>}
             </div>
             <div className="flex items-center justify-between mt-3">
-              <div className="flex flex-col items-center gap-2 flex-1">
-                <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 1 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase transition-all`}>
+              <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${winnerOrderedIndex === 1 ? 'opacity-40' : ''}`}>
+                <div className={`w-16 h-16 rounded-full ring-2 ${winnerOrderedIndex === 0 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase transition-all`}>
                   {String(orderedPlayers[0]?.name || 'Jugador')
                     .split(' ')
                     .filter(Boolean)
@@ -729,11 +743,11 @@ const MatchResult: React.FC = () => {
                     .join('') || 'J'}
                 </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{orderedPlayers[0].name}</span>
-                {matchWinner === 1 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
+                {winnerOrderedIndex === 0 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
               </div>
               <div className="flex flex-col items-center px-4"><span className="text-xs font-black text-gray-300 italic uppercase">VS</span></div>
-              <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${matchWinner === 1 ? 'opacity-40' : ''}`}>
-                <div className={`w-16 h-16 rounded-full ring-2 ${matchWinner === 2 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase`}>
+              <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${winnerOrderedIndex === 0 ? 'opacity-40' : ''}`}>
+                <div className={`w-16 h-16 rounded-full ring-2 ${winnerOrderedIndex === 1 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase`}>
                   {String(orderedPlayers[1]?.name || 'Jugador')
                     .split(' ')
                     .filter(Boolean)
@@ -742,7 +756,7 @@ const MatchResult: React.FC = () => {
                     .join('') || 'J'}
                 </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{orderedPlayers[1].name}</span>
-                {matchWinner === 2 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
+                {winnerOrderedIndex === 1 && <span className="bg-primary/20 text-green-700 dark:text-primary text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
               </div>
             </div>
           </div>
