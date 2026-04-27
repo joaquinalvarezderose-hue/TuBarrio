@@ -2,6 +2,22 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
+// IMMEDIATE: Clear potentially stale app_user on module load
+// This runs before component renders to ensure fresh data
+const checkAndClearStaleUser = () => {
+  try {
+    const stored = localStorage.getItem('app_user');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      console.log('[MODULE LOAD] Found app_user:', parsed?.id);
+      // We'll validate this against Supabase auth in the component
+    }
+  } catch (e) {
+    localStorage.removeItem('app_user');
+  }
+};
+checkAndClearStaleUser();
+
 type ScoreState = {
   set1: { player1: number; player2: number };
   set2: { player1: number; player2: number };
@@ -235,25 +251,45 @@ const MatchResult: React.FC = () => {
       setAuthSession(session);  // Store for debug display
     }).catch(() => {});
     
-    (supabase as any).auth.getUser().then(({ data }: any) => {
-      console.log('[DEBUG] Supabase auth user:', data?.user?.id, data?.user?.email);
+    (supabase as any).auth.getUser().then(({ data, error }: any) => {
+      console.log('[DEBUG] ==== AUTH CHECK ====');
+      console.log('[DEBUG] appUser.id from localStorage:', appUser?.id);
+      console.log('[DEBUG] Supabase auth data:', data);
+      console.log('[DEBUG] Supabase auth error:', error);
+      console.log('[DEBUG] Supabase auth user ID:', data?.user?.id);
+      console.log('[DEBUG] Supabase auth user email:', data?.user?.email);
+      
       if (data?.user?.id) {
-        // If auth user differs from localStorage, force reload to sync
-        if (appUser?.id && appUser.id !== data.user.id) {
-          console.log('[DEBUG] MISMATCH! appUser:', appUser.id, 'auth:', data.user.id);
-          console.log('[DEBUG] Forcing reload to sync...');
+        const authId = String(data.user.id).toLowerCase();
+        const storedId = String(appUser?.id || '').toLowerCase();
+        
+        console.log('[DEBUG] Comparing - stored:', storedId, 'auth:', authId);
+        console.log('[DEBUG] Are they different?', storedId !== authId);
+        
+        if (storedId && storedId !== authId) {
+          console.log('[DEBUG] ⚠️ MISMATCH DETECTED! Clearing and reloading...');
+          // Clear everything
+          localStorage.clear();
+          sessionStorage.clear();
+          // Set correct user
           localStorage.setItem('app_user', JSON.stringify({ 
             id: data.user.id, 
             email: data.user.email,
             ...data.user.user_metadata 
           }));
-          window.location.reload();
+          console.log('[DEBUG] localStorage cleared and set with correct user. Reloading...');
+          window.location.href = window.location.href; // Force hard reload
           return;
         }
-        console.log('[DEBUG] Setting currentUserId from Supabase auth:', data.user.id);
+        
+        console.log('[DEBUG] ✓ IDs match or no stored user. Setting currentUserId:', data.user.id);
         setCurrentUserId(String(data.user.id));
+      } else {
+        console.log('[DEBUG] ❌ No auth user found!');
       }
-    }).catch(() => {});
+    }).catch((err: any) => {
+      console.error('[DEBUG] getUser error:', err);
+    });
 
     // Escuchar cambios de auth
     const { data: authListener } = (supabase as any).auth.onAuthStateChange((event: string, session: any) => {
