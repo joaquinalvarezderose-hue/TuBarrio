@@ -24,14 +24,20 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
       console.log('supabase signIn', { data, error });
       if (error) throw error;
       if (data?.user) {
+        console.log('[LOGIN] Supabase auth user:', data.user.id, data.user.email);
         const profile = await supabase.from('perfiles').select('*').eq('id', data.user.id).single();
+        console.log('[LOGIN] Profile from DB:', profile.data);
         if (profile?.data) {
           localStorage.setItem('app_user', JSON.stringify(profile.data));
+          console.log('[LOGIN] Saved profile.data to app_user:', profile.data);
         } else {
-          localStorage.setItem('app_user', JSON.stringify({ id: data.user.id, email }));
+          const fallbackUser = { id: data.user.id, email: data.user.email };
+          localStorage.setItem('app_user', JSON.stringify(fallbackUser));
+          console.log('[LOGIN] Saved fallback to app_user:', fallbackUser);
         }
         if (onSuccess) onSuccess();
-        navigate('/');
+        // Force reload to ensure Supabase session is read correctly from cookies
+        window.location.href = '/';
       }
     } catch (err: any) {
       console.error('login error', err);

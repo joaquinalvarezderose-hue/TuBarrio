@@ -83,6 +83,7 @@ const MatchResult: React.FC = () => {
   });
 
   const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
+  console.log('[MatchResult] app_user from localStorage:', appUser);
   const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
   const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
 
@@ -803,6 +804,8 @@ const MatchResult: React.FC = () => {
             <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 mb-1">DEBUG INFO (remove after fix):</p>
             <div className="text-[9px] text-amber-700 dark:text-amber-300 font-mono space-y-0.5">
               <p><strong>Supabase Session Email: {authSession?.user?.email || 'N/A'}</strong></p>
+              <p>app_user.id: {appUser?.id?.slice(0,8)}... (from localStorage)</p>
+              <p>app_user.email: {appUser?.email || 'N/A'}</p>
               <p>currentUserId: {currentUserId?.slice(0,8)}...</p>
               <p>partido?.j1_id: {partido?.jugador1_id?.slice(0,8)}...</p>
               <p>partido?.j2_id: {partido?.jugador2_id?.slice(0,8)}...</p>
