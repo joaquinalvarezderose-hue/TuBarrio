@@ -266,11 +266,7 @@ const MatchResult: React.FC = () => {
           console.log('[DEBUG] Auth Email:', authEmail);
           console.log('[DEBUG] Stored ID:', storedId);
           
-          // Check if email of B has ID of A (data corruption)
-          if (authEmail.includes('torneo4') && authId === '318dcb9b-ac07-4076-9280-c4a64245cfb9') {
-            console.log('[DEBUG] 🚨 CRITICAL: Email torneo4 has ID of torneo3! Session corruption!');
-          }
-          
+          // Check for mismatch between stored and auth
           if (storedId && storedId !== authId) {
             console.log('[DEBUG] ⚠️ MISMATCH! Clearing localStorage...');
             localStorage.clear();
@@ -865,10 +861,11 @@ const MatchResult: React.FC = () => {
               <p><strong>Supabase Session Email: {authSession?.user?.email || 'N/A'}</strong></p>
               <p>app_user.id: {appUser?.id?.slice(0,8)}... (from localStorage)</p>
               <p>app_user.email: {appUser?.email || 'N/A'}</p>
-              <p>currentUserId: {currentUserId?.slice(0,8)}...</p>
-              <p>partido?.j1_id: {partido?.jugador1_id?.slice(0,8)}...</p>
-              <p>partido?.j2_id: {partido?.jugador2_id?.slice(0,8)}...</p>
-              <p>mustConfirmBy: {mustConfirmBy?.slice(0,8)}...</p>
+              <p>currentUserId: {currentUserId?.slice(0,20)}...</p>
+              <p>partido?.j1_id: {partido?.jugador1_id?.slice(0,20)}...</p>
+              <p>partido?.j2_id: {partido?.jugador2_id?.slice(0,20)}...</p>
+              <p>mustConfirmBy: {mustConfirmBy?.slice(0,20) || 'NULL'}...</p>
+              <p>lastSubmittedBy: {lastSubmittedBy?.slice(0,20) || 'NULL'}...</p>
               <p>isMustConfirm: {String(isMustConfirm)}</p>
               <p>isParticipant: {String(isParticipant)}</p>
               <p>isWaitingValidation: {String(isWaitingValidation)}</p>
