@@ -102,6 +102,7 @@ const MatchResult: React.FC = () => {
   const [lastSubmittedBy, setLastSubmittedBy] = useState<string | null>(null);
   const [mustConfirmBy, setMustConfirmBy] = useState<string | null>(null);  // NEW: who must confirm (from DB)
   const [enrolledCount, setEnrolledCount] = useState(0);
+  const [authSession, setAuthSession] = useState<any>(null);  // DEBUG: store full auth session
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
   const [retryTick, setRetryTick] = useState(0);
@@ -223,6 +224,15 @@ const MatchResult: React.FC = () => {
 
   useEffect(() => {
     console.log('[DEBUG] Initial currentUserId from localStorage:', appUser?.id);
+    
+    // Verificar la sesión actual completa
+    (supabase as any).auth.getSession().then(({ data: { session } }: any) => {
+      console.log('[DEBUG] Full session:', session);
+      console.log('[DEBUG] Session user ID:', session?.user?.id);
+      console.log('[DEBUG] Session user email:', session?.user?.email);
+      setAuthSession(session);  // Store for debug display
+    }).catch(() => {});
+    
     (supabase as any).auth.getUser().then(({ data }: any) => {
       console.log('[DEBUG] Supabase auth user:', data?.user?.id);
       if (data?.user?.id) {
@@ -230,6 +240,15 @@ const MatchResult: React.FC = () => {
         setCurrentUserId(String(data.user.id));
       }
     }).catch(() => {});
+
+    // Escuchar cambios de auth
+    const { data: authListener } = (supabase as any).auth.onAuthStateChange((event: string, session: any) => {
+      console.log('[DEBUG] Auth state changed:', event, 'User:', session?.user?.id);
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -749,11 +768,41 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
+        {/* Error si el usuario no es participante del partido */}
+        {!loadingMatch && !isParticipant && currentUserId && (
+          <section className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/30 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-red-500 text-lg flex-shrink-0">error</span>
+              <div>
+                <p className="text-sm font-bold text-red-800 dark:text-red-200">No sos participante de este partido</p>
+                <p className="text-[11px] text-red-600 dark:text-red-300 mt-0.5">
+                  Estás logueado como usuario {currentUserId?.slice(0,8)}..., pero este partido es entre:<br/>
+                  • {players[0]?.name} ({partido?.jugador1_id?.slice(0,8)}...)<br/>
+                  • {players[1]?.name} ({partido?.jugador2_id?.slice(0,8)}...)<br/>
+                  <strong>Cerrá sesión y volvé a entrar con la cuenta correcta.</strong>
+                </p>
+                <button 
+                  onClick={async () => {
+                    await supabase.auth.signOut({ scope: 'global' });
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = '/login';
+                  }}
+                  className="mt-2 px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* DEBUG PANEL - Remove after fixing */}
         {!loadingMatch && (
           <section className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/30 shadow-sm">
             <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 mb-1">DEBUG INFO (remove after fix):</p>
             <div className="text-[9px] text-amber-700 dark:text-amber-300 font-mono space-y-0.5">
+              <p><strong>Supabase Session Email: {authSession?.user?.email || 'N/A'}</strong></p>
               <p>currentUserId: {currentUserId?.slice(0,8)}...</p>
               <p>partido?.j1_id: {partido?.jugador1_id?.slice(0,8)}...</p>
               <p>partido?.j2_id: {partido?.jugador2_id?.slice(0,8)}...</p>
