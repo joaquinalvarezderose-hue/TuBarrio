@@ -600,9 +600,19 @@ const Fixture: React.FC = () => {
                 onChange={(e) => setSelectedGroup(e.target.value)}
                 className="rounded-lg border border-[#dbe6de] bg-white px-3 py-1 pr-8 text-xs font-semibold text-[#111813] appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjE4OTZiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-center"
               >
-                {availableGroups.map((group) => (
-                  <option key={group} value={group}>{formatGroupName(group)}</option>
-                ))}
+                {(() => {
+                  const seen = new Set<string>();
+                  const dedup: string[] = [];
+                  for (const g of availableGroups) {
+                    const label = formatGroupName(g);
+                    if (seen.has(label)) continue;
+                    seen.add(label);
+                    dedup.push(g);
+                  }
+                  return dedup.map((group) => (
+                    <option key={group} value={group}>{formatGroupName(group)}</option>
+                  ));
+                })()}
               </select>
             </div>
           )}
