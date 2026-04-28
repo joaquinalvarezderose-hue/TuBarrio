@@ -79,7 +79,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
           // Fetch player names
           const { data: profilesData, error: profilesError } = await supabase
             .from('perfiles')
-            .select('id, nombre')
+            .select('id, nombre_completo')
             .in('id', playerIds);
 
           if (profilesError) {
@@ -89,7 +89,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
           // Create name lookup map
           const nameMap: Record<string, string> = {};
           profilesData?.forEach((p: any) => {
-            nameMap[p.id] = p.nombre || 'Jugador';
+            nameMap[p.id] = p.nombre_completo || 'Jugador';
           });
 
           // Transform data to include player names
