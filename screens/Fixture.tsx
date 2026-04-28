@@ -193,6 +193,7 @@ const Fixture: React.FC = () => {
         .from('partidos')
         .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, categoria, grupo')
         .eq('torneo_id', parsedTournamentId)
+        .is('bracket_tipo', null)
         .order('jornada', { ascending: true })
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 
@@ -235,6 +236,7 @@ const Fixture: React.FC = () => {
         .from('partidos')
         .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id')
         .eq('torneo_id', parsedTournamentId)
+        .is('bracket_tipo', null)
         .order('jornada', { ascending: true })
         .order('fecha_programada', { ascending: true, nullsFirst: false });
 

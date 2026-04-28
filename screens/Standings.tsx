@@ -156,6 +156,7 @@ const Standings: React.FC = () => {
         .from('partidos')
         .select('jugador1_id, jugador2_id, categoria, grupo, jornada')
         .eq('torneo_id', parsedTournamentId)
+        .is('bracket_tipo', null)
         .order('jornada', { ascending: true });
 
       if (resolvedScope?.categoria) partidosQuery = partidosQuery.eq('categoria', resolvedScope.categoria);

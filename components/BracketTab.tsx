@@ -353,6 +353,37 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
           );
         })}
       </div>
+
+      {/* Champion Banner - show winner of the final */}
+      {(() => {
+        const finalRoundNum = Math.max(...sortedRounds, 0);
+        const finalMatches = matchesByRound[finalRoundNum] || [];
+        const finalMatch = finalMatches[0];
+        if (finalMatch && finalMatch.estado === 'finalizado' && finalMatch.ganador_id) {
+          const winnerName = finalMatch.ganador_id === finalMatch.jugador1_id
+            ? finalMatch.jugador1_nombre
+            : finalMatch.jugador2_nombre;
+          return (
+            <div className="mt-6 bg-gradient-to-r from-[#f0fdf4] via-[#e8f6eb] to-[#f0fdf4] dark:from-[#1a3a22] dark:via-[#1a3a22]/80 dark:to-[#1a3a22] rounded-2xl p-6 border border-[#13ec49]/30 shadow-lg text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-[#13ec49]/20 flex items-center justify-center shadow-md shadow-[#13ec49]/20">
+                  <span className="material-symbols-outlined text-[#13ec49] text-4xl">emoji_events</span>
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-[#61896b] mb-1">Campeon del Torneo</p>
+                  <h3 className="text-xl font-black text-[#111813] dark:text-white uppercase tracking-tight">
+                    {winnerName || 'Ganador'}
+                  </h3>
+                </div>
+                <p className="text-sm text-[#61896b] font-medium">
+                  Gano la final del torneo
+                </p>
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
     </div>
   );
 };
