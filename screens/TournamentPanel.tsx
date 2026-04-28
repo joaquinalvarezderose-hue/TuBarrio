@@ -86,6 +86,7 @@ const TournamentPanel: React.FC = () => {
     setsLost: number;
     winRate: number;
   } | null>(null);
+  const [isEliminated, setIsEliminated] = useState(false);
 
   // Hook centralizado para el próximo partido + datos del rival
   const { match: nextMatch, loading: loadingNextMatch } = useNextMatch(tournament.id);
@@ -267,9 +268,6 @@ const TournamentPanel: React.FC = () => {
     loadPanelData();
   }, [currentUserId, tournament.id, tournament.subtitle, refreshKey]);
 
-  const refreshPanel = () => setRefreshKey((value) => value + 1);
-
-  // Load tournament history stats when player has no next match (eliminated/finished)
   useEffect(() => {
     const loadTournamentStats = async () => {
       if (!currentUserId || nextMatch || loadingNextMatch) {
@@ -322,6 +320,30 @@ const TournamentPanel: React.FC = () => {
     };
     loadTournamentStats();
   }, [currentUserId, nextMatch, loadingNextMatch, tournament.id]);
+
+  // Detect if player is eliminated: has any match in this tournament but no next match
+  useEffect(() => {
+    const checkEliminated = async () => {
+      if (!currentUserId || nextMatch || loadingNextMatch) {
+        setIsEliminated(false);
+        return;
+      }
+      try {
+        const { data } = await supabase
+          .from('partidos')
+          .select('id')
+          .eq('torneo_id', Number(tournament.id))
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .limit(1);
+        setIsEliminated(Array.isArray(data) && data.length > 0);
+      } catch {
+        setIsEliminated(false);
+      }
+    };
+    checkEliminated();
+  }, [currentUserId, nextMatch, loadingNextMatch, tournament.id]);
+
+  const refreshPanel = () => setRefreshKey((value) => value + 1);
 
   const handleDrawGroupsAndFixture = async () => {
     if (!isAdmin) return;
@@ -692,89 +714,108 @@ const TournamentPanel: React.FC = () => {
           </button>
         </section>
 
-        {tournamentStats ? (
+        {tournamentStats || isEliminated ? (
           <section className="space-y-4">
-            <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Torneo</h3>
-            <div className="space-y-3">
-              {/* Hero */}
-              <div className="text-center bg-gradient-to-b from-[#f0fdf4] to-transparent dark:from-[#1a3a22]/50 p-6 rounded-2xl border border-[#dbe6de] dark:border-[#2a5a32]">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#e8f6eb] dark:bg-[#1a3a22] shadow-sm mb-3">
-                  <span className="material-symbols-outlined text-[#61896b] text-4xl">sports_tennis</span>
-                </div>
-                <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
-                  {tournamentStats.wins > tournamentStats.losses ? 'Gran Torneo' : 'Fin del Torneo'}
-                </h2>
-                <p className="text-[#61896b] text-sm font-medium mt-1">
-                  {tournamentStatus === 'FINALIZADO' ? 'El torneo ha finalizado' : 'No avanzaste a la siguiente ronda'}
-                </p>
-              </div>
-
-              {/* Stats Cards */}
-              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
-                    <span className="material-symbols-outlined">sports_tennis</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Partidos</p>
-                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.totalMatches} Jugados</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between border-l-[5px] border-l-[#13ec49]">
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
-                    <span className="material-symbols-outlined">emoji_events</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Victorias</p>
-                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.wins} Victorias</p>
-                  </div>
-                </div>
-                <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b] px-3 py-1 rounded-full text-xs font-bold">
-                  {tournamentStats.winRate}% WR
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-400">
-                    <span className="material-symbols-outlined">close</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Derrotas</p>
-                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.losses} Derrotas</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
-                      <span className="material-symbols-outlined">leaderboard</span>
+            {tournamentStats ? (
+              <>
+                <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Torneo</h3>
+                <div className="space-y-3">
+                  {/* Hero */}
+                  <div className="text-center bg-gradient-to-b from-[#f0fdf4] to-transparent dark:from-[#1a3a22]/50 p-6 rounded-2xl border border-[#dbe6de] dark:border-[#2a5a32]">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#e8f6eb] dark:bg-[#1a3a22] shadow-sm mb-3">
+                      <span className="material-symbols-outlined text-[#61896b] text-4xl">sports_tennis</span>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Sets</p>
-                      <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.setsWon}/{tournamentStats.setsWon + tournamentStats.setsLost} Ganados</p>
+                    <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
+                      {tournamentStats.wins > tournamentStats.losses ? 'Gran Torneo' : 'Fin del Torneo'}
+                    </h2>
+                    <p className="text-[#61896b] text-sm font-medium mt-1">
+                      {tournamentStatus === 'FINALIZADO' ? 'El torneo ha finalizado' : 'No avanzaste a la siguiente ronda'}
+                    </p>
+                  </div>
+
+                  {/* Stats Cards */}
+                  <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                        <span className="material-symbols-outlined">sports_tennis</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Partidos</p>
+                        <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.totalMatches} Jugados</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-[#13ec49] h-full transition-all"
-                    style={{
-                      width: `${tournamentStats.setsWon + tournamentStats.setsLost > 0
-                        ? (tournamentStats.setsWon / (tournamentStats.setsWon + tournamentStats.setsLost)) * 100
-                        : 0}%`
-                    }}
-                  />
-                </div>
-              </div>
 
-              {/* Info note */}
-              <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 rounded-xl border border-[#dbe6de] dark:border-[#2a5a32] relative overflow-hidden">
+                  <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between border-l-[5px] border-l-[#13ec49]">
+                    <div className="flex items-center gap-4">
+                      <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                        <span className="material-symbols-outlined">emoji_events</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Victorias</p>
+                        <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.wins} Victorias</p>
+                      </div>
+                    </div>
+                    <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b] px-3 py-1 rounded-full text-xs font-bold">
+                      {tournamentStats.winRate}% WR
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-11 h-11 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-400">
+                        <span className="material-symbols-outlined">close</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Derrotas</p>
+                        <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.losses} Derrotas</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                          <span className="material-symbols-outlined">leaderboard</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Sets</p>
+                          <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.setsWon}/{tournamentStats.setsWon + tournamentStats.setsLost} Ganados</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#13ec49] h-full transition-all"
+                        style={{
+                          width: `${tournamentStats.setsWon + tournamentStats.setsLost > 0
+                            ? (tournamentStats.setsWon / (tournamentStats.setsWon + tournamentStats.setsLost)) * 100
+                            : 0}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Info note */}
+                  <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 rounded-xl border border-[#dbe6de] dark:border-[#2a5a32] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                      <span className="material-symbols-outlined text-4xl">format_quote</span>
+                    </div>
+                    <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+                      <span className="material-symbols-outlined text-[#61896b]">info</span>
+                      {tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia'}
+                    </h3>
+                    <p className="text-[#61896b] text-sm leading-relaxed">
+                      {tournamentStatus === 'FINALIZADO'
+                        ? 'El torneo ha finalizado. Gracias por participar. Podés seguir viendo el fixture y los resultados en la pestaña Llaves.'
+                        : 'No avanzaste a la siguiente ronda de esta competencia, pero podés seguir viendo los resultados del torneo y las llaves en la pestaña correspondiente.'}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] p-5 rounded-xl border border-[#dbe6de] dark:border-[#2a5a32] relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-3 opacity-10">
                   <span className="material-symbols-outlined text-4xl">format_quote</span>
                 </div>
@@ -788,7 +829,7 @@ const TournamentPanel: React.FC = () => {
                     : 'No avanzaste a la siguiente ronda de esta competencia, pero podés seguir viendo los resultados del torneo y las llaves en la pestaña correspondiente.'}
                 </p>
               </div>
-            </div>
+            )}
           </section>
         ) : (
           <>
