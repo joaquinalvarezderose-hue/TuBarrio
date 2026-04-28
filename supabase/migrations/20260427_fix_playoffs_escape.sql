@@ -208,7 +208,7 @@ BEGIN
       v_j1,
       v_j2,
       'programado',
-      ceil(log(2, v_total::numeric))::integer - ceil(log(2, ceil(v_idx::numeric / 2)))::integer + 1,
+      1, -- Always start at ronda 1 (first round)
       ceil(v_idx::numeric / 2)::integer,
       'eliminacion_directa'
     );

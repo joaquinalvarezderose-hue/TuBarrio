@@ -133,8 +133,17 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
     return grouped;
   }, [matches]);
 
-  // Get round name
-  const getRoundName = (ronda: number, totalRounds: number) => {
+  // Calculate total rounds based on matches in round 1
+  // 1 match → Final, 2 matches → Semis+Final, 4 matches → Cuartos+Semis+Final
+  const totalRounds = useMemo(() => {
+    const round1Matches = matchesByRound[1]?.length || 0;
+    if (round1Matches === 0) return Object.keys(matchesByRound).length;
+    return Math.ceil(Math.log2(round1Matches)) + 1;
+  }, [matchesByRound]);
+
+  // Get round name based on how many rounds remain
+  const getRoundName = (ronda: number) => {
+    const roundsFromEnd = totalRounds - ronda + 1;
     const roundNames: Record<number, string> = {
       1: 'Final',
       2: 'Semifinal',
@@ -142,16 +151,8 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
       4: 'Octavos de Final',
       5: 'Dieciseisavos',
     };
-    
-    // Calculate from the end if we know total rounds
-    const roundsFromEnd = totalRounds - ronda + 1;
     return roundNames[roundsFromEnd] || `Ronda ${ronda}`;
   };
-
-  // Calculate total rounds
-  const totalRounds = useMemo(() => {
-    return Object.keys(matchesByRound).length;
-  }, [matchesByRound]);
 
   if (loading) {
     return (
@@ -217,77 +218,140 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
     );
   }
 
-  // Render bracket
+  // Render bracket with tournament-style aesthetic
+  const sortedRounds = Object.keys(matchesByRound)
+    .map(Number)
+    .sort((a, b) => a - b);
+
   return (
-    <div className="space-y-8">
-      {Object.entries(matchesByRound).map(([ronda, roundMatches]: [string, BracketMatch[]]) => (
-        <div key={ronda} className="space-y-4">
-          <h3 className="text-lg font-bold text-[#111813] dark:text-white text-center">
-            {getRoundName(Number(ronda), totalRounds)}
-          </h3>
-          <div className="grid gap-4">
-            {roundMatches.map((match: BracketMatch) => (
-              <div 
-                key={match.id} 
-                className={`bg-white dark:bg-[#1a3a22] rounded-xl p-4 shadow-sm border ${
-                  match.estado === 'finalizado' 
-                    ? 'border-[#61896b]/30' 
-                    : 'border-[#dbe6de] dark:border-[#2a5a32]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  {/* Player 1 */}
-                  <div className={`flex-1 text-center ${match.ganador_id === match.jugador1_id ? 'font-bold text-[#61896b]' : ''}`}>
-                    <div className="text-sm">{match.jugador1_nombre}</div>
-                    {match.estado === 'finalizado' && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {match.set1_j1 !== null && `${match.set1_j1}-${match.set1_j2}`}
-                        {match.set2_j1 !== null && `, ${match.set2_j1}-${match.set2_j2}`}
-                        {match.set3_j1 !== null && `, ${match.set3_j1}-${match.set3_j2}`}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* VS */}
-                  <div className="px-4 flex flex-col items-center">
-                    <span className="text-xs font-black text-gray-300">VS</span>
-                    {match.estado === 'finalizado' && match.ganador_id && (
-                      <span className="material-symbols-outlined text-[#61896b] text-sm mt-1">
-                        check_circle
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Player 2 */}
-                  <div className={`flex-1 text-center ${match.ganador_id === match.jugador2_id ? 'font-bold text-[#61896b]' : ''}`}>
-                    <div className="text-sm">{match.jugador2_nombre}</div>
-                    {match.estado === 'finalizado' && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {match.set1_j1 !== null && `${match.set1_j2}-${match.set1_j1}`}
-                        {match.set2_j1 !== null && `, ${match.set2_j2}-${match.set2_j1}`}
-                        {match.set3_j1 !== null && `, ${match.set3_j2}-${match.set3_j1}`}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status badge */}
-                <div className="mt-3 text-center">
-                  <span className={`text-[10px] px-2 py-1 rounded-full uppercase font-bold ${
-                    match.estado === 'finalizado' 
-                      ? 'bg-[#61896b]/20 text-[#61896b]' 
-                      : match.estado === 'en_curso'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {match.estado === 'finalizado' ? 'Finalizado' : match.estado === 'en_curso' ? 'En curso' : 'Pendiente'}
-                  </span>
+    <div className="overflow-x-auto pb-4">
+      <div className="flex gap-6 min-w-fit" style={{ minHeight: '300px' }}>
+        {sortedRounds.map((ronda) => {
+          const roundMatches = matchesByRound[ronda];
+          const isFinal = totalRounds - ronda + 1 === 1;
+          
+          return (
+            <div key={ronda} className="flex flex-col flex-1 min-w-[260px]">
+              {/* Round Header */}
+              <div className="text-center mb-4">
+                <div className={`inline-block px-4 py-1.5 rounded-full ${
+                  isFinal 
+                    ? 'bg-gradient-to-r from-[#61896b] to-[#7ba585] text-white shadow-md'
+                    : 'bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b]'
+                }`}>
+                  <h3 className="text-sm font-black uppercase tracking-wide">
+                    {isFinal && <span className="mr-1">🏆</span>}
+                    {getRoundName(ronda)}
+                  </h3>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+
+              {/* Matches in this round - distributed evenly */}
+              <div className="flex-1 flex flex-col justify-around gap-4">
+                {roundMatches.map((match: BracketMatch) => {
+                  const isFinalized = match.estado === 'finalizado';
+                  const j1Won = match.ganador_id === match.jugador1_id;
+                  const j2Won = match.ganador_id === match.jugador2_id;
+                  
+                  return (
+                    <div 
+                      key={match.id} 
+                      className={`relative bg-white dark:bg-[#1a3a22] rounded-lg shadow-md overflow-hidden border-2 transition-all ${
+                        isFinalized 
+                          ? 'border-[#61896b]' 
+                          : 'border-[#dbe6de] dark:border-[#2a5a32] hover:border-[#61896b]/50'
+                      }`}
+                    >
+                      {/* Player 1 */}
+                      <div className={`flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 ${
+                        j1Won ? 'bg-[#61896b]/10' : ''
+                      }`}>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {j1Won && (
+                            <span className="material-symbols-outlined text-[#61896b] text-base flex-shrink-0">
+                              check_circle
+                            </span>
+                          )}
+                          <span className={`text-sm truncate ${
+                            j1Won ? 'font-bold text-[#111813] dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                          } ${isFinalized && !j1Won ? 'opacity-50' : ''}`}>
+                            {match.jugador1_nombre || 'TBD'}
+                          </span>
+                        </div>
+                        {isFinalized && (
+                          <div className="flex gap-1.5 ml-2">
+                            {match.set1_j1 !== null && (
+                              <span className={`text-sm font-black ${j1Won ? 'text-[#61896b]' : 'text-gray-400'}`}>
+                                {match.set1_j1}
+                              </span>
+                            )}
+                            {match.set2_j1 !== null && (
+                              <span className={`text-sm font-black ${j1Won ? 'text-[#61896b]' : 'text-gray-400'}`}>
+                                {match.set2_j1}
+                              </span>
+                            )}
+                            {match.set3_j1 !== null && (
+                              <span className={`text-sm font-black ${j1Won ? 'text-[#61896b]' : 'text-gray-400'}`}>
+                                {match.set3_j1}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Player 2 */}
+                      <div className={`flex items-center justify-between px-4 py-3 ${
+                        j2Won ? 'bg-[#61896b]/10' : ''
+                      }`}>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {j2Won && (
+                            <span className="material-symbols-outlined text-[#61896b] text-base flex-shrink-0">
+                              check_circle
+                            </span>
+                          )}
+                          <span className={`text-sm truncate ${
+                            j2Won ? 'font-bold text-[#111813] dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                          } ${isFinalized && !j2Won ? 'opacity-50' : ''}`}>
+                            {match.jugador2_nombre || 'TBD'}
+                          </span>
+                        </div>
+                        {isFinalized && (
+                          <div className="flex gap-1.5 ml-2">
+                            {match.set1_j2 !== null && (
+                              <span className={`text-sm font-black ${j2Won ? 'text-[#61896b]' : 'text-gray-400'}`}>
+                                {match.set1_j2}
+                              </span>
+                            )}
+                            {match.set2_j2 !== null && (
+                              <span className={`text-sm font-black ${j2Won ? 'text-[#61896b]' : 'text-gray-400'}`}>
+                                {match.set2_j2}
+                              </span>
+                            )}
+                            {match.set3_j2 !== null && (
+                              <span className={`text-sm font-black ${j2Won ? 'text-[#61896b]' : 'text-gray-400'}`}>
+                                {match.set3_j2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status footer */}
+                      {!isFinalized && (
+                        <div className="px-4 py-1.5 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/10">
+                          <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                            {match.estado === 'en_curso' ? '⏱ En curso' : '📅 Por jugar'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
