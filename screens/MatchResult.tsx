@@ -56,6 +56,15 @@ type ProposalData = {
   debe_confirmar_por: string | null;  // NEW: who must confirm (source of truth)
 };
 
+type TournamentStats = {
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  setsWon: number;
+  setsLost: number;
+  winRate: number;
+};
+
 const emptyScores: ScoreState = {
   set1: { player1: 0, player2: 0 },
   set2: { player1: 0, player2: 0 },
@@ -106,6 +115,7 @@ const MatchResult: React.FC = () => {
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
   const [retryTick, setRetryTick] = useState(0);
+  const [tournamentStats, setTournamentStats] = useState<TournamentStats | null>(null);
 
   const getSetWinner = (p1: number, p2: number) => {
     if ((p1 === 6 && p2 <= 4) || (p1 === 7 && (p2 === 5 || p2 === 6))) return 1;
@@ -307,6 +317,7 @@ const MatchResult: React.FC = () => {
       setHasOwnProposal(false);
       setLastSubmittedBy(null);
       setMustConfirmBy(null);
+      setTournamentStats(null);
 
       try {
           if (!currentUserId) {
@@ -465,7 +476,49 @@ const MatchResult: React.FC = () => {
         const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
         if (!targetPartido) {
           setSubmitError(null);
-          setBlockReason('Todavia no hay un partido generado para esta jornada.');
+          // Player has no active match - check if they have tournament history
+          const { data: historyRows } = await supabase
+            .from('partidos')
+            .select('id, estado, jugador1_id, jugador2_id, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, ganador_id')
+            .eq('torneo_id', tournament.id)
+            .eq('categoria', categoria)
+            .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`);
+
+          const history = historyRows || [];
+          if (history.length > 0) {
+            let wins = 0, losses = 0, setsWon = 0, setsLost = 0;
+            history.forEach((m: any) => {
+              const isJ1 = String(m.jugador1_id).toLowerCase() === String(currentUserId).toLowerCase();
+              // Count sets
+              const sets = [
+                { j1: m.set1_j1, j2: m.set1_j2 },
+                { j1: m.set2_j1, j2: m.set2_j2 },
+                { j1: m.set3_j1, j2: m.set3_j2 },
+              ];
+              sets.forEach((s) => {
+                if (s.j1 == null || s.j2 == null) return;
+                if (isJ1) {
+                  if (s.j1 > s.j2) setsWon++;
+                  else if (s.j2 > s.j1) setsLost++;
+                } else {
+                  if (s.j2 > s.j1) setsWon++;
+                  else if (s.j1 > s.j2) setsLost++;
+                }
+              });
+              // Win/loss
+              if (m.estado === 'finalizado' || m.ganador_id) {
+                const won = String(m.ganador_id).toLowerCase() === String(currentUserId).toLowerCase();
+                if (won) wins++;
+                else losses++;
+              }
+            });
+            const totalMatches = history.length;
+            const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+            setTournamentStats({ totalMatches, wins, losses, setsWon, setsLost, winRate });
+          } else {
+            setTournamentStats(null);
+            setBlockReason('Todavia no hay un partido generado para esta jornada.');
+          }
           return;
         }
 
@@ -763,7 +816,111 @@ const MatchResult: React.FC = () => {
         </section>
         )}
 
-        {blockReason && !loadingMatch && (
+        {/* Tournament Summary for eliminated/players without active matches */}
+        {tournamentStats && !partido && !loadingMatch && (
+          <div className="space-y-6">
+            {/* Hero */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#e8f6eb] dark:bg-[#1a3a22] shadow-sm mb-3">
+                <span className="material-symbols-outlined text-[#61896b] text-4xl">sports_tennis</span>
+              </div>
+              <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
+                {tournamentStats.wins > tournamentStats.losses ? 'Gran Torneo' : 'Fin del Torneo'}
+              </h2>
+              <p className="text-[#61896b] text-sm font-medium mt-1">
+                Resumen de tu desempeño en {tournament.title}
+              </p>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="space-y-3">
+              {/* Partidos Jugados */}
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                    <span className="material-symbols-outlined">sports_tennis</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Partidos</p>
+                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.totalMatches} Jugados</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Victorias */}
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between border-l-[5px] border-l-[#13ec49]">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                    <span className="material-symbols-outlined">emoji_events</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Victorias</p>
+                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.wins} Victorias</p>
+                  </div>
+                </div>
+                <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b] px-3 py-1 rounded-full text-xs font-bold">
+                  {tournamentStats.winRate}% WR
+                </div>
+              </div>
+
+              {/* Derrotas */}
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-400">
+                    <span className="material-symbols-outlined">close</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Derrotas</p>
+                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.losses} Derrotas</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sets */}
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                      <span className="material-symbols-outlined">leaderboard</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Sets</p>
+                      <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.setsWon}/{tournamentStats.setsWon + tournamentStats.setsLost} Ganados</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#13ec49] h-full transition-all"
+                    style={{
+                      width: `${tournamentStats.setsWon + tournamentStats.setsLost > 0
+                        ? (tournamentStats.setsWon / (tournamentStats.setsWon + tournamentStats.setsLost)) * 100
+                        : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Info note */}
+            <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 rounded-xl border border-[#dbe6de] dark:border-[#2a5a32] relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <span className="material-symbols-outlined text-4xl">format_quote</span>
+              </div>
+              <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+                <span className="material-symbols-outlined text-[#61896b]">info</span>
+                No tenés partidos activos
+              </h3>
+              <p className="text-[#61896b] text-sm leading-relaxed">
+                {tournamentStatus === 'FINALIZADO'
+                  ? 'El torneo ha finalizado. Gracias por participar.'
+                  : 'Actualmente no tenés un partido programado en esta jornada. Podés seguir viendo las llaves del torneo en la pestaña correspondiente.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {blockReason && !loadingMatch && !tournamentStats && (
           <section
             className={`rounded-xl border shadow-sm ${
               !partido
