@@ -219,9 +219,10 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
   }
 
   // Render bracket with tournament-style aesthetic
+  // Sort descending: Final at top, earlier rounds below
   const sortedRounds = Object.keys(matchesByRound)
     .map(Number)
-    .sort((a, b) => a - b);
+    .sort((a, b) => b - a);
 
   return (
     <div className="overflow-x-auto pb-4">
