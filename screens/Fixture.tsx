@@ -100,6 +100,7 @@ const Fixture: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [isEliminated, setIsEliminated] = useState(false);
   const isLoadingRef = useRef(false);
   const refreshTimerRef = useRef<number | null>(null);
 
@@ -110,6 +111,29 @@ const Fixture: React.FC = () => {
     subtitle: 'Singles Caballeros',
   });
   const { loading: nextMatchLoading, match: nextMatch, error: nextMatchError, refetch: refetchNextMatch } = useNextMatch(tournament.id);
+
+  // Check if player is eliminated (has bracket history but no next match)
+  useEffect(() => {
+    const checkEliminated = async () => {
+      if (!currentUserId || nextMatch || nextMatchLoading) {
+        setIsEliminated(false);
+        return;
+      }
+      try {
+        const { data: historyRows } = await supabase
+          .from('partidos')
+          .select('id')
+          .eq('torneo_id', Number(tournament.id))
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .not('bracket_tipo', 'is', null)
+          .limit(1);
+        setIsEliminated(Array.isArray(historyRows) && historyRows.length > 0);
+      } catch {
+        setIsEliminated(false);
+      }
+    };
+    checkEliminated();
+  }, [currentUserId, nextMatch, nextMatchLoading, tournament.id]);
 
   useEffect(() => {
     (supabase as any).auth.getUser().then(({ data }: any) => {
@@ -666,6 +690,12 @@ const Fixture: React.FC = () => {
                         <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">{nextMatch.rivalName}</p>
                         <p className="text-xs text-[#61896b] mt-0.5">Jornada {nextMatch.jornada} - {nextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
                         <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {nextMatch.rivalWhatsapp || 'No disponible'}</p>
+                      </>
+                    ) : isEliminated ? (
+                      <>
+                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">Descalificado del torneo</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">No avanzaste a la siguiente ronda.</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">Podés seguir viendo los resultados en las pestañas de arriba.</p>
                       </>
                     ) : (
                       <p className="text-sm text-[#61896b] mt-1">No tenes un proximo partido pendiente por ahora.</p>
