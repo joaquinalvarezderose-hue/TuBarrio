@@ -909,12 +909,12 @@ const MatchResult: React.FC = () => {
               </div>
               <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
                 <span className="material-symbols-outlined text-[#61896b]">info</span>
-                No tenés partidos activos
+                {tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia'}
               </h3>
               <p className="text-[#61896b] text-sm leading-relaxed">
                 {tournamentStatus === 'FINALIZADO'
-                  ? 'El torneo ha finalizado. Gracias por participar.'
-                  : 'Actualmente no tenés un partido programado en esta jornada. Podés seguir viendo las llaves del torneo en la pestaña correspondiente.'}
+                  ? 'El torneo ha finalizado. Gracias por participar. Podés seguir viendo el fixture y los resultados en la pestaña Llaves.'
+                  : 'No avanzaste a la siguiente ronda de esta competencia, pero podés seguir viendo los resultados del torneo y las llaves en la pestaña correspondiente.'}
               </p>
             </div>
           </div>
@@ -1180,7 +1180,7 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && (
+        {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && !tournamentStats && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm animate-pulse">
             <span className="material-symbols-outlined text-amber-500 text-lg">info</span>
             <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">Por favor completa los sets con resultados validos para poder enviar el partido.</p>
