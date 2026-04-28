@@ -78,6 +78,14 @@ const TournamentPanel: React.FC = () => {
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [tournamentStats, setTournamentStats] = useState<{
+    totalMatches: number;
+    wins: number;
+    losses: number;
+    setsWon: number;
+    setsLost: number;
+    winRate: number;
+  } | null>(null);
 
   // Hook centralizado para el próximo partido + datos del rival
   const { match: nextMatch, loading: loadingNextMatch } = useNextMatch(tournament.id);
@@ -260,6 +268,60 @@ const TournamentPanel: React.FC = () => {
   }, [currentUserId, tournament.id, tournament.subtitle, refreshKey]);
 
   const refreshPanel = () => setRefreshKey((value) => value + 1);
+
+  // Load tournament history stats when player has no next match (eliminated/finished)
+  useEffect(() => {
+    const loadTournamentStats = async () => {
+      if (!currentUserId || nextMatch || loadingNextMatch) {
+        setTournamentStats(null);
+        return;
+      }
+      try {
+        const { data: historyRows } = await supabase
+          .from('partidos')
+          .select('id, estado, jugador1_id, jugador2_id, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, ganador_id, ronda, bracket_tipo, categoria')
+          .eq('torneo_id', Number(tournament.id))
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .not('bracket_tipo', 'is', null);
+
+        const history = historyRows || [];
+        if (history.length === 0) {
+          setTournamentStats(null);
+          return;
+        }
+        let wins = 0, losses = 0, setsWon = 0, setsLost = 0;
+        history.forEach((m: any) => {
+          const isJ1 = String(m.jugador1_id).toLowerCase() === String(currentUserId).toLowerCase();
+          const sets = [
+            { j1: m.set1_j1, j2: m.set1_j2 },
+            { j1: m.set2_j1, j2: m.set2_j2 },
+            { j1: m.set3_j1, j2: m.set3_j2 },
+          ];
+          sets.forEach((s) => {
+            if (s.j1 == null || s.j2 == null) return;
+            if (isJ1) {
+              if (s.j1 > s.j2) setsWon++;
+              else if (s.j2 > s.j1) setsLost++;
+            } else {
+              if (s.j2 > s.j1) setsWon++;
+              else if (s.j1 > s.j2) setsLost++;
+            }
+          });
+          if (m.estado === 'finalizado' || m.ganador_id) {
+            const won = String(m.ganador_id).toLowerCase() === String(currentUserId).toLowerCase();
+            if (won) wins++;
+            else losses++;
+          }
+        });
+        const totalMatches = history.length;
+        const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+        setTournamentStats({ totalMatches, wins, losses, setsWon, setsLost, winRate });
+      } catch {
+        setTournamentStats(null);
+      }
+    };
+    loadTournamentStats();
+  }, [currentUserId, nextMatch, loadingNextMatch, tournament.id]);
 
   const handleDrawGroupsAndFixture = async () => {
     if (!isAdmin) return;
@@ -630,66 +692,168 @@ const TournamentPanel: React.FC = () => {
           </button>
         </section>
 
-        {/* Mi Próximo Partido */}
-        <section className="space-y-4">
-          <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Mi Próximo Partido</h3>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
-            {/* Accent bar */}
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-[#4a9c40]"></div>
-            
-            <div className="flex justify-between items-start mb-4">
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">{nextMatch ? `Fecha ${nextMatch.jornada}` : 'Sin partido'}</p>
-                <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rivalName}` : 'Rival por definir'}</h4>
-                {nextMatchDateLabel && <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>}
+        {tournamentStats ? (
+          <section className="space-y-4">
+            <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Torneo</h3>
+            <div className="space-y-3">
+              {/* Hero */}
+              <div className="text-center bg-gradient-to-b from-[#f0fdf4] to-transparent dark:from-[#1a3a22]/50 p-6 rounded-2xl border border-[#dbe6de] dark:border-[#2a5a32]">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#e8f6eb] dark:bg-[#1a3a22] shadow-sm mb-3">
+                  <span className="material-symbols-outlined text-[#61896b] text-4xl">sports_tennis</span>
+                </div>
+                <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
+                  {tournamentStats.wins > tournamentStats.losses ? 'Gran Torneo' : 'Fin del Torneo'}
+                </h2>
+                <p className="text-[#61896b] text-sm font-medium mt-1">
+                  {tournamentStatus === 'FINALIZADO' ? 'El torneo ha finalizado' : 'No avanzaste a la siguiente ronda'}
+                </p>
               </div>
-              <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white dark:border-gray-700 shadow-sm flex items-center justify-center text-sm font-bold uppercase">
-                {String(nextMatch?.rivalName || 'Rival')
-                  .split(' ')
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((chunk) => chunk[0])
-                  .join('') || 'R'}
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-3">
-              {nextMatch ? (
-                <button
-                  onClick={() => {
-                    if (rivalWaLink) window.open(rivalWaLink, '_blank', 'noopener,noreferrer');
-                  }}
-                  disabled={!rivalWaLink}
-                  className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg font-bold transition-all active:scale-[0.98] ${
-                    rivalWaLink
-                      ? 'bg-[#25D366] text-white shadow-md hover:bg-[#20bd5a]'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-not-allowed'
-                  }`}
-                >
-                  <svg className="size-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path>
-                  </svg>
-                  {rivalWaLink ? 'WhatsApp del Rival' : 'Rival sin WhatsApp'}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </section>
 
-        {/* Status Footer */}
-        <section className="mt-8 text-center px-4">
-          <p className="text-xs text-gray-500 dark:text-gray-500 font-bold uppercase tracking-wide">
-            {groupPosition && groupSize > 0
-              ? `Estás en la posición #${groupPosition} de ${groupSize} en tu grupo`
-              : 'Posición de grupo disponible cuando haya tabla cargada'}
-          </p>
-          <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-[#4a9c40] h-full rounded-full shadow-[0_0_8px_rgba(74,156,64,0.4)]"
-              style={{ width: `${groupProgressWidth}%` }}
-            ></div>
-          </div>
-        </section>
+              {/* Stats Cards */}
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                    <span className="material-symbols-outlined">sports_tennis</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Partidos</p>
+                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.totalMatches} Jugados</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between border-l-[5px] border-l-[#13ec49]">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                    <span className="material-symbols-outlined">emoji_events</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Victorias</p>
+                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.wins} Victorias</p>
+                  </div>
+                </div>
+                <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b] px-3 py-1 rounded-full text-xs font-bold">
+                  {tournamentStats.winRate}% WR
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-400">
+                    <span className="material-symbols-outlined">close</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Derrotas</p>
+                    <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.losses} Derrotas</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-white/5 p-4 rounded-xl shadow-sm border border-[#dbe6de] dark:border-white/10 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center text-[#61896b]">
+                      <span className="material-symbols-outlined">leaderboard</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Sets</p>
+                      <p className="text-base font-bold text-[#111813] dark:text-white">{tournamentStats.setsWon}/{tournamentStats.setsWon + tournamentStats.setsLost} Ganados</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#13ec49] h-full transition-all"
+                    style={{
+                      width: `${tournamentStats.setsWon + tournamentStats.setsLost > 0
+                        ? (tournamentStats.setsWon / (tournamentStats.setsWon + tournamentStats.setsLost)) * 100
+                        : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Info note */}
+              <div className="bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 rounded-xl border border-[#dbe6de] dark:border-[#2a5a32] relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3 opacity-10">
+                  <span className="material-symbols-outlined text-4xl">format_quote</span>
+                </div>
+                <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+                  <span className="material-symbols-outlined text-[#61896b]">info</span>
+                  {tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia'}
+                </h3>
+                <p className="text-[#61896b] text-sm leading-relaxed">
+                  {tournamentStatus === 'FINALIZADO'
+                    ? 'El torneo ha finalizado. Gracias por participar. Podés seguir viendo el fixture y los resultados en la pestaña Llaves.'
+                    : 'No avanzaste a la siguiente ronda de esta competencia, pero podés seguir viendo los resultados del torneo y las llaves en la pestaña correspondiente.'}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <>
+            {/* Mi Próximo Partido */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Mi Próximo Partido</h3>
+              <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                {/* Accent bar */}
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-[#4a9c40]"></div>
+                
+                <div className="flex justify-between items-start mb-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">{nextMatch ? `Fecha ${nextMatch.jornada}` : 'Sin partido'}</p>
+                    <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rivalName}` : 'Rival por definir'}</h4>
+                    {nextMatchDateLabel && <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>}
+                  </div>
+                  <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white dark:border-gray-700 shadow-sm flex items-center justify-center text-sm font-bold uppercase">
+                    {String(nextMatch?.rivalName || 'Rival')
+                      .split(' ')
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((chunk) => chunk[0])
+                      .join('') || 'R'}
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-3">
+                  {nextMatch ? (
+                    <button
+                      onClick={() => {
+                        if (rivalWaLink) window.open(rivalWaLink, '_blank', 'noopener,noreferrer');
+                      }}
+                      disabled={!rivalWaLink}
+                      className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg font-bold transition-all active:scale-[0.98] ${
+                        rivalWaLink
+                          ? 'bg-[#25D366] text-white shadow-md hover:bg-[#20bd5a]'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-not-allowed'
+                      }`}
+                    >
+                      <svg className="size-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path>
+                      </svg>
+                      {rivalWaLink ? 'WhatsApp del Rival' : 'Rival sin WhatsApp'}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+
+            {/* Status Footer */}
+            <section className="mt-8 text-center px-4">
+              <p className="text-xs text-gray-500 dark:text-gray-500 font-bold uppercase tracking-wide">
+                {groupPosition && groupSize > 0
+                  ? `Estás en la posición #${groupPosition} de ${groupSize} en tu grupo`
+                  : 'Posición de grupo disponible cuando haya tabla cargada'}
+              </p>
+              <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mt-3 overflow-hidden">
+                <div
+                  className="bg-[#4a9c40] h-full rounded-full shadow-[0_0_8px_rgba(74,156,64,0.4)]"
+                  style={{ width: `${groupProgressWidth}%` }}
+                ></div>
+              </div>
+            </section>
+          </>
+        )}
       </main>
     </div>
   );
