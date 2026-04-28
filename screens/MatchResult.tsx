@@ -116,6 +116,7 @@ const MatchResult: React.FC = () => {
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
   const [retryTick, setRetryTick] = useState(0);
   const [tournamentStats, setTournamentStats] = useState<TournamentStats | null>(null);
+  const [isChampion, setIsChampion] = useState(false);
 
   const getSetWinner = (p1: number, p2: number) => {
     if ((p1 === 6 && p2 <= 4) || (p1 === 7 && (p2 === 5 || p2 === 6))) return 1;
@@ -318,6 +319,7 @@ const MatchResult: React.FC = () => {
       setLastSubmittedBy(null);
       setMustConfirmBy(null);
       setTournamentStats(null);
+      setIsChampion(false);
 
       try {
           if (!currentUserId) {
@@ -479,13 +481,22 @@ const MatchResult: React.FC = () => {
           // Player has no active match - check if they have tournament history
           const { data: historyRows } = await supabase
             .from('partidos')
-            .select('id, estado, jugador1_id, jugador2_id, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, ganador_id')
+            .select('id, estado, jugador1_id, jugador2_id, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, ganador_id, ronda, bracket_tipo')
             .eq('torneo_id', tournament.id)
             .eq('categoria', categoria)
             .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`);
 
           const history = historyRows || [];
           if (history.length > 0) {
+            // Check if user won the final (highest ronda match with ganador_id = current user)
+            const finalMatch = history
+              .filter((m: any) => m.bracket_tipo === 'eliminacion_directa' || m.ronda === Math.max(...history.map((h: any) => h.ronda || 1)))
+              .sort((a: any, b: any) => (b.ronda || 0) - (a.ronda || 0))[0];
+            const wonFinal = finalMatch && String(finalMatch.ganador_id).toLowerCase() === String(currentUserId).toLowerCase();
+            if (wonFinal) {
+              setIsChampion(true);
+            }
+
             let wins = 0, losses = 0, setsWon = 0, setsLost = 0;
             history.forEach((m: any) => {
               const isJ1 = String(m.jugador1_id).toLowerCase() === String(currentUserId).toLowerCase();
