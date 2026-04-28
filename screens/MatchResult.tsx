@@ -1103,8 +1103,8 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {/* Mostrar controles de score solo si no estamos esperando validacion (sin importar quien envio) */}
-        {!blockReason && !isWaitingValidation && (
+        {/* Mostrar controles de score solo si no estamos esperando validacion y no hay resumen de torneo */}
+        {!blockReason && !isWaitingValidation && !tournamentStats && (
           <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
