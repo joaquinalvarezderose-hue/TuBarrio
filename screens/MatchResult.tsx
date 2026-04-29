@@ -119,8 +119,9 @@ const MatchResult: React.FC = () => {
 
   const { status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
   const isChampion = playerStatus?.estado === 'campeon';
+  const isPlayerFinished = playerStatus?.estado === 'eliminado' || playerStatus?.estado === 'campeon';
   const rawStats = playerStatus?.stats ?? null;
-  const tournamentStats: TournamentStats | null = rawStats && rawStats.total > 0 ? {
+  const tournamentStats: TournamentStats | null = isPlayerFinished && rawStats && rawStats.total > 0 ? {
     totalMatches: rawStats.total,
     wins: rawStats.wins,
     losses: rawStats.losses,
