@@ -1,8 +1,7 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
-import { useNextMatch } from '../hooks/useNextMatch';
+import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const PANEL_READY_STATUSES = new Set([
@@ -78,18 +77,22 @@ const TournamentPanel: React.FC = () => {
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [tournamentStats, setTournamentStats] = useState<{
-    totalMatches: number;
-    wins: number;
-    losses: number;
-    setsWon: number;
-    setsLost: number;
-    winRate: number;
-  } | null>(null);
-  const [isEliminated, setIsEliminated] = useState(false);
+  // Single authoritative backend hook for player status
+  const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
 
-  // Hook centralizado para el próximo partido + datos del rival
-  const { match: nextMatch, loading: loadingNextMatch } = useNextMatch(tournament.id);
+  const nextMatch = playerStatus?.proximo_partido ?? null;
+  const isEliminated = playerStatus?.estado === 'eliminado';
+  const isCampeon = playerStatus?.estado === 'campeon';
+  const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
+  const rawStats = playerStatus?.stats ?? null;
+  const tournamentStats = rawStats && rawStats.total > 0 ? {
+    totalMatches: rawStats.total,
+    wins: rawStats.wins,
+    losses: rawStats.losses,
+    setsWon: rawStats.sets_won,
+    setsLost: rawStats.sets_lost,
+    winRate: rawStats.win_rate,
+  } : null;
 
   useEffect(() => {
     localStorage.setItem('active_tournament', JSON.stringify(tournament));
@@ -224,7 +227,7 @@ const TournamentPanel: React.FC = () => {
           return;
         }
 
-        // La carga del próximo partido es manejada por el hook useNextMatch.
+        // La carga del próximo partido es manejada por el hook usePlayerTournamentStatus.
         // Aquí solo cargamos la posición en el grupo.
         if (resolvedScope && currentUserId) {
           const { data: tableRows, error: tableError } = await supabase
@@ -267,81 +270,6 @@ const TournamentPanel: React.FC = () => {
 
     loadPanelData();
   }, [currentUserId, tournament.id, tournament.subtitle, refreshKey]);
-
-  useEffect(() => {
-    const loadTournamentStats = async () => {
-      if (!currentUserId || nextMatch || loadingNextMatch) {
-        setTournamentStats(null);
-        return;
-      }
-      try {
-        const { data: historyRows } = await supabase
-          .from('partidos')
-          .select('id, estado, jugador1_id, jugador2_id, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, ganador_id, ronda, bracket_tipo, categoria')
-          .eq('torneo_id', Number(tournament.id))
-          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .not('bracket_tipo', 'is', null);
-
-        const history = historyRows || [];
-        if (history.length === 0) {
-          setTournamentStats(null);
-          return;
-        }
-        let wins = 0, losses = 0, setsWon = 0, setsLost = 0;
-        history.forEach((m: any) => {
-          const isJ1 = String(m.jugador1_id).toLowerCase() === String(currentUserId).toLowerCase();
-          const sets = [
-            { j1: m.set1_j1, j2: m.set1_j2 },
-            { j1: m.set2_j1, j2: m.set2_j2 },
-            { j1: m.set3_j1, j2: m.set3_j2 },
-          ];
-          sets.forEach((s) => {
-            if (s.j1 == null || s.j2 == null) return;
-            if (isJ1) {
-              if (s.j1 > s.j2) setsWon++;
-              else if (s.j2 > s.j1) setsLost++;
-            } else {
-              if (s.j2 > s.j1) setsWon++;
-              else if (s.j1 > s.j2) setsLost++;
-            }
-          });
-          if (m.estado === 'finalizado' || m.ganador_id) {
-            const won = String(m.ganador_id).toLowerCase() === String(currentUserId).toLowerCase();
-            if (won) wins++;
-            else losses++;
-          }
-        });
-        const totalMatches = history.length;
-        const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
-        setTournamentStats({ totalMatches, wins, losses, setsWon, setsLost, winRate });
-      } catch {
-        setTournamentStats(null);
-      }
-    };
-    loadTournamentStats();
-  }, [currentUserId, nextMatch, loadingNextMatch, tournament.id]);
-
-  // Detect if player is eliminated: has any match in this tournament but no next match
-  useEffect(() => {
-    const checkEliminated = async () => {
-      if (!currentUserId || nextMatch || loadingNextMatch) {
-        setIsEliminated(false);
-        return;
-      }
-      try {
-        const { data } = await supabase
-          .from('partidos')
-          .select('id')
-          .eq('torneo_id', Number(tournament.id))
-          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .limit(1);
-        setIsEliminated(Array.isArray(data) && data.length > 0);
-      } catch {
-        setIsEliminated(false);
-      }
-    };
-    checkEliminated();
-  }, [currentUserId, nextMatch, loadingNextMatch, tournament.id]);
 
   const refreshPanel = () => setRefreshKey((value) => value + 1);
 
@@ -494,12 +422,12 @@ const TournamentPanel: React.FC = () => {
   const estaFinalizado = tournamentStatus === 'FINALIZADO';
 
   const rivalWaLink = useMemo(() => {
-    const whatsapp = nextMatch?.rival?.whatsapp ?? nextMatch?.rivalWhatsapp;
+    const whatsapp = nextMatch?.rival_whatsapp;
     if (!whatsapp) return null;
     const digits = String(whatsapp).replace(/[^\d]/g, '');
     if (!digits) return null;
     return `https://wa.me/${digits}`;
-  }, [nextMatch?.rival?.whatsapp, nextMatch?.rivalWhatsapp]);
+  }, [nextMatch?.rival_whatsapp]);
 
   const nextMatchDateLabel = useMemo(() => {
     if (!nextMatch?.fecha_programada) return null;
@@ -547,16 +475,16 @@ const TournamentPanel: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-background-light dark:bg-background-dark transition-colors duration-300 font-display no-scrollbar overflow-y-auto">
-      {/* Header iOS Style */}
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="flex items-center text-[#111813] dark:text-white hover:bg-black/5 dark:hover:bg-white/5 p-1 rounded-full transition-colors"
         >
           <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
         </button>
         <h1 className="text-lg font-bold tracking-tight text-[#111813] dark:text-white">Panel del Torneo</h1>
-        <div className="w-8"></div> {/* Spacer for centering */}
+        <div className="w-8"></div>
       </header>
 
       <main className="flex-1 p-4 space-y-6">
@@ -843,11 +771,11 @@ const TournamentPanel: React.FC = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">{nextMatch ? `Fecha ${nextMatch.jornada}` : 'Sin partido'}</p>
-                    <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rivalName}` : 'Rival por definir'}</h4>
+                    <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rival_nombre}` : 'Rival por definir'}</h4>
                     {nextMatchDateLabel && <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>}
                   </div>
                   <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white dark:border-gray-700 shadow-sm flex items-center justify-center text-sm font-bold uppercase">
-                    {String(nextMatch?.rivalName || 'Rival')
+                    {String(nextMatch?.rival_nombre || 'Rival')
                       .split(' ')
                       .filter(Boolean)
                       .slice(0, 2)

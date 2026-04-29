@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
-import { useNextMatch } from '../hooks/useNextMatch';
+import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import BracketTab from '../components/BracketTab';
 
 type FixturePlayer = {
@@ -100,7 +100,6 @@ const Fixture: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
-  const [isEliminated, setIsEliminated] = useState(false);
   const isLoadingRef = useRef(false);
   const refreshTimerRef = useRef<number | null>(null);
 
@@ -110,36 +109,19 @@ const Fixture: React.FC = () => {
     title: 'Abierto de Tenis TuBarrio',
     subtitle: 'Singles Caballeros',
   });
-  const { loading: nextMatchLoading, match: nextMatch, error: nextMatchError, refetch: refetchNextMatch } = useNextMatch(tournament.id);
 
-  // Check if player is eliminated (has bracket history but no next match)
-  useEffect(() => {
-    const checkEliminated = async () => {
-      if (!currentUserId || nextMatch || nextMatchLoading) {
-        setIsEliminated(false);
-        return;
-      }
-      try {
-        const { data: historyRows } = await supabase
-          .from('partidos')
-          .select('id')
-          .eq('torneo_id', Number(tournament.id))
-          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .not('bracket_tipo', 'is', null)
-          .limit(1);
-        setIsEliminated(Array.isArray(historyRows) && historyRows.length > 0);
-      } catch {
-        setIsEliminated(false);
-      }
-    };
-    checkEliminated();
-  }, [currentUserId, nextMatch, nextMatchLoading, tournament.id]);
+  const { loading: nextMatchLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+  const nextMatch = playerStatus?.proximo_partido ?? null;
+  const nextMatchError = null;
+  const isEliminated = playerStatus?.estado === 'eliminado';
+  const refetchNextMatch = () => {};
 
   useEffect(() => {
     (supabase as any).auth.getUser().then(({ data }: any) => {
       if (data?.user?.id) setCurrentUserId(String(data.user.id));
     }).catch(() => {});
   }, []);
+
 
   const loadFixtureData = useCallback(async () => {
     if (isLoadingRef.current) return;
@@ -687,9 +669,9 @@ const Fixture: React.FC = () => {
                       <p className="text-sm text-[#61896b] mt-1">Buscando tu proximo cruce...</p>
                     ) : nextMatch ? (
                       <>
-                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">{nextMatch.rivalName}</p>
+                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">{nextMatch.rival_nombre}</p>
                         <p className="text-xs text-[#61896b] mt-0.5">Jornada {nextMatch.jornada} - {nextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
-                        <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {nextMatch.rivalWhatsapp || 'No disponible'}</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {nextMatch.rival_whatsapp || 'No disponible'}</p>
                       </>
                     ) : isEliminated ? (
                       <>
@@ -702,9 +684,9 @@ const Fixture: React.FC = () => {
                     )}
                     {nextMatchError && <p className="text-xs text-red-600 mt-1">{nextMatchError}</p>}
                   </div>
-                  {nextMatch?.whatsappLink ? (
+                  {nextMatch?.rival_whatsapp ? (
                     <a
-                      href={nextMatch.whatsappLink}
+                      href={`https://wa.me/${String(nextMatch.rival_whatsapp).replace(/[^\d]/g, '')}`}
                       target="_blank"
                       rel="noreferrer"
                       className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"

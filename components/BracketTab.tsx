@@ -141,17 +141,19 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
     return Math.ceil(Math.log2(round1Matches)) + 1;
   }, [matchesByRound]);
 
-  // Get round name based on how many rounds remain
+  // Get round name based on round number (ascending order: 1=first round)
   const getRoundName = (ronda: number) => {
-    const roundsFromEnd = totalRounds - ronda + 1;
     const roundNames: Record<number, string> = {
-      1: 'Final',
-      2: 'Semifinal',
+      1: 'Dieciseisavos',
+      2: 'Octavos de Final',
       3: 'Cuartos de Final',
-      4: 'Octavos de Final',
-      5: 'Dieciseisavos',
+      4: 'Semifinal',
+      5: 'Final',
     };
-    return roundNames[roundsFromEnd] || `Ronda ${ronda}`;
+    // Map ronda number to proper name based on total rounds
+    // If totalRounds is 3 (Cuartos→Semis→Final), then ronda 1 = Cuartos
+    const nameIndex = totalRounds - ronda + 1;
+    return roundNames[nameIndex] || `Ronda ${ronda}`;
   };
 
   if (loading) {
@@ -219,17 +221,17 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
   }
 
   // Render bracket with tournament-style aesthetic
-  // Sort descending: Final at top, earlier rounds below
+  // Sort ascending: First rounds on left, Final on right
   const sortedRounds = Object.keys(matchesByRound)
     .map(Number)
-    .sort((a, b) => b - a);
+    .sort((a, b) => a - b);
 
   return (
     <div className="overflow-x-auto pb-4">
       <div className="flex gap-6 min-w-fit" style={{ minHeight: '300px' }}>
         {sortedRounds.map((ronda) => {
           const roundMatches = matchesByRound[ronda];
-          const isFinal = totalRounds - ronda + 1 === 1;
+          const isFinal = ronda === totalRounds;
           
           return (
             <div key={ronda} className="flex flex-col flex-1 min-w-[260px]">
