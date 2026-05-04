@@ -90,6 +90,7 @@ export function usePlayerTournamentStatus(
           proximo_partido: null,
           stats: { total: 0, wins: 0, losses: 0, sets_won: 0, sets_lost: 0, win_rate: 0 },
           ronda_actual: null,
+          stage_name: null,
           mensaje: 'No se pudo identificar al usuario.',
         });
         return;
@@ -116,6 +117,7 @@ export function usePlayerTournamentStatus(
           proximo_partido: null,
           stats: { total: 0, wins: 0, losses: 0, sets_won: 0, sets_lost: 0, win_rate: 0 },
           ronda_actual: null,
+          stage_name: null,
           mensaje: 'No hay información disponible.',
         });
         return;
@@ -129,6 +131,7 @@ export function usePlayerTournamentStatus(
         proximo_partido: result.proximo_partido ?? null,
         stats: result.stats ?? { total: 0, wins: 0, losses: 0, sets_won: 0, sets_lost: 0, win_rate: 0 },
         ronda_actual: result.ronda_actual ?? null,
+        stage_name: result.stage_name ?? null,
         mensaje: result.mensaje ?? '',
       });
     } catch (err: any) {
