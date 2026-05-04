@@ -81,14 +81,16 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
         if (authData?.user) {
           const insertResponse = await supabase
             .from('perfiles')
-            .insert([
+            .upsert(
               {
                 id: authData.user.id,
+                email: authData.user.email,
                 nombre_completo: name,
                 whatsapp: whatsapp || null,
                 direccion: verifiedAddress || address,
               },
-            ])
+              { onConflict: 'id' }
+            )
             .select()
             .single();
           console.log('supabase insert response', insertResponse);

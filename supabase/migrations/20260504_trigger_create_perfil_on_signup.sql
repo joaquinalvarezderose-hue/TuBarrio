@@ -13,24 +13,21 @@ as $$
 begin
   insert into public.perfiles (
     id,
-    email,
     nombre_completo,
     whatsapp,
     rol
   )
   values (
     new.id,
-    coalesce(new.email, new.raw_user_meta_data->>'email', ''),
     coalesce(
       new.raw_user_meta_data->>'nombre_completo',
-      split_part(coalesce(new.email, ''), '@', 1)
+      split_part(coalesce(new.email, new.raw_user_meta_data->>'email', 'usuario'), '@', 1)
     ),
     new.raw_user_meta_data->>'whatsapp',
     'jugador'
   )
   on conflict (id) do update
     set
-      email           = coalesce(excluded.email, public.perfiles.email),
       nombre_completo = coalesce(excluded.nombre_completo, public.perfiles.nombre_completo),
       whatsapp        = coalesce(excluded.whatsapp, public.perfiles.whatsapp);
 
@@ -42,6 +39,9 @@ exception
     return new;
 end;
 $$;
+
+-- Permitir email nulo temporalmente (el frontend lo completa en el insert posterior)
+alter table public.perfiles alter column email drop not null;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
