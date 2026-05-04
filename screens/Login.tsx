@@ -45,7 +45,6 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
               nombre_completo: userName,
               whatsapp: whatsappVal,
               direccion: pending.direccion || null,
-              creado_en: new Date().toISOString(),
             })
             .select('*')
             .single();

@@ -87,7 +87,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                 nombre_completo: name,
                 whatsapp: whatsapp || null,
                 direccion: verifiedAddress || address,
-                creado_en: new Date().toISOString(),
               },
             ])
             .select()

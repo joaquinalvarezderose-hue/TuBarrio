@@ -58,7 +58,6 @@ const Payment: React.FC = () => {
               id: perfilId,
               email: userEmail,
               nombre_completo: userName,
-              creado_en: new Date().toISOString(),
               rol: 'jugador',
             })
             .select('*')
