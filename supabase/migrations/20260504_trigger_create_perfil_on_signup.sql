@@ -20,17 +20,17 @@ begin
   )
   values (
     new.id,
-    new.email,
+    coalesce(new.email, new.raw_user_meta_data->>'email', ''),
     coalesce(
       new.raw_user_meta_data->>'nombre_completo',
-      split_part(new.email, '@', 1)
+      split_part(coalesce(new.email, ''), '@', 1)
     ),
     new.raw_user_meta_data->>'whatsapp',
     'jugador'
   )
   on conflict (id) do update
     set
-      email           = excluded.email,
+      email           = coalesce(excluded.email, public.perfiles.email),
       nombre_completo = coalesce(excluded.nombre_completo, public.perfiles.nombre_completo),
       whatsapp        = coalesce(excluded.whatsapp, public.perfiles.whatsapp);
 
