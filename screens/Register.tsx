@@ -61,7 +61,11 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     try {
       // Intentar registrar con Supabase; si falla (config), usar fallback local (MVP)
       if (supabase && typeof (supabase as any).auth?.signUp === 'function') {
-        const { data: authData, error: authError } = await (supabase as any).auth.signUp({ email, password });
+        const { data: authData, error: authError } = await (supabase as any).auth.signUp({
+          email,
+          password,
+          options: { data: { nombre_completo: name, whatsapp: whatsapp || null } },
+        });
         console.log('supabase signUp result', { authData, authError });
 
         // Si el mail ya está registrado, mostramos mensaje y sugerimos iniciar sesión
@@ -104,7 +108,9 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
             if (fetched) localStorage.setItem('app_user', JSON.stringify(fetched));
           }
         } else {
-          console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');
+          console.log('No auth user returned from signUp; email confirmation may be required.');
+          // Guardar datos temporalmente para cuando confirme el email
+          localStorage.setItem('pending_profile', JSON.stringify({ nombre_completo: name, whatsapp: whatsapp || null, direccion: verifiedAddress || address }));
         }
       } else {
         // Fallback: persist minimal user locally
@@ -115,20 +121,9 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
       if (onComplete) onComplete();
       navigate('/');
     } catch (err: any) {
-      // Surface error message for debugging
       console.error('register error', err);
       const msg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
       setError(msg || 'Error al registrarse');
-
-      // If supabase not configured or insertion failed, still offer fallback
-      try {
-        const localUser = { id: `local-${Date.now()}`, email, name, address: verifiedAddress || address };
-        localStorage.setItem('app_user', JSON.stringify(localUser));
-        if (onComplete) onComplete();
-        navigate('/');
-      } catch (e) {
-        console.error('fallback error', e);
-      }
     } finally {
       setLoading(false);
     }

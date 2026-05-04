@@ -32,13 +32,19 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
           console.log('[LOGIN] Saved profile.data to app_user:', profile.data);
         } else {
           // Crear perfil automáticamente si no existe
-          const userName = data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Usuario';
+          const meta = data.user.user_metadata || {};
+          const pendingStr = localStorage.getItem('pending_profile');
+          const pending = pendingStr ? JSON.parse(pendingStr) : {};
+          const userName = meta.nombre_completo || pending.nombre_completo || data.user.email?.split('@')[0] || 'Usuario';
+          const whatsappVal = meta.whatsapp || pending.whatsapp || null;
           const { data: newProfile, error: createError } = await supabase
             .from('perfiles')
             .insert({
               id: data.user.id,
               email: data.user.email,
               nombre_completo: userName,
+              whatsapp: whatsappVal,
+              direccion: pending.direccion || null,
               creado_en: new Date().toISOString(),
             })
             .select('*')
@@ -51,6 +57,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             console.log('[LOGIN] Saved fallback to app_user:', fallbackUser);
           } else {
             localStorage.setItem('app_user', JSON.stringify(newProfile));
+            localStorage.removeItem('pending_profile');
             console.log('[LOGIN] Created and saved new profile:', newProfile);
           }
         }
