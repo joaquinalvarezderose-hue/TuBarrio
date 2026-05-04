@@ -2,75 +2,9 @@
 -- Crear usuarios de prueba para testing del sistema
 -- ============================================================
 
--- 1. Insertar usuarios de prueba en auth.users (necesita ser admin)
--- Nota: Estas credenciales son solo para desarrollo/pruebas
--- CAMBIARLAS en producción
+-- 1. Crear perfiles de prueba
+-- Los usuarios se crearán via signup en el frontend con estos emails
 
--- Usuario: jugador1@test.com / Password: Test123456!
-INSERT INTO auth.users (
-    id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    created_at,
-    updated_at,
-    role,
-    aud
-) VALUES (
-    '00000000-0000-0000-0000-000000000001',
-    'jugador1@test.com',
-    -- Hash de "Test123456!" (generado con Supabase)
-    '$2a$10$K8ZQqQqQqQqQqQqQqQqQqO8ZQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQq',
-    NOW(),
-    NOW(),
-    NOW(),
-    'authenticated',
-    'authenticated'
-) ON CONFLICT (id) DO NOTHING;
-
--- Usuario: jugador2@test.com / Password: Test123456!
-INSERT INTO auth.users (
-    id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    created_at,
-    updated_at,
-    role,
-    aud
-) VALUES (
-    '00000000-0000-0000-0000-000000000002',
-    'jugador2@test.com',
-    '$2a$10$K8ZQqQqQqQqQqQqQqQqQqO8ZQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQq',
-    NOW(),
-    NOW(),
-    NOW(),
-    'authenticated',
-    'authenticated'
-) ON CONFLICT (id) DO NOTHING;
-
--- Usuario: admin@test.com / Password: Admin123456!
-INSERT INTO auth.users (
-    id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    created_at,
-    updated_at,
-    role,
-    aud
-) VALUES (
-    '00000000-0000-0000-0000-000000000003',
-    'admin@test.com',
-    '$2a$10$K8ZQqQqQqQqQqQqQqQqQqO8ZQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQq',
-    NOW(),
-    NOW(),
-    NOW(),
-    'authenticated',
-    'authenticated'
-) ON CONFLICT (id) DO NOTHING;
-
--- 2. Actualizar perfiles con los mismos IDs
 INSERT INTO public.perfiles (id, email, nombre_completo, whatsapp, rol) VALUES
     ('00000000-0000-0000-0000-000000000001', 'jugador1@test.com', 'Carlos Rodríguez', '11-1234-5678', 'jugador'),
     ('00000000-0000-0000-0000-000000000002', 'jugador2@test.com', 'Martín González', '11-2345-6789', 'jugador'),
