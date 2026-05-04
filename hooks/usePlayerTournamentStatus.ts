@@ -28,6 +28,7 @@ export type PlayerTournamentNextMatch = {
   bracket_tipo: string | null;
   grupo: string;
   categoria: string;
+  stage_name: string | null;
   rival_id: string;
   rival_nombre: string;
   rival_whatsapp: string | null;

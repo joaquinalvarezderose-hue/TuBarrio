@@ -125,6 +125,7 @@ BEGIN
     p.bracket_tipo,
     p.grupo,
     p.categoria,
+    p.stage_name,
     pr1.nombre_completo AS jugador1_nombre,
     pr1.whatsapp        AS jugador1_whatsapp,
     pr2.nombre_completo AS jugador2_nombre,
@@ -154,6 +155,7 @@ BEGIN
       'bracket_tipo',     rec.bracket_tipo,
       'grupo',            rec.grupo,
       'categoria',        rec.categoria,
+      'stage_name',       rec.stage_name,
       'rival_id',         CASE WHEN rec.jugador1_id = p_perfil_id THEN rec.jugador2_id ELSE rec.jugador1_id END,
       'rival_nombre',     CASE WHEN rec.jugador1_id = p_perfil_id THEN rec.jugador2_nombre ELSE rec.jugador1_nombre END,
       'rival_whatsapp',   CASE WHEN rec.jugador1_id = p_perfil_id THEN rec.jugador2_whatsapp ELSE rec.jugador1_whatsapp END
