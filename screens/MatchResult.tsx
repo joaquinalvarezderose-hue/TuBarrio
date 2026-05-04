@@ -755,6 +755,8 @@ const MatchResult: React.FC = () => {
               <span>
                     {partido?.bracket_tipo === 'eliminacion_directa' && partido?.stage_name
                       ? partido.stage_name
+                      : partido?.bracket_tipo === 'eliminacion_directa' && partido?.ronda
+                      ? `Ronda ${partido.ronda}`
                       : `Jornada ${partido?.jornada || 1}`
                     }
                   </span>
