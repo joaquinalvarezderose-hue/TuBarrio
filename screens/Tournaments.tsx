@@ -42,6 +42,8 @@ type Torneo = {
   activo: boolean;
 };
 
+const DEFAULT_TOURNAMENT_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE';
+
 const FALLBACK_TORNEOS: Torneo[] = [
   {
     id: 1,
@@ -336,7 +338,7 @@ const Tournaments: React.FC = () => {
                 <div className="relative h-48 w-full bg-gray-100 dark:bg-gray-700">
                   <div 
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105" 
-                    style={{ backgroundImage: `url("${tournament.imagen_url || ''}")` }}
+                    style={{ backgroundImage: `url("${tournament.imagen_url || DEFAULT_TOURNAMENT_IMAGE}")` }}
                   ></div>
                   <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full border border-gray-100 dark:border-gray-800">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#111813] dark:text-white">Inscripción Abierta</p>
@@ -421,7 +423,7 @@ const Tournaments: React.FC = () => {
                   }}
                   className={`bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-all group ${canOpenPanel ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}
                 >
-                  <img src={t.imagen_url || ''} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
+                  <img src={t.imagen_url || DEFAULT_TOURNAMENT_IMAGE} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
                   <div className="flex-1">
                     <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.titulo}</h4>
                     <span className={`text-xs font-bold mt-1 inline-block ${canOpenPanel ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
