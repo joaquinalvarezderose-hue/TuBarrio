@@ -80,7 +80,18 @@ const TournamentPanel: React.FC = () => {
   // Single authoritative backend hook for player status
   const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
 
-  const nextMatch = playerStatus?.proximo_partido ?? null;
+  const nextMatch = playerStatus?.proximo_partido;
+  
+  // Debug: Log the next match data to see if stage_name is present
+  if (nextMatch) {
+    console.log('TournamentPanel - nextMatch data:', {
+      id: nextMatch.id,
+      bracket_tipo: nextMatch.bracket_tipo,
+      ronda: nextMatch.ronda,
+      stage_name: nextMatch.stage_name,
+      jornada: nextMatch.jornada
+    });
+  }
   const isEliminated = playerStatus?.estado === 'eliminado';
   const isCampeon = playerStatus?.estado === 'campeon';
   const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
