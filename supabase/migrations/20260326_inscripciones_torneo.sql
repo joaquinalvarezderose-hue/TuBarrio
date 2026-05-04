@@ -67,21 +67,24 @@ revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to anon, authenticated;
 
 -- Usuarios autenticados: crear su propia inscripción
-create policy if not exists "inscripciones_insert_own"
+drop policy if exists "inscripciones_insert_own" on public.inscripciones_torneo;
+create policy "inscripciones_insert_own"
 on public.inscripciones_torneo
 for insert
 to authenticated
 with check (perfil_id = auth.uid());
 
 -- Usuarios autenticados: leer solo sus propias inscripciones
-create policy if not exists "inscripciones_select_own"
+drop policy if exists "inscripciones_select_own" on public.inscripciones_torneo;
+create policy "inscripciones_select_own"
 on public.inscripciones_torneo
 for select
 to authenticated
 using (perfil_id = auth.uid() or public.is_admin());
 
--- Usuarios autenticados: permitir solo ajustes menores mientras siga pendiente
-create policy if not exists "inscripciones_update_own_pending"
+-- Usuarios autenticados: actualizar solo sus inscripciones pendientes
+drop policy if exists "inscripciones_update_own_pending" on public.inscripciones_torneo;
+create policy "inscripciones_update_own_pending"
 on public.inscripciones_torneo
 for update
 to authenticated
@@ -91,16 +94,18 @@ with check (
   and estado = 'pendiente_revision'
 );
 
--- Admin: aprobar o rechazar pagos manualmente
-create policy if not exists "inscripciones_admin_update"
+-- Admin: aprobar o rechazar pagos-- Admin: actualizar inscripciones
+drop policy if exists "inscripciones_admin_update" on public.inscripciones_torneo;
+create policy "inscripciones_admin_update"
 on public.inscripciones_torneo
 for update
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
--- Admin: opcional, permitir borrar registros inválidos
-create policy if not exists "inscripciones_admin_delete"
+-- Admin: opcional, permitir-- Admin: eliminar inscripciones
+drop policy if exists "inscripciones_admin_delete" on public.inscripciones_torneo;
+create policy "inscripciones_admin_delete"
 on public.inscripciones_torneo
 for delete
 to authenticated
