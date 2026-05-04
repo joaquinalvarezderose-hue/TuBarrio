@@ -44,6 +44,7 @@ DECLARE
   v_has_pending      boolean := false;
   v_total_playoff_players integer := 0;
   v_stage_name       text := NULL;
+  v_current_round    integer := NULL;
 
   -- next match row
   rec RECORD;
@@ -204,8 +205,6 @@ BEGIN
     AND bracket_tipo = 'eliminacion_directa';
 
   -- Simplified stage calculation: determine based on round position relative to total rounds
-  DECLARE v_current_round integer := NULL;
-  
   -- Get current round from next match or last played match
   IF rec.id IS NOT NULL AND rec.ronda IS NOT NULL THEN
     v_current_round := rec.ronda;
