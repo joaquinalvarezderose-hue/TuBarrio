@@ -86,17 +86,22 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                 creado_en: new Date().toISOString(),
               },
             ])
-            .select();
+            .select()
+            .single();
           console.log('supabase insert response', insertResponse);
           const dbError = (insertResponse as any).error;
           if (dbError) throw dbError;
-          if (!(insertResponse as any).data) {
+          const insertedProfile = (insertResponse as any).data;
+          if (insertedProfile) {
+            localStorage.setItem('app_user', JSON.stringify(insertedProfile));
+          } else {
             const { data: fetched, error: fetchErr } = await supabase
               .from('perfiles')
               .select('*')
               .eq('id', authData.user.id)
               .single();
             console.log('fetched profile after insert (signup path)', { fetched, fetchErr });
+            if (fetched) localStorage.setItem('app_user', JSON.stringify(fetched));
           }
         } else {
           console.log('No auth user returned from signUp; check Supabase auth settings (email confirmations, etc.)');

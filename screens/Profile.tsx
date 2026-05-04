@@ -1,17 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const userStr = localStorage.getItem('app_user');
-  const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi", address: "Calle Falsa 123" };
+  const cachedUser = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi", address: "Calle Falsa 123" };
 
+  const [user, setUser] = useState(cachedUser);
   const [editingWa, setEditingWa] = useState(false);
-  const [waValue, setWaValue] = useState<string>(user?.whatsapp || '');
+  const [waValue, setWaValue] = useState<string>(cachedUser?.whatsapp || '');
   const [waSaving, setWaSaving] = useState(false);
   const [waError, setWaError] = useState<string | null>(null);
   const [waSuccess, setWaSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data: authData } = await (supabase as any).auth.getUser();
+        const userId = authData?.user?.id || cachedUser?.id;
+        if (!userId) return;
+        const { data: profile } = await supabase
+          .from('perfiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        if (profile) {
+          localStorage.setItem('app_user', JSON.stringify(profile));
+          setUser(profile);
+          setWaValue(profile.whatsapp || '');
+        }
+      } catch (_) {}
+    };
+    fetchProfile();
+  }, []);
 
   const handleSaveWhatsapp = async () => {
     setWaError(null);
