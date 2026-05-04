@@ -31,9 +31,28 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
           localStorage.setItem('app_user', JSON.stringify(profile.data));
           console.log('[LOGIN] Saved profile.data to app_user:', profile.data);
         } else {
-          const fallbackUser = { id: data.user.id, email: data.user.email };
-          localStorage.setItem('app_user', JSON.stringify(fallbackUser));
-          console.log('[LOGIN] Saved fallback to app_user:', fallbackUser);
+          // Crear perfil automáticamente si no existe
+          const userName = data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Usuario';
+          const { data: newProfile, error: createError } = await supabase
+            .from('perfiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              nombre_completo: userName,
+              creado_en: new Date().toISOString(),
+            })
+            .select('*')
+            .single();
+          
+          if (createError) {
+            console.error('[LOGIN] Error creating profile:', createError);
+            const fallbackUser = { id: data.user.id, email: data.user.email };
+            localStorage.setItem('app_user', JSON.stringify(fallbackUser));
+            console.log('[LOGIN] Saved fallback to app_user:', fallbackUser);
+          } else {
+            localStorage.setItem('app_user', JSON.stringify(newProfile));
+            console.log('[LOGIN] Created and saved new profile:', newProfile);
+          }
         }
         if (onSuccess) onSuccess();
         // Force reload using HashRouter format

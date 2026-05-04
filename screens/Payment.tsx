@@ -38,13 +38,41 @@ const Payment: React.FC = () => {
       }
 
       // Si el cache local quedó de otra cuenta, lo corregimos para evitar desincronización.
+      // Si no existe perfil en BD, lo creamos automáticamente.
       if (!cachedUser || cachedUser.id !== perfilId) {
         const { data: profileRow } = await supabase
           .from('perfiles')
           .select('*')
           .eq('id', perfilId)
           .maybeSingle();
-        localStorage.setItem('app_user', JSON.stringify(profileRow || { id: perfilId }));
+        
+        if (!profileRow) {
+          // Crear perfil automáticamente si no existe
+          const { data: authUser } = await (supabase as any).auth.getUser();
+          const userEmail = authUser?.user?.email || '';
+          const userName = authUser?.user?.user_metadata?.name || userEmail.split('@')[0] || 'Usuario';
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from('perfiles')
+            .insert({
+              id: perfilId,
+              email: userEmail,
+              nombre_completo: userName,
+              creado_en: new Date().toISOString(),
+              rol: 'jugador',
+            })
+            .select('*')
+            .single();
+          
+          if (createError) {
+            console.error('Error creando perfil:', createError);
+            throw new Error('No se pudo crear tu perfil. Contacta soporte.');
+          }
+          
+          localStorage.setItem('app_user', JSON.stringify(newProfile));
+        } else {
+          localStorage.setItem('app_user', JSON.stringify(profileRow));
+        }
       }
 
       const payload = {
