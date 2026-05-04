@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
@@ -6,6 +6,40 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi", address: "Calle Falsa 123" };
+
+  const [editingWa, setEditingWa] = useState(false);
+  const [waValue, setWaValue] = useState<string>(user?.whatsapp || '');
+  const [waSaving, setWaSaving] = useState(false);
+  const [waError, setWaError] = useState<string | null>(null);
+  const [waSuccess, setWaSuccess] = useState(false);
+
+  const handleSaveWhatsapp = async () => {
+    setWaError(null);
+    setWaSuccess(false);
+    if (waValue && !/^[+0-9()\s-]{7,}$/.test(waValue)) {
+      setWaError('Número inválido. Ej: +54 9 11 1234-5678');
+      return;
+    }
+    setWaSaving(true);
+    try {
+      const { data: authData } = await (supabase as any).auth.getUser();
+      const userId = authData?.user?.id || user?.id;
+      if (!userId) throw new Error('Sin sesión');
+      const { error } = await supabase
+        .from('perfiles')
+        .update({ whatsapp: waValue || null })
+        .eq('id', userId);
+      if (error) throw error;
+      const updated = { ...user, whatsapp: waValue || null };
+      localStorage.setItem('app_user', JSON.stringify(updated));
+      setWaSuccess(true);
+      setEditingWa(false);
+    } catch (err: any) {
+      setWaError(err?.message || 'No se pudo guardar');
+    } finally {
+      setWaSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -58,6 +92,59 @@ const Profile: React.FC = () => {
         </div>
         <div className="flex flex-col items-center text-center mt-2">
           <h1 className="text-2xl font-bold tracking-tight mb-1">{user.name}</h1>
+        </div>
+      </div>
+
+      {/* WhatsApp Section */}
+      <div className="px-4 pb-4">
+        <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-white/5 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-green-50 text-green-600 p-2 rounded-lg">
+                <span className="material-symbols-outlined text-[20px]">call</span>
+              </div>
+              <span className="font-medium text-slate-900 dark:text-white text-sm tracking-tight">WhatsApp</span>
+            </div>
+            {!editingWa && (
+              <button
+                onClick={() => { setEditingWa(true); setWaError(null); setWaSuccess(false); }}
+                className="text-xs font-bold text-primary hover:underline"
+              >
+                {user?.whatsapp ? 'Editar' : 'Agregar'}
+              </button>
+            )}
+          </div>
+          {editingWa ? (
+            <div className="space-y-2">
+              <input
+                type="tel"
+                className="w-full px-3 py-2.5 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all"
+                placeholder="+54 9 11 1234-5678"
+                value={waValue}
+                onChange={(e) => setWaValue(e.target.value)}
+              />
+              {waError && <p className="text-xs text-red-600">{waError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveWhatsapp}
+                  disabled={waSaving}
+                  className="flex-1 bg-primary text-secondary font-black text-sm py-2 rounded-xl disabled:opacity-50"
+                >
+                  {waSaving ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => { setEditingWa(false); setWaValue(user?.whatsapp || ''); }}
+                  className="flex-1 border border-gray-200 text-slate-600 font-semibold text-sm py-2 rounded-xl"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 ml-10">
+              {waSuccess ? '✓ Guardado' : (user?.whatsapp || <span className="text-amber-500 font-semibold">Sin WhatsApp — los rivales no podrán contactarte</span>)}
+            </p>
+          )}
         </div>
       </div>
 
