@@ -233,4 +233,4 @@ GRANT EXECUTE ON FUNCTION public.obtener_estado_jugador_torneo(UUID, BIGINT) TO 
 GRANT EXECUTE ON FUNCTION public.calcular_stage_name(BIGINT, INTEGER) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.debug_stage_names(BIGINT) TO authenticated, anon;
 
-RAISE NOTICE 'Código adaptado exitosamente para nueva estructura de base de datos';
+-- Código adaptado exitosamente para nueva estructura de base de datos
