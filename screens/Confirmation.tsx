@@ -154,7 +154,7 @@ const Confirmation: React.FC = () => {
       main={main}
       aside={aside}
       footer={footer}
-      contentClassName="px-4 md:px-8 pb-12"
+      contentClassName="px-4 md:px-8 pb-52 md:pb-12"
       footerContainerClassName="md:flex md:justify-end"
     />
   );
