@@ -38,6 +38,7 @@ export type PlayerTournamentStatus = {
   proximo_partido: PlayerTournamentNextMatch | null;
   stats: PlayerTournamentStats;
   ronda_actual: number | null;
+  stage_name: string | null;
   mensaje: string;
 };
 

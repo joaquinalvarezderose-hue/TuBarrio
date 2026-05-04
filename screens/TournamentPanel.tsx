@@ -783,7 +783,13 @@ const TournamentPanel: React.FC = () => {
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-[#4a9c40]"></div>
                 <div className="flex justify-between items-start mb-4">
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">{nextMatch ? `Fecha ${nextMatch.jornada}` : 'Sin partido'}</p>
+                    <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wider">
+                    {nextMatch ? (
+                      nextMatch.bracket_tipo === 'eliminacion_directa' && playerStatus?.stage_name
+                        ? playerStatus.stage_name
+                        : `Fecha ${nextMatch.jornada}`
+                    ) : 'Sin partido'}
+                  </p>
                     <h4 className="text-lg font-bold text-[#111813] dark:text-white">{nextMatch ? `vs. ${nextMatch.rival_nombre}` : 'Rival por definir'}</h4>
                     {nextMatchDateLabel && <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{nextMatchDateLabel}</p>}
                   </div>

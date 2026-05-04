@@ -466,7 +466,7 @@ const MatchResult: React.FC = () => {
 
         let partidoQuery: any = supabase
           .from('partidos')
-          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2')
+          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo')
           .eq('torneo_id', tournament.id)
           .eq('categoria', categoria);
 
@@ -752,7 +752,12 @@ const MatchResult: React.FC = () => {
           <div className="p-4 bg-gradient-to-r from-primary/10 to-transparent">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{tournament.title} - {tournament.subtitle}</p>
             <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-300">
-              <span>Jornada {partido?.jornada || 1}</span>
+              <span>
+                    {partido?.bracket_tipo === 'eliminacion_directa' && playerStatus?.stage_name
+                      ? playerStatus.stage_name
+                      : `Jornada ${partido?.jornada || 1}`
+                    }
+                  </span>
               {!isWaitingValidation && <span className="font-bold uppercase">{partido?.estado || 'sin partido'}</span>}
             </div>
             <div className="flex items-center justify-between mt-3">

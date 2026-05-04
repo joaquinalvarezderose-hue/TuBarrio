@@ -42,6 +42,8 @@ DECLARE
   v_max_ronda        integer := NULL;
   v_total_rondas     integer := NULL;
   v_has_pending      boolean := false;
+  v_total_playoff_players integer := 0;
+  v_stage_name       text := NULL;
 
   -- next match row
   rec RECORD;
@@ -162,6 +164,7 @@ BEGIN
       'proximo_partido', v_next_match,
       'stats',           v_stats,
       'ronda_actual',    rec.ronda,
+      'stage_name',      v_stage_name,
       'mensaje',         'Tenés un partido pendiente.'
     );
   END IF;
@@ -191,6 +194,48 @@ BEGIN
     v_ronda_actual := v_max_ronda;
   END IF;
 
+  -- Calculate total number of playoff players
+  SELECT COUNT(DISTINCT COALESCE(jugador1_id, jugador2_id))
+  INTO v_total_playoff_players
+  FROM public.partidos
+  WHERE torneo_id = p_torneo_id
+    AND bracket_tipo = 'eliminacion_directa';
+
+  -- Determine stage name based on total players and current round
+  IF v_total_playoff_players > 0 AND v_total_rondas IS NOT NULL THEN
+    IF v_total_playoff_players <= 2 THEN
+      v_stage_name := 'Final';
+    ELSIF v_total_playoff_players <= 4 THEN
+      IF v_total_rondas = 2 THEN v_stage_name := 'Final';
+      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Semifinal';
+      ELSE v_stage_name := 'Semifinal';
+      END IF;
+    ELSIF v_total_playoff_players <= 8 THEN
+      IF v_total_rondas = 3 THEN v_stage_name := 'Final';
+      ELSIF v_total_rondas = 2 THEN v_stage_name := 'Semifinal';
+      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Cuartos de Final';
+      ELSE v_stage_name := 'Cuartos de Final';
+      END IF;
+    ELSIF v_total_playoff_players <= 16 THEN
+      IF v_total_rondas = 4 THEN v_stage_name := 'Final';
+      ELSIF v_total_rondas = 3 THEN v_stage_name := 'Semifinal';
+      ELSIF v_total_rondas = 2 THEN v_stage_name := 'Cuartos de Final';
+      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Octavos de Final';
+      ELSE v_stage_name := 'Octavos de Final';
+      END IF;
+    ELSIF v_total_playoff_players <= 32 THEN
+      IF v_total_rondas = 5 THEN v_stage_name := 'Final';
+      ELSIF v_total_rondas = 4 THEN v_stage_name := 'Semifinal';
+      ELSIF v_total_rondas = 3 THEN v_stage_name := 'Cuartos de Final';
+      ELSIF v_total_rondas = 2 THEN v_stage_name := 'Octavos de Final';
+      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Dieciseisavos de Final';
+      ELSE v_stage_name := 'Dieciseisavos de Final';
+      END IF;
+    ELSE
+      v_stage_name := 'Ronda ' || COALESCE(v_total_rondas, 0);
+    END IF;
+  END IF;
+
   -- --------------------------------------------------------
   -- 5. Was player eliminated in bracket?
   -- --------------------------------------------------------
@@ -210,6 +255,7 @@ BEGIN
         'proximo_partido', NULL,
         'stats',           v_stats,
         'ronda_actual',    v_ronda_actual,
+        'stage_name',      v_stage_name,
         'mensaje',         'Quedaste eliminado en la final. Podés seguir viendo los resultados del torneo.'
       );
     END IF;
@@ -219,6 +265,7 @@ BEGIN
       'proximo_partido', NULL,
       'stats',           v_stats,
       'ronda_actual',    v_ronda_actual,
+      'stage_name',      v_stage_name,
       'mensaje',         'No avanzaste a la siguiente ronda. Podés seguir viendo los resultados del torneo.'
     );
   END IF;
@@ -235,6 +282,7 @@ BEGIN
         'proximo_partido', NULL,
         'stats',           v_stats,
         'ronda_actual',    v_ronda_actual,
+        'stage_name',      v_stage_name,
         'mensaje',         '¡Sos el campeón del torneo!'
       );
     END IF;
@@ -245,6 +293,7 @@ BEGIN
       'proximo_partido', NULL,
       'stats',           v_stats,
       'ronda_actual',    v_ronda_actual,
+      'stage_name',      v_stage_name,
       'mensaje',         'Avanzaste a la siguiente ronda. Esperá que se generen los cruces.'
     );
   END IF;
