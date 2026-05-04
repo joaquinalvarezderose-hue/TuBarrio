@@ -201,38 +201,78 @@ BEGIN
   WHERE torneo_id = p_torneo_id
     AND bracket_tipo = 'eliminacion_directa';
 
-  -- Determine stage name based on total players and current round
-  IF v_total_playoff_players > 0 AND v_total_rondas IS NOT NULL THEN
-    IF v_total_playoff_players <= 2 THEN
-      v_stage_name := 'Final';
-    ELSIF v_total_playoff_players <= 4 THEN
-      IF v_total_rondas = 2 THEN v_stage_name := 'Final';
-      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Semifinal';
-      ELSE v_stage_name := 'Semifinal';
+  -- Determine stage name based on the round of the current/final match
+  -- Use the round from the next match if available, otherwise from the last played match
+  DECLARE v_current_round integer := NULL;
+  
+  -- First try to get round from next match
+  IF rec.id IS NOT NULL AND rec.ronda IS NOT NULL THEN
+    v_current_round := rec.ronda;
+  ELSIF v_max_ronda IS NOT NULL THEN
+    v_current_round := v_max_ronda;
+  END IF;
+  
+  -- Calculate stage based on current round (1=first round, higher numbers=later rounds)
+  IF v_current_round IS NOT NULL THEN
+    IF v_current_round = 1 THEN
+      IF v_total_playoff_players <= 4 THEN
+        v_stage_name := 'Semifinal';
+      ELSIF v_total_playoff_players <= 8 THEN
+        v_stage_name := 'Cuartos de Final';
+      ELSIF v_total_playoff_players <= 16 THEN
+        v_stage_name := 'Octavos de Final';
+      ELSIF v_total_playoff_players <= 32 THEN
+        v_stage_name := 'Dieciseisavos de Final';
+      ELSE
+        v_stage_name := 'Primera Ronda';
       END IF;
-    ELSIF v_total_playoff_players <= 8 THEN
-      IF v_total_rondas = 3 THEN v_stage_name := 'Final';
-      ELSIF v_total_rondas = 2 THEN v_stage_name := 'Semifinal';
-      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Cuartos de Final';
-      ELSE v_stage_name := 'Cuartos de Final';
+    ELSIF v_current_round = 2 THEN
+      IF v_total_playoff_players <= 4 THEN
+        v_stage_name := 'Final';
+      ELSIF v_total_playoff_players <= 8 THEN
+        v_stage_name := 'Semifinal';
+      ELSIF v_total_playoff_players <= 16 THEN
+        v_stage_name := 'Cuartos de Final';
+      ELSIF v_total_playoff_players <= 32 THEN
+        v_stage_name := 'Octavos de Final';
+      ELSE
+        v_stage_name := 'Segunda Ronda';
       END IF;
-    ELSIF v_total_playoff_players <= 16 THEN
-      IF v_total_rondas = 4 THEN v_stage_name := 'Final';
-      ELSIF v_total_rondas = 3 THEN v_stage_name := 'Semifinal';
-      ELSIF v_total_rondas = 2 THEN v_stage_name := 'Cuartos de Final';
-      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Octavos de Final';
-      ELSE v_stage_name := 'Octavos de Final';
+    ELSIF v_current_round = 3 THEN
+      IF v_total_playoff_players <= 8 THEN
+        v_stage_name := 'Final';
+      ELSIF v_total_playoff_players <= 16 THEN
+        v_stage_name := 'Semifinal';
+      ELSIF v_total_playoff_players <= 32 THEN
+        v_stage_name := 'Cuartos de Final';
+      ELSE
+        v_stage_name := 'Tercera Ronda';
       END IF;
-    ELSIF v_total_playoff_players <= 32 THEN
-      IF v_total_rondas = 5 THEN v_stage_name := 'Final';
-      ELSIF v_total_rondas = 4 THEN v_stage_name := 'Semifinal';
-      ELSIF v_total_rondas = 3 THEN v_stage_name := 'Cuartos de Final';
-      ELSIF v_total_rondas = 2 THEN v_stage_name := 'Octavos de Final';
-      ELSIF v_total_rondas = 1 THEN v_stage_name := 'Dieciseisavos de Final';
-      ELSE v_stage_name := 'Dieciseisavos de Final';
+    ELSIF v_current_round = 4 THEN
+      IF v_total_playoff_players <= 16 THEN
+        v_stage_name := 'Final';
+      ELSIF v_total_playoff_players <= 32 THEN
+        v_stage_name := 'Semifinal';
+      ELSE
+        v_stage_name := 'Cuarta Ronda';
+      END IF;
+    ELSIF v_current_round = 5 THEN
+      IF v_total_playoff_players <= 32 THEN
+        v_stage_name := 'Final';
+      ELSE
+        v_stage_name := 'Quinta Ronda';
+      END IF;
+    ELSIF v_current_round >= 6 THEN
+      -- For tournaments with more rounds, assume the highest round is the final
+      IF v_current_round = v_total_rondas THEN
+        v_stage_name := 'Final';
+      ELSIF v_current_round = v_total_rondas - 1 THEN
+        v_stage_name := 'Semifinal';
+      ELSE
+        v_stage_name := 'Ronda ' || v_current_round;
       END IF;
     ELSE
-      v_stage_name := 'Ronda ' || COALESCE(v_total_rondas, 0);
+      v_stage_name := 'Ronda ' || v_current_round;
     END IF;
   END IF;
 
