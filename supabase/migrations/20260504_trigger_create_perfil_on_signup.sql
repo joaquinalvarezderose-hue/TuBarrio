@@ -16,8 +16,7 @@ begin
     email,
     nombre_completo,
     whatsapp,
-    rol,
-    creado_en
+    rol
   )
   values (
     new.id,
@@ -27,16 +26,20 @@ begin
       split_part(new.email, '@', 1)
     ),
     new.raw_user_meta_data->>'whatsapp',
-    'jugador',
-    now()
+    'jugador'
   )
   on conflict (id) do update
     set
-      email          = excluded.email,
+      email           = excluded.email,
       nombre_completo = coalesce(excluded.nombre_completo, public.perfiles.nombre_completo),
-      whatsapp       = coalesce(excluded.whatsapp, public.perfiles.whatsapp);
+      whatsapp        = coalesce(excluded.whatsapp, public.perfiles.whatsapp);
 
   return new;
+exception
+  when others then
+    -- Nunca abortar el signup por un fallo en la creación del perfil
+    raise warning 'handle_new_user: no se pudo crear perfil para %. Error: %', new.id, sqlerrm;
+    return new;
 end;
 $$;
 
