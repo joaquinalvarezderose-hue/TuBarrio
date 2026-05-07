@@ -117,6 +117,8 @@ const Tournaments: React.FC = () => {
       const saved = localStorage.getItem(cacheKey);
       const localIds: number[] = saved ? JSON.parse(saved) : [];
       try {
+        console.log('Mis Torneos authUserId', authUserId, 'saved localIds', localIds);
+
         if (!authUserId) {
           setRegisteredIds(localIds);
           return;
@@ -140,6 +142,12 @@ const Tournaments: React.FC = () => {
 
         if (jugadoresError) throw jugadoresError;
         if (inscripcionesError) throw inscripcionesError;
+
+        console.log('Mis Torneos debug:', {
+          authUserId,
+          jugadoresData,
+          inscripcionesData,
+        });
 
         const jugadorIds = (jugadoresData || [])
           .map((row: any) => Number(row.torneo_id || 0))
