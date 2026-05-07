@@ -107,17 +107,12 @@ WHERE i.estado = 'pagado_aprobado'
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- BLOQUE 5: Actualizar torneo_estado con los conteos correctos
+-- BLOQUE 5: Actualizar torneo_estado - permitir sin límite máximo
+-- Si max_participantes es NULL = sin límite, si tiene valor = límite máximo
 -- ============================================================
 UPDATE public.torneo_estado te
 SET
-  current_participantes = (
-    SELECT COUNT(DISTINCT tj.perfil_id)
-    FROM public.torneo_jugadores tj
-    WHERE tj.torneo_id = te.torneo_id
-      AND tj.categoria = te.categoria
-      AND tj.grupo = te.grupo
-  ),
+  max_participantes = NULL,  -- Sin límite máximo
   updated_at = NOW()
 WHERE te.torneo_id IN (
   SELECT DISTINCT torneo_id FROM public.inscripciones_torneo WHERE estado = 'pagado_aprobado'
