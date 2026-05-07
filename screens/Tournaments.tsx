@@ -96,10 +96,9 @@ const Tournaments: React.FC = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<'hub' | 'available' | 'my'>('hub');
 
-  const userStr = localStorage.getItem('app_user');
-  const user = userStr ? JSON.parse(userStr) : { name: 'Usuario' };
-
   const [registeredIds, setRegisteredIds] = useState<number[]>([]);
+  // Torneos en los que el usuario está inscripto (datos completos, cargados directamente)
+  const [myTorneos, setMyTorneos] = useState<Torneo[]>([]);
   const [statusByTournamentId, setStatusByTournamentId] = useState<Record<number, string>>({});
   const [capacityByTournamentId, setCapacityByTournamentId] = useState<
     Record<number, { current: number; max: number | null }>
@@ -112,7 +111,7 @@ const Tournaments: React.FC = () => {
   useEffect(() => {
     const loadRegistrations = async () => {
       const { data: authData } = await (supabase as any).auth.getUser();
-      const authUserId = authData?.user?.id || user?.id;
+      const authUserId = authData?.user?.id;
       const userId = String(authUserId || 'anon');
       const cacheKey = `registered_tournaments_${userId}`;
       const saved = localStorage.getItem(cacheKey);
@@ -123,16 +122,20 @@ const Tournaments: React.FC = () => {
           return;
         }
 
-        const [{ data: jugadoresData, error: jugadoresError }, { data: inscripcionesData, error: inscripcionesError }] = await Promise.all([
+        // Cargar inscripciones aprobadas/pendientes con datos del torneo en un solo query
+        const [
+          { data: jugadoresData, error: jugadoresError },
+          { data: inscripcionesData, error: inscripcionesError },
+        ] = await Promise.all([
           supabase
             .from('torneo_jugadores')
             .select('torneo_id')
             .eq('perfil_id', authUserId),
           supabase
             .from('inscripciones_torneo')
-            .select('torneo_id, estado')
+            .select('torneo_id, estado, torneos(id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo)')
             .eq('perfil_id', authUserId)
-            .in('estado', ['pendiente_revision', 'pagado_aprobado'])
+            .in('estado', ['pendiente_revision', 'pagado_aprobado']),
         ]);
 
         if (jugadoresError) throw jugadoresError;
@@ -150,6 +153,15 @@ const Tournaments: React.FC = () => {
 
         setRegisteredIds(remoteIds);
         localStorage.setItem(cacheKey, JSON.stringify(remoteIds));
+
+        // Construir lista de torneos propios directamente desde la respuesta
+        // (evita depender de que la lista general de torneos esté cargada)
+        const torneosFromInscripciones: Torneo[] = (inscripcionesData || [])
+          .map((row: any) => row.torneos)
+          .filter(Boolean)
+          .filter((t: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.id === t.id) === idx);
+
+        setMyTorneos(torneosFromInscripciones);
       } catch (err) {
         console.error('Error cargando inscripciones desde Supabase', err);
         setRegisteredIds(localIds);
@@ -272,8 +284,16 @@ const Tournaments: React.FC = () => {
     date: TOURNAMENT_SEASON_LABEL,
   });
 
-  const myRegisteredTournaments = torneos.filter(t => registeredIds.includes(t.id));
-  const availableTournaments = torneos.filter((t) => {
+  // Combinar torneos propios: primero los cargados directamente desde inscripciones,
+  // luego completar con los de la lista general si hay IDs que no estén cubiertos
+  // (ej: torneos en torneo_jugadores sin inscripcion directa)
+  const myRegisteredTournaments = (() => {
+    const seen = new Set<number>(myTorneos.map((t: Torneo) => t.id));
+    const fromGeneral = torneos.filter((t: Torneo) => registeredIds.includes(t.id) && !seen.has(t.id));
+    return [...myTorneos, ...fromGeneral];
+  })();
+
+  const availableTournaments = torneos.filter((t: Torneo) => {
     if (registeredIds.includes(t.id)) return false;
     const status = statusByTournamentId[t.id];
     if (!status) return true;
