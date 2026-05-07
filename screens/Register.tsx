@@ -14,7 +14,13 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [verifiedAddress, setVerifiedAddress] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [terms, setTerms] = useState(false);
-  const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappLocal, setWhatsappLocal] = useState('');
+
+  // Normalizes a local Argentine number to E.164 format: +549XXXXXXXXXX
+  const normalizeWhatsApp = (local: string): string => {
+    const digits = local.replace(/\D/g, '');
+    return digits ? `+549${digits}` : '';
+  };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +44,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   };
 
   const handleRegister = async () => {
-    console.log('handleRegister called', { name, email, password, confirmPassword, address, whatsapp, terms });
+    console.log('handleRegister called', { name, email, password, confirmPassword, address, whatsapp: whatsappLocal, terms });
     // Client-side validation
     setError(null);
     setFieldErrors({});
@@ -49,7 +55,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     if (!confirmPassword || confirmPassword !== password) errors.confirmPassword = 'Las contraseñas no coinciden.';
     if (!terms) errors.terms = 'Debes aceptar los términos y condiciones.';
     if (!address || address.trim().length < 5) errors.address = 'Ingresa una dirección válida.';
-    if (whatsapp && !/^[+0-9()\s-]{7,}$/.test(whatsapp)) errors.whatsapp = 'Ingresa un número de WhatsApp válido.';
+    if (whatsappLocal && !/^\d[\d\s\-]{7,11}$/.test(whatsappLocal)) errors.whatsapp = 'Ingresa el número local (ej: 11 1234-5678).';
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -60,11 +66,12 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     setLoading(true);
     try {
       // Intentar registrar con Supabase; si falla (config), usar fallback local (MVP)
+      const normalizedWA = normalizeWhatsApp(whatsappLocal);
       if (supabase && typeof (supabase as any).auth?.signUp === 'function') {
         const { data: authData, error: authError } = await (supabase as any).auth.signUp({
           email,
           password,
-          options: { data: { nombre_completo: name, whatsapp: whatsapp || null } },
+          options: { data: { nombre_completo: name, whatsapp: normalizedWA || null } },
         });
         console.log('supabase signUp result', { authData, authError });
 
@@ -86,7 +93,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                 id: authData.user.id,
                 email: authData.user.email,
                 nombre_completo: name,
-                whatsapp: whatsapp || null,
+                whatsapp: normalizedWA || null,
                 direccion: verifiedAddress || address,
               },
               { onConflict: 'id' }
@@ -111,7 +118,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
         } else {
           console.log('No auth user returned from signUp; email confirmation may be required.');
           // Guardar datos temporalmente para cuando confirme el email
-          localStorage.setItem('pending_profile', JSON.stringify({ nombre_completo: name, whatsapp: whatsapp || null, direccion: verifiedAddress || address }));
+          localStorage.setItem('pending_profile', JSON.stringify({ nombre_completo: name, whatsapp: normalizedWA || null, direccion: verifiedAddress || address }));
         }
       } else {
         // Fallback: persist minimal user locally
@@ -200,18 +207,21 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
 
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">WhatsApp</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-xl">call</span>
+                  <div className="flex items-center">
+                    <span className="flex items-center gap-1 px-3 py-3 bg-gray-100 border border-r-0 border-outline rounded-l-xl text-sm font-medium text-on-surface-variant select-none whitespace-nowrap">
+                      <span className="material-symbols-outlined text-on-surface-variant text-xl">call</span>
+                      +54 9
+                    </span>
                     <input
                       id="whatsapp"
                       type="tel"
-                      className="w-full pl-11 pr-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
-                      placeholder="+54 9 11 1234-5678"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-white border border-outline rounded-r-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
+                      placeholder="11 1234-5678"
+                      value={whatsappLocal}
+                      onChange={(e) => setWhatsappLocal(e.target.value)}
                     />
-                    {fieldErrors.whatsapp && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.whatsapp}</p>}
                   </div>
+                  {fieldErrors.whatsapp && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.whatsapp}</p>}
                 </div>
 
               <div className="space-y-1.5">
