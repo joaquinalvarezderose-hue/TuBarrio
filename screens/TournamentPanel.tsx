@@ -329,34 +329,55 @@ const TournamentPanel: React.FC = () => {
 
     try {
       const categoria = userScope?.categoria || tournament.subtitle || 'General';
-      const { data: statusRows, error: statusError } = await supabase
-        .from('torneo_estado')
-        .select('categoria, grupo, estado')
-        .eq('torneo_id', Number(tournament.id))
-        .eq('categoria', categoria)
-        .eq('estado', 'LOCKED');
 
-      if (statusError) throw statusError;
+      if (tournamentConfig?.sortear_grupos_en_sorteo) {
+        const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
+        const { data, error } = await supabase.rpc('iniciar_torneo_en_curso', {
+          p_torneo_id: Number(tournament.id),
+          p_categoria: categoria,
+          p_grupo_base: grupoBase,
+        });
 
-      const lockedGroups = Array.isArray(statusRows) ? statusRows : [];
-      if (lockedGroups.length === 0) {
-        throw new Error('No hay grupos en estado LOCKED para iniciar.');
+        if (error) throw error;
+
+        const row = Array.isArray(data) ? data[0] : null;
+        const startedGroups = Number(row?.grupos_actualizados || 0);
+        if (startedGroups > 0) {
+          setAdminMessage(`Torneo iniciado en ${startedGroups} grupo(s).`);
+        } else {
+          setAdminMessage('El torneo ya estaba en curso o no habia grupos por iniciar.');
+        }
+      } else {
+        const { data: statusRows, error: statusError } = await supabase
+          .from('torneo_estado')
+          .select('categoria, grupo, estado')
+          .eq('torneo_id', Number(tournament.id))
+          .eq('categoria', categoria)
+          .eq('estado', 'LOCKED');
+
+        if (statusError) throw statusError;
+
+        const lockedGroups = Array.isArray(statusRows) ? statusRows : [];
+        if (lockedGroups.length === 0) {
+          throw new Error('No hay grupos en estado LOCKED para iniciar.');
+        }
+
+        const results = await Promise.all(
+          lockedGroups.map((row: any) =>
+            supabase.rpc('iniciar_torneo_manual', {
+              p_torneo_id: Number(tournament.id),
+              p_categoria: String(row.categoria),
+              p_grupo: String(row.grupo),
+            })
+          )
+        );
+
+        const failed = results.find((result) => result.error);
+        if (failed?.error) throw failed.error;
+
+        setAdminMessage(`Torneo iniciado en ${lockedGroups.length} grupo(s).`);
       }
 
-      const results = await Promise.all(
-        lockedGroups.map((row: any) =>
-          supabase.rpc('iniciar_torneo_manual', {
-            p_torneo_id: Number(tournament.id),
-            p_categoria: String(row.categoria),
-            p_grupo: String(row.grupo),
-          })
-        )
-      );
-
-      const failed = results.find((result) => result.error);
-      if (failed?.error) throw failed.error;
-
-      setAdminMessage(`Torneo iniciado en ${lockedGroups.length} grupo(s).`);
       refreshPanel();
     } catch (error: any) {
       setAdminError(error?.message || 'No se pudo iniciar el torneo.');
