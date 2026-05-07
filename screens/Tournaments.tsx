@@ -125,23 +125,44 @@ const Tournaments: React.FC = () => {
         }
 
         // Cargar inscripciones aprobadas/pendientes con datos del torneo en un solo query
-        const [
-          { data: jugadoresData, error: jugadoresError },
-          { data: inscripcionesData, error: inscripcionesError },
-        ] = await Promise.all([
-          supabase
+        const { data: inscripcionesData, error: inscripcionesError } = await supabase
+          .from('inscripciones_torneo')
+          .select('torneo_id, estado, torneos(id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo)')
+          .eq('perfil_id', authUserId)
+          .in('estado', ['pendiente_revision', 'pagado_aprobado']);
+
+        if (inscripcionesError) {
+          console.error('Supabase error inscripciones_torneo', {
+            status: (inscripcionesError as any).status,
+            message: inscripcionesError.message,
+            details: inscripcionesError.details,
+            hint: inscripcionesError.hint,
+            code: inscripcionesError.code,
+          });
+          throw inscripcionesError;
+        }
+
+        let jugadoresData: any[] = [];
+        try {
+          const { data, error } = await supabase
             .from('torneo_jugadores')
             .select('torneo_id')
-            .eq('perfil_id', authUserId),
-          supabase
-            .from('inscripciones_torneo')
-            .select('torneo_id, estado, torneos(id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo)')
-            .eq('perfil_id', authUserId)
-            .in('estado', ['pendiente_revision', 'pagado_aprobado']),
-        ]);
+            .eq('perfil_id', authUserId);
 
-        if (jugadoresError) throw jugadoresError;
-        if (inscripcionesError) throw inscripcionesError;
+          if (error) {
+            console.error('Supabase error torneo_jugadores', {
+              status: (error as any).status,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code,
+            });
+          } else {
+            jugadoresData = data || [];
+          }
+        } catch (error) {
+          console.error('Unexpected error querying torneo_jugadores', error);
+        }
 
         console.log('Mis Torneos debug:', {
           authUserId,
