@@ -223,6 +223,7 @@ declare
   v_categoria text;
   v_grupo_base text;
   v_jugadores_por_grupo integer := 4;
+  v_numero_grupos integer := null;
   v_perfiles uuid[];
   v_total integer := 0;
   v_grupos integer := 0;
@@ -250,8 +251,9 @@ begin
 
   select
     greatest(2, coalesce(tc.jugadores_por_grupo, 4)),
+    tc.numero_grupos,
     coalesce(nullif(trim(tc.grupo_base), ''), format('TORNEO_%s', p_torneo_id))
-    into v_jugadores_por_grupo, v_grupo_base
+    into v_jugadores_por_grupo, v_numero_grupos, v_grupo_base
   from public.torneo_configuracion tc
   where tc.torneo_id = p_torneo_id;
 
@@ -318,7 +320,12 @@ begin
     and te.categoria = v_categoria
     and (te.grupo = v_grupo_base or te.grupo like (v_grupo_base || '\\_G%') escape '\\');
 
-  v_grupos := ceil(v_total::numeric / v_jugadores_por_grupo::numeric)::integer;
+  if v_numero_grupos is not null then
+    v_grupos := least(greatest(v_numero_grupos, 1), v_total);
+  else
+    v_grupos := ceil(v_total::numeric / v_jugadores_por_grupo::numeric)::integer;
+  end if;
+
   v_base_size := floor(v_total::numeric / v_grupos::numeric)::integer;
   v_remainder := mod(v_total, v_grupos);
 
@@ -399,6 +406,7 @@ declare
   v_grupo_base text;
   v_grupo_resuelto text;
   v_max_participantes integer := 8;
+  v_max_participantes_por_grupo integer := null;
   v_jugadores_por_grupo integer := 8;
   v_sortear_grupos_en_sorteo boolean := false;
   v_current integer := 0;
@@ -428,16 +436,18 @@ begin
 
   select
     greatest(2, coalesce(tc.jugadores_por_grupo, 8)),
+    tc.max_participantes_por_grupo,
     coalesce(tc.sortear_grupos_en_sorteo, false),
     coalesce(nullif(trim(tc.grupo_base), ''), format('TORNEO_%s', new.torneo_id))
-    into v_jugadores_por_grupo, v_sortear_grupos_en_sorteo, v_grupo_base
+    into v_jugadores_por_grupo, v_max_participantes_por_grupo, v_sortear_grupos_en_sorteo, v_grupo_base
   from public.torneo_configuracion tc
   where tc.torneo_id = new.torneo_id;
 
   v_jugadores_por_grupo := greatest(2, coalesce(v_jugadores_por_grupo, 8));
+  v_max_participantes_por_grupo := coalesce(v_max_participantes_por_grupo, null);
   v_sortear_grupos_en_sorteo := coalesce(v_sortear_grupos_en_sorteo, false);
   v_grupo_base := coalesce(v_grupo_base, format('TORNEO_%s', new.torneo_id));
-  v_max_participantes := v_jugadores_por_grupo;
+  v_max_participantes := greatest(2, coalesce(v_max_participantes_por_grupo, v_jugadores_por_grupo));
 
   if v_sortear_grupos_en_sorteo then
     new.categoria := v_categoria;
