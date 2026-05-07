@@ -224,6 +224,8 @@ declare
   v_grupo_base text;
   v_jugadores_por_grupo integer := 4;
   v_numero_grupos integer := null;
+  v_max_participantes_por_grupo integer := null;
+  v_min_participantes_por_grupo integer := null;
   v_perfiles uuid[];
   v_total integer := 0;
   v_grupos integer := 0;
@@ -252,12 +254,15 @@ begin
   select
     greatest(2, coalesce(tc.jugadores_por_grupo, 4)),
     tc.numero_grupos,
+    tc.max_participantes_por_grupo,
+    tc.min_participantes_por_grupo,
     coalesce(nullif(trim(tc.grupo_base), ''), format('TORNEO_%s', p_torneo_id))
-    into v_jugadores_por_grupo, v_numero_grupos, v_grupo_base
+    into v_jugadores_por_grupo, v_numero_grupos, v_max_participantes_por_grupo, v_min_participantes_por_grupo, v_grupo_base
   from public.torneo_configuracion tc
   where tc.torneo_id = p_torneo_id;
 
   v_jugadores_por_grupo := greatest(2, coalesce(v_jugadores_por_grupo, 4));
+  v_min_participantes_por_grupo := coalesce(v_min_participantes_por_grupo, 2);
 
   v_grupo_base := coalesce(nullif(trim(coalesce(p_grupo_base, v_grupo_base, '')), ''), format('TORNEO_%s', p_torneo_id));
 
@@ -322,8 +327,19 @@ begin
 
   if v_numero_grupos is not null then
     v_grupos := least(greatest(v_numero_grupos, 1), v_total);
+  elsif v_max_participantes_por_grupo is not null then
+    v_grupos := ceil(v_total::numeric / greatest(v_max_participantes_por_grupo, 2)::numeric)::integer;
   else
     v_grupos := ceil(v_total::numeric / v_jugadores_por_grupo::numeric)::integer;
+  end if;
+
+  if v_grupos < 1 then
+    v_grupos := 1;
+  end if;
+
+  if v_total < v_grupos * v_min_participantes_por_grupo then
+    raise exception 'No hay suficientes jugadores (% jugadores) para crear % grupos con mínimo % por grupo.',
+      v_total, v_grupos, v_min_participantes_por_grupo;
   end if;
 
   v_base_size := floor(v_total::numeric / v_grupos::numeric)::integer;
