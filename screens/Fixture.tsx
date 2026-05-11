@@ -260,19 +260,29 @@ const Fixture: React.FC = () => {
       stats.sort((a, b) => b.puntos - a.puntos || b.sets_ganados - a.sets_ganados);
       setPlayersStats(stats);
 
-      // Group matches into rounds: for N players, each round has floor(N/2) matches.
-      // Matches are sorted by their DB jornada and batched accordingly.
-      const playerIdsInGroup = new Set<string>(
-        partidos.flatMap((r: any) => [String(r.jugador1_id || ''), String(r.jugador2_id || '')]).filter(Boolean)
-      );
-      const N = playerIdsInGroup.size;
-      const matchesPerRound = Math.max(1, Math.floor(N / 2));
-      const sortedPartidoIds: string[] = [...partidos]
-        .sort((a: any, b: any) => Number(a.jornada || 1) - Number(b.jornada || 1))
-        .map((r: any) => String(r.id));
-      const jornadaByMatchId = new Map<string, number>(
-        sortedPartidoIds.map((id, idx): [string, number] => [id, Math.floor(idx / matchesPerRound) + 1])
-      );
+      // Assign matches to rounds: each player plays at most once per round.
+      // Sort by DB jornada to preserve intended ordering, then greedily place
+      // each match in the earliest round where neither player is already scheduled.
+      const sortedByDbJornada = [...partidos]
+        .sort((a: any, b: any) => Number(a.jornada || 1) - Number(b.jornada || 1));
+      const playersInRound = new Map<number, Set<string>>();
+      const jornadaByMatchId = new Map<string, number>();
+      for (const row of sortedByDbJornada) {
+        const p1 = String(row.jugador1_id || '');
+        const p2 = String(row.jugador2_id || '');
+        let round = 1;
+        while (true) {
+          if (!playersInRound.has(round)) playersInRound.set(round, new Set());
+          const used = playersInRound.get(round)!;
+          if (!used.has(p1) && !used.has(p2)) {
+            used.add(p1);
+            used.add(p2);
+            jornadaByMatchId.set(String(row.id), round);
+            break;
+          }
+          round++;
+        }
+      }
 
       const mappedMatches: FixtureMatch[] = partidos.map((row: any) => {
         const parsedRes = parseResultadoSets(row.resultado || null);
