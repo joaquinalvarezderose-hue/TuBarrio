@@ -1053,17 +1053,17 @@ const MatchResult: React.FC = () => {
                         <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
                           <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">
-                              {orderedPlayers[0].name}
-                              {proposalWinnerIndex === 0 && <span className="ml-2 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">GANADOR</span>}
-                            </span>
+                            <div className="flex flex-col items-end max-w-[140px]">
+                              <span className="text-sm font-black text-gray-500 dark:text-gray-400 text-right break-words leading-tight">{orderedPlayers[0].name}</span>
+                              {proposalWinnerIndex === 0 && <span className="mt-0.5 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">GANADOR</span>}
+                            </div>
                             <span className="text-2xl font-black text-primary">{userScore ?? '-'}</span>
                             <span className="text-xs text-gray-300">—</span>
                             <span className="text-2xl font-black text-primary">{rivalScore ?? '-'}</span>
-                            <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">
-                              {orderedPlayers[1].name}
-                              {proposalWinnerIndex === 1 && <span className="ml-2 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">GANADOR</span>}
-                            </span>
+                            <div className="flex flex-col items-start max-w-[140px]">
+                              <span className="text-sm font-black text-gray-500 dark:text-gray-400 break-words leading-tight">{orderedPlayers[1].name}</span>
+                              {proposalWinnerIndex === 1 && <span className="mt-0.5 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">GANADOR</span>}
+                            </div>
                           </div>
                         </div>
                       ))}
