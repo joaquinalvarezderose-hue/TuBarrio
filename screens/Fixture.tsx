@@ -209,8 +209,6 @@ const Fixture: React.FC = () => {
         .select('partido_id, estado')
         .eq('torneo_id', parsedTournamentId);
 
-      if (resolvedCategory) propuestasQuery = propuestasQuery.eq('categoria', resolvedCategory);
-      if (effectiveGroup) propuestasQuery = propuestasQuery.eq('grupo', effectiveGroup);
 
       const [historialResp, propuestasResp] = await Promise.all([historialQuery, propuestasQuery]);
 
