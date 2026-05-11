@@ -260,9 +260,19 @@ const Fixture: React.FC = () => {
       stats.sort((a, b) => b.puntos - a.puntos || b.sets_ganados - a.sets_ganados);
       setPlayersStats(stats);
 
-      // Normalize jornada numbers to sequential 1, 2, 3... regardless of DB values
-      const uniqueJornadas: number[] = Array.from(new Set<number>(partidos.map((r: any) => Number(r.jornada || 1)))).sort((a, b) => a - b);
-      const jornadaMap = new Map<number, number>(uniqueJornadas.map((j, i): [number, number] => [j, i + 1]));
+      // Group matches into rounds: for N players, each round has floor(N/2) matches.
+      // Matches are sorted by their DB jornada and batched accordingly.
+      const playerIdsInGroup = new Set<string>(
+        partidos.flatMap((r: any) => [String(r.jugador1_id || ''), String(r.jugador2_id || '')]).filter(Boolean)
+      );
+      const N = playerIdsInGroup.size;
+      const matchesPerRound = Math.max(1, Math.floor(N / 2));
+      const sortedPartidoIds: string[] = [...partidos]
+        .sort((a: any, b: any) => Number(a.jornada || 1) - Number(b.jornada || 1))
+        .map((r: any) => String(r.id));
+      const jornadaByMatchId = new Map<string, number>(
+        sortedPartidoIds.map((id, idx): [string, number] => [id, Math.floor(idx / matchesPerRound) + 1])
+      );
 
       const mappedMatches: FixtureMatch[] = partidos.map((row: any) => {
         const parsedRes = parseResultadoSets(row.resultado || null);
@@ -287,7 +297,7 @@ const Fixture: React.FC = () => {
 
         return {
           id: String(row.id),
-          jornada: jornadaMap.get(Number(row.jornada || 1)) ?? 1,
+          jornada: jornadaByMatchId.get(String(row.id)) ?? 1,
           estado: String(row.estado || 'programado'),
           resultado: row.resultado || null,
           proposalState: proposalByMatch[row.id] || null,
