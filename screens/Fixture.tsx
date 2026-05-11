@@ -177,13 +177,13 @@ const Fixture: React.FC = () => {
         .eq('torneo_id', parsedTournamentId);
       if (targetCategory) groupsQuery = groupsQuery.eq('categoria', targetCategory);
       const { data: groupsRows } = await groupsQuery;
-      const groups = Array.from(
-        new Set(
+      const groups: string[] = Array.from(
+        new Set<string>(
           (groupsRows || [])
             .map((row: any) => String(row?.grupo || '').trim())
             .filter(Boolean)
         )
-      ).sort((a: string, b: string) => a.localeCompare(b));
+      ).sort((a, b) => a.localeCompare(b));
       setAvailableGroups(groups);
       
       // Set selectedGroup immediately if we have a resolved scope
@@ -412,6 +412,10 @@ const Fixture: React.FC = () => {
       });
       setPlayersStats(stats);
 
+      // Normalize jornada numbers to sequential 1, 2, 3... regardless of DB values
+      const uniqueJornadas: number[] = Array.from(new Set<number>(partidos.map((r: any) => Number(r.jornada || 1)))).sort((a, b) => a - b);
+      const jornadaMap = new Map<number, number>(uniqueJornadas.map((j, i): [number, number] => [j, i + 1]));
+
       const mappedMatches: FixtureMatch[] = partidos.map((row: any) => {
         const parsedResultado = parseResultadoSets(row.resultado || null);
         const historialEntry = historialByMatch[row.id];
@@ -440,7 +444,7 @@ const Fixture: React.FC = () => {
 
         return {
           id: String(row.id),
-          jornada: Number(row.jornada || 1),
+          jornada: jornadaMap.get(Number(row.jornada || 1)) ?? 1,
           estado: String(row.estado || 'programado'),
           resultado: row.resultado || null,
           proposalState: proposalByMatch[row.id] || null,
@@ -504,7 +508,28 @@ const Fixture: React.FC = () => {
     return nextPlayable ? nextPlayable.id : null;
   }, [matches]);
 
-  const highlightedNextMatchId = useMemo(() => nextMatch?.id || nextPlayableMatchId || null, [nextMatch?.id, nextPlayableMatchId]);
+  // Fallback: find the user's next pending match directly from loaded data
+  const myNextMatchInFixture = useMemo(() => {
+    if (!currentUserId) return null;
+    const pending = matches.find((m) =>
+      !m.finalScore &&
+      m.estado !== 'finalizado' &&
+      [m.p1.perfil_id, m.p2.perfil_id].includes(currentUserId)
+    );
+    if (!pending) return null;
+    const rival = pending.p1.perfil_id === currentUserId ? pending.p2 : pending.p1;
+    return {
+      id: pending.id,
+      jornada: pending.jornada,
+      estado: pending.estado,
+      rival_nombre: rival.nombre,
+      rival_whatsapp: rival.whatsapp,
+    };
+  }, [matches, currentUserId]);
+
+  const displayNextMatch = nextMatch || myNextMatchInFixture;
+
+  const highlightedNextMatchId = useMemo(() => nextMatch?.id || myNextMatchInFixture?.id || nextPlayableMatchId || null, [nextMatch?.id, myNextMatchInFixture?.id, nextPlayableMatchId]);
 
   const sortedFixtureMatches = useMemo(() => {
     const withIndex = fixtureMatches.map((match, index) => ({ match, index }));
@@ -665,13 +690,13 @@ const Fixture: React.FC = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Proximo partido</h3>
-                    {nextMatchLoading ? (
+                    {nextMatchLoading && !myNextMatchInFixture ? (
                       <p className="text-sm text-[#61896b] mt-1">Buscando tu proximo cruce...</p>
-                    ) : nextMatch ? (
+                    ) : displayNextMatch ? (
                       <>
-                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">{nextMatch.rival_nombre}</p>
-                        <p className="text-xs text-[#61896b] mt-0.5">Jornada {nextMatch.jornada} - {nextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
-                        <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {nextMatch.rival_whatsapp || 'No disponible'}</p>
+                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">vs. {displayNextMatch.rival_nombre}</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">Jornada {displayNextMatch.jornada} · {displayNextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
+                        <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {displayNextMatch.rival_whatsapp || 'No disponible'}</p>
                       </>
                     ) : isEliminated ? (
                       <>
@@ -684,9 +709,9 @@ const Fixture: React.FC = () => {
                     )}
                     {nextMatchError && <p className="text-xs text-red-600 mt-1">{nextMatchError}</p>}
                   </div>
-                  {nextMatch?.rival_whatsapp ? (
+                  {displayNextMatch?.rival_whatsapp ? (
                     <a
-                      href={`https://wa.me/${String(nextMatch.rival_whatsapp).replace(/[^\d]/g, '')}`}
+                      href={`https://wa.me/${String(displayNextMatch.rival_whatsapp).replace(/[^\d]/g, '')}`}
                       target="_blank"
                       rel="noreferrer"
                       className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
