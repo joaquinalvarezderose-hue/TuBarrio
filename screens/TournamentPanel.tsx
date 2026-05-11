@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
+import { useNextMatch } from '../hooks/useNextMatch';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const PANEL_READY_STATUSES = new Set([
@@ -79,19 +80,27 @@ const TournamentPanel: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   // Single authoritative backend hook for player status
   const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+  // Direct query fallback for when the RPC doesn't return proximo_partido
+  const { match: nextMatchFallback } = useNextMatch(tournament.id);
 
-  const nextMatch = playerStatus?.proximo_partido;
+  const rpcNextMatch = playerStatus?.proximo_partido ?? null;
+  const nextMatch = rpcNextMatch ?? (nextMatchFallback ? {
+    id: nextMatchFallback.id,
+    jornada: nextMatchFallback.jornada,
+    estado: nextMatchFallback.estado,
+    fecha_programada: nextMatchFallback.fecha_programada,
+    jugador1_id: nextMatchFallback.jugador1_id,
+    jugador2_id: nextMatchFallback.jugador2_id,
+    ronda: null as number | null,
+    bracket_tipo: null as string | null,
+    grupo: '',
+    categoria: '',
+    stage_name: null as string | null,
+    rival_id: nextMatchFallback.rivalId,
+    rival_nombre: nextMatchFallback.rivalName,
+    rival_whatsapp: nextMatchFallback.rivalWhatsapp,
+  } : null);
   
-  // Debug: Log the next match data to see if stage_name is present
-  if (nextMatch) {
-    console.log('TournamentPanel - nextMatch data:', {
-      id: nextMatch.id,
-      bracket_tipo: nextMatch.bracket_tipo,
-      ronda: nextMatch.ronda,
-      stage_name: nextMatch.stage_name,
-      jornada: nextMatch.jornada
-    });
-  }
   const isEliminated = playerStatus?.estado === 'eliminado';
   const isCampeon = playerStatus?.estado === 'campeon';
   const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
