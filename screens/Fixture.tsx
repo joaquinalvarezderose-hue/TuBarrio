@@ -134,21 +134,12 @@ const Fixture: React.FC = () => {
 
       const { data: groupsRows } = await groupsQuery;
       const groups: string[] = Array.from(
-<<<<<<< HEAD
         new Set<string>(
-=======
-        new Set(
->>>>>>> 1204d188d09a351fdb114480a4399ae9beb6708f
           (groupsRows || [])
             .map((r: any) => String(r?.grupo || '').trim())
             .filter(Boolean)
         )
-<<<<<<< HEAD
       ).sort((a, b) => a.localeCompare(b));
-=======
-      ).sort((a, b) => a.localeCompare(b)) as string[];
-
->>>>>>> 1204d188d09a351fdb114480a4399ae9beb6708f
       setAvailableGroups(groups);
 
       // Determinar grupo a mostrar:
@@ -269,14 +260,10 @@ const Fixture: React.FC = () => {
       stats.sort((a, b) => b.puntos - a.puntos || b.sets_ganados - a.sets_ganados);
       setPlayersStats(stats);
 
-<<<<<<< HEAD
       // Normalize jornada numbers to sequential 1, 2, 3... regardless of DB values
       const uniqueJornadas: number[] = Array.from(new Set<number>(partidos.map((r: any) => Number(r.jornada || 1)))).sort((a, b) => a - b);
       const jornadaMap = new Map<number, number>(uniqueJornadas.map((j, i): [number, number] => [j, i + 1]));
 
-=======
-      // ── 10. Mapear partidos ──────────────────────────────────────────────
->>>>>>> 1204d188d09a351fdb114480a4399ae9beb6708f
       const mappedMatches: FixtureMatch[] = partidos.map((row: any) => {
         const parsedRes = parseResultadoSets(row.resultado || null);
         const histEntry = historialByMatch[row.id];
@@ -336,12 +323,6 @@ const Fixture: React.FC = () => {
 
   const fechasForTabs = useMemo(() => [...fechas].sort((a, b) => b - a), [fechas]);
 
-<<<<<<< HEAD
-  const nextPlayableMatchId = useMemo(() => {
-    const nextPlayable = matches.find((match) => !Boolean(match.finalScore) && match.estado !== 'finalizado' && match.estado !== 'esperando_validacion');
-    return nextPlayable ? nextPlayable.id : null;
-  }, [matches]);
-
   // Fallback: find the user's next pending match directly from loaded data
   const myNextMatchInFixture = useMemo(() => {
     if (!currentUserId) return null;
@@ -363,21 +344,7 @@ const Fixture: React.FC = () => {
 
   const displayNextMatch = nextMatch || myNextMatchInFixture;
 
-  const highlightedNextMatchId = useMemo(() => nextMatch?.id || myNextMatchInFixture?.id || nextPlayableMatchId || null, [nextMatch?.id, myNextMatchInFixture?.id, nextPlayableMatchId]);
-=======
-  // Highlight: partido del usuario en el grupo actualmente visible
-  const highlightedMatchId = useMemo(() => {
-    if (nextMatch?.id) return nextMatch.id;
-    // Si el usuario ve su propio grupo, destacar su próximo partido pendiente
-    const myNext = matches.find((m) =>
-      !m.finalScore &&
-      m.estado !== 'finalizado' &&
-      currentUserId &&
-      [m.p1.perfil_id, m.p2.perfil_id].includes(currentUserId)
-    );
-    return myNext?.id || null;
-  }, [nextMatch, matches, currentUserId]);
->>>>>>> 1204d188d09a351fdb114480a4399ae9beb6708f
+  const highlightedMatchId = useMemo(() => nextMatch?.id || myNextMatchInFixture?.id || null, [nextMatch?.id, myNextMatchInFixture?.id]);
 
   const sortedFixtureMatches = useMemo(() => {
     return [...fixtureMatches].sort((a, b) => {
@@ -434,24 +401,6 @@ const Fixture: React.FC = () => {
       [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId) &&
       match.estado !== 'finalizado';
   };
-
-  // Próximo partido del usuario en su propio grupo (del hook)
-  const rivalWhatsappLink = useMemo(() => {
-    const w = nextMatch?.rival_whatsapp;
-    if (!w) return null;
-    const digits = String(w).replace(/[^\d]/g, '');
-    return digits ? `https://wa.me/${digits}` : null;
-  }, [nextMatch?.rival_whatsapp]);
-
-  // Próximo partido visible en el grupo actualmente seleccionado
-  const myMatchInSelectedGroup = useMemo(() => {
-    if (!currentUserId) return null;
-    return matches.find((m) =>
-      !m.finalScore &&
-      m.estado !== 'finalizado' &&
-      [m.p1.perfil_id, m.p2.perfil_id].includes(currentUserId)
-    ) || null;
-  }, [matches, currentUserId]);
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white dark:bg-background-dark font-display text-[#111813] dark:text-white transition-colors duration-200 pb-24">
@@ -522,30 +471,19 @@ const Fixture: React.FC = () => {
               <div className="rounded-xl bg-[#e8f6eb] dark:bg-[#1a3a22] p-4 shadow-sm border border-[#dbe6de] dark:border-[#2a5a32] mb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-<<<<<<< HEAD
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Proximo partido</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Mi próximo partido</h3>
                     {nextMatchLoading && !myNextMatchInFixture ? (
-                      <p className="text-sm text-[#61896b] mt-1">Buscando tu proximo cruce...</p>
+                      <p className="text-sm text-[#61896b] mt-1">Buscando tu próximo cruce...</p>
                     ) : displayNextMatch ? (
                       <>
                         <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">vs. {displayNextMatch.rival_nombre}</p>
-                        <p className="text-xs text-[#61896b] mt-0.5">Jornada {displayNextMatch.jornada} · {displayNextMatch.estado === 'programado' ? 'Pendiente' : 'En curso'}</p>
-                        <p className="text-xs text-[#61896b] mt-0.5">WhatsApp: {displayNextMatch.rival_whatsapp || 'No disponible'}</p>
-=======
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] dark:text-white">Mi próximo partido</h3>
-                    {nextMatchLoading ? (
-                      <p className="text-sm text-[#61896b] mt-1">Buscando tu próximo cruce...</p>
-                    ) : nextMatch ? (
-                      <>
-                        <p className="text-sm font-semibold text-[#111813] dark:text-white mt-1">vs. {nextMatch.rival_nombre}</p>
                         <p className="text-xs text-[#61896b] mt-0.5">
-                          {formatGroupName(nextMatch.grupo || userGroup)} · Jornada {nextMatch.jornada}
+                          {formatGroupName(userGroup)} · Jornada {displayNextMatch.jornada}
                         </p>
-                        {nextMatch.rival_whatsapp
-                          ? <p className="text-xs text-[#61896b]">📱 {nextMatch.rival_whatsapp}</p>
+                        {displayNextMatch.rival_whatsapp
+                          ? <p className="text-xs text-[#61896b]">📱 {displayNextMatch.rival_whatsapp}</p>
                           : <p className="text-xs text-[#61896b] opacity-60">Sin WhatsApp registrado</p>
                         }
->>>>>>> 1204d188d09a351fdb114480a4399ae9beb6708f
                       </>
                     ) : isEliminated ? (
                       <p className="text-sm text-[#61896b] mt-1">No avanzaste a la siguiente ronda.</p>
@@ -553,19 +491,13 @@ const Fixture: React.FC = () => {
                       <p className="text-sm text-[#61896b] mt-1">No tenés un próximo partido pendiente por ahora.</p>
                     )}
                   </div>
-<<<<<<< HEAD
                   {displayNextMatch?.rival_whatsapp ? (
                     <a
                       href={`https://wa.me/${String(displayNextMatch.rival_whatsapp).replace(/[^\d]/g, '')}`}
                       target="_blank"
                       rel="noreferrer"
                       className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
-                      aria-label="Contactar rival por WhatsApp"
                     >
-=======
-                  {rivalWhatsappLink ? (
-                    <a href={rivalWhatsappLink} target="_blank" rel="noreferrer" className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm">
->>>>>>> 1204d188d09a351fdb114480a4399ae9beb6708f
                       <span className="material-symbols-outlined">mail</span>
                     </a>
                   ) : (
