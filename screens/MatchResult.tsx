@@ -31,6 +31,9 @@ type MatchContext = {
   set2_j2: number | null;
   set3_j1: number | null;
   set3_j2: number | null;
+  bracket_tipo: string | null;
+  stage_name: string | null;
+  ronda: number | null;
 };
 
 type ProposalSets = {
@@ -544,6 +547,9 @@ const MatchResult: React.FC = () => {
           set2_j2: targetPartido.set2_j2 != null ? Number(targetPartido.set2_j2) : null,
           set3_j1: targetPartido.set3_j1 != null ? Number(targetPartido.set3_j1) : null,
           set3_j2: targetPartido.set3_j2 != null ? Number(targetPartido.set3_j2) : null,
+          bracket_tipo: targetPartido.bracket_tipo || null,
+          stage_name: targetPartido.stage_name || null,
+          ronda: targetPartido.ronda != null ? Number(targetPartido.ronda) : null,
         });
 
         const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
