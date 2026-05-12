@@ -468,7 +468,7 @@ const MatchResult: React.FC = () => {
 
         let partidoQuery: any = supabase
           .from('partidos')
-          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name')
+          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
           .eq('torneo_id', tournament.id)
           .eq('categoria', categoria);
 
@@ -494,7 +494,7 @@ const MatchResult: React.FC = () => {
         if (!targetPartido && grupo && !selectedPartidoId) {
           const { data: bracketRows, error: bracketError } = await supabase
             .from('partidos')
-            .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name')
+            .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
             .eq('torneo_id', tournament.id)
             .eq('categoria', categoria)
             .eq('bracket_tipo', 'eliminacion_directa')
