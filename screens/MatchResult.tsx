@@ -121,7 +121,7 @@ const MatchResult: React.FC = () => {
   const [playoffsActiveNoMatch, setPlayoffsActiveNoMatch] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
 
-  const { status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+  const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
   const isChampion = playerStatus?.estado === 'campeon';
   const isPlayerFinished = playerStatus?.estado === 'eliminado' || playerStatus?.estado === 'campeon';
   const rawStats = playerStatus?.stats ?? null;
@@ -980,7 +980,7 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {blockReason && !loadingMatch && !tournamentStats && !playoffsActiveNoMatch && (
+        {blockReason && !loadingMatch && !tournamentStats && !playerStatusLoading && !playoffsActiveNoMatch && (
           <section
             className={`rounded-xl border shadow-sm ${
               !partido
