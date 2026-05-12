@@ -399,12 +399,14 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
         })}
       </div>
 
-      {/* Champion Banner - show winner of the final */}
+      {/* Champion Banner - only show after the true Final is played */}
       {(() => {
         const finalRoundNum = Math.max(...sortedRounds, 0);
         const finalMatches = matchesByRound[finalRoundNum] || [];
         const finalMatch = finalMatches[0];
-        if (finalMatch && finalMatch.estado === 'finalizado' && finalMatch.ganador_id) {
+        // Safety: only show if this round IS the Final (highest possible round for this bracket)
+        const isTrueFinal = finalRoundNum === totalRounds;
+        if (isTrueFinal && finalMatch && finalMatch.estado === 'finalizado' && finalMatch.ganador_id) {
           const winnerName = finalMatch.ganador_id === finalMatch.jugador1_id
             ? finalMatch.jugador1_nombre
             : finalMatch.jugador2_nombre;
