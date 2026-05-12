@@ -142,6 +142,26 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         next = Array.isArray(plainRows) ? (plainRows[0] as any) ?? null : null;
       }
 
+      // If group filter returned nothing, retry for bracket (playoff) matches which live in a separate group.
+      if (!next && scopeGrupo) {
+        let bracketQuery: any = supabase
+          .from('partidos')
+          .select(
+            `id, jornada, estado, fecha_programada, torneo_id, jugador1_id, jugador2_id,
+             jugador1:perfiles!jugador1_id(id, nombre_completo, whatsapp),
+             jugador2:perfiles!jugador2_id(id, nombre_completo, whatsapp)`
+          )
+          .eq('torneo_id', parsedTournamentId)
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .eq('estado', 'programado')
+          .eq('bracket_tipo', 'eliminacion_directa')
+          .order('jornada', { ascending: true })
+          .limit(1);
+        if (scopeCategoria) bracketQuery = bracketQuery.eq('categoria', scopeCategoria);
+        const { data: bracketRows } = await bracketQuery;
+        next = Array.isArray(bracketRows) ? (bracketRows[0] as any) ?? null : null;
+      }
+
       if (!next) {
         setMatch(null);
         return;
