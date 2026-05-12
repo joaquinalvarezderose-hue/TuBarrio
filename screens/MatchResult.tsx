@@ -327,6 +327,7 @@ const MatchResult: React.FC = () => {
       setLoadingMatch(true);
       setSubmitError(null);
       setBlockReason(null);
+      setPlayoffsActiveNoMatch(false);
       setRivalProposalScores(null);
       setHasOwnProposal(false);
       setLastSubmittedBy(null);
@@ -486,7 +487,25 @@ const MatchResult: React.FC = () => {
         const { data: partidoRows, error: partidoError } = await partidoQuery;
         if (partidoError) throw partidoError;
 
-        const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
+        let targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
+
+        // The group filter (grupo = TORNEO_X) misses playoff matches (grupo = TORNEO_X_PLAYOFFS).
+        // If nothing found with the group filter, retry specifically for the user's bracket match.
+        if (!targetPartido && grupo && !selectedPartidoId) {
+          const { data: bracketRows, error: bracketError } = await supabase
+            .from('partidos')
+            .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name')
+            .eq('torneo_id', tournament.id)
+            .eq('categoria', categoria)
+            .eq('bracket_tipo', 'eliminacion_directa')
+            .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+            .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
+            .order('jornada', { ascending: true })
+            .limit(1);
+          if (bracketError) throw bracketError;
+          targetPartido = Array.isArray(bracketRows) ? bracketRows[0] : null;
+        }
+
         if (!targetPartido) {
           setSubmitError(null);
           // Check if playoffs are active but user has no bracket match.
