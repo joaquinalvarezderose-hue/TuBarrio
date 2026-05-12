@@ -115,6 +115,7 @@ const MatchResult: React.FC = () => {
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
+  const [playoffsActiveNoMatch, setPlayoffsActiveNoMatch] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
 
   const { status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
@@ -488,7 +489,17 @@ const MatchResult: React.FC = () => {
         const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
         if (!targetPartido) {
           setSubmitError(null);
-          setBlockReason('Todavia no hay un partido generado para esta jornada.');
+          // Check if playoffs are active but user has no bracket match
+          const { count: bracketCount } = await supabase
+            .from('partidos')
+            .select('id', { count: 'exact', head: true })
+            .eq('torneo_id', tournament.id)
+            .eq('bracket_tipo', 'eliminacion_directa');
+          if ((bracketCount ?? 0) > 0) {
+            setPlayoffsActiveNoMatch(true);
+          } else {
+            setBlockReason('Todavia no hay un partido generado para esta jornada.');
+          }
           return;
         }
 
@@ -912,7 +923,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Playoff elimination notice */}
-        {tournamentStatus === 'PLAYOFFS' && !partido && !loadingMatch && !tournamentStats && (
+        {playoffsActiveNoMatch && !loadingMatch && !tournamentStats && (
           <section className="rounded-xl border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40 p-6 text-center space-y-3">
             <div className="mx-auto size-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
               <span className="material-symbols-outlined text-amber-500 text-3xl">info</span>
@@ -935,7 +946,7 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {blockReason && !loadingMatch && !tournamentStats && !(tournamentStatus === 'PLAYOFFS' && !partido) && (
+        {blockReason && !loadingMatch && !tournamentStats && !playoffsActiveNoMatch && (
           <section
             className={`rounded-xl border shadow-sm ${
               !partido

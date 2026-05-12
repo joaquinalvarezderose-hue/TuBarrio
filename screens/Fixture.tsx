@@ -560,6 +560,7 @@ const Fixture: React.FC = () => {
               categoria={tournament.subtitle}
               grupo={selectedGroup}
               selectedGroup={selectedGroup}
+              currentUserId={currentUserId || undefined}
               onMatchClick={(match) => {
                 const isFinal = match.estado === 'finalizado';
                 navigate(isFinal ? '/result-detail' : '/match-result', {
