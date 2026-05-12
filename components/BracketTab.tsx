@@ -25,9 +25,10 @@ interface BracketTabProps {
   categoria: string;
   grupo?: string;
   selectedGroup?: string;
+  onMatchClick?: (match: BracketMatch) => void;
 }
 
-const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
+const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchClick }) => {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState<BracketMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +153,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
     };
     // Map ronda number to proper name based on total rounds
     // If totalRounds is 3 (Cuartos→Semis→Final), then ronda 1 = Cuartos
-    const nameIndex = totalRounds - ronda + 1;
+    const nameIndex = ronda + (5 - totalRounds);
     return roundNames[nameIndex] || `Ronda ${ronda}`;
   };
 
@@ -257,11 +258,14 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
                   const j2Won = match.ganador_id === match.jugador2_id;
                   
                   return (
-                    <div 
-                      key={match.id} 
+                    <div
+                      key={match.id}
+                      onClick={() => onMatchClick?.(match)}
                       className={`relative bg-white dark:bg-[#1a3a22] rounded-lg shadow-md overflow-hidden border-2 transition-all ${
-                        isFinalized 
-                          ? 'border-[#61896b]' 
+                        onMatchClick ? 'cursor-pointer active:scale-[0.98]' : ''
+                      } ${
+                        isFinalized
+                          ? 'border-[#61896b]'
                           : 'border-[#dbe6de] dark:border-[#2a5a32] hover:border-[#61896b]/50'
                       }`}
                     >

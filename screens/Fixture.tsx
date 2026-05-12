@@ -329,9 +329,7 @@ const Fixture: React.FC = () => {
   const fechas = useMemo(() => {
     const unique = Array.from(new Set(matches.map((m) => m.jornada))).sort((a, b) => a - b);
     if (unique.length === 0) return [1];
-    const maxJ = unique[unique.length - 1];
-    const allFinal = matches.filter((m) => m.jornada === maxJ).every((m) => Boolean(m.finalScore) || m.estado === 'finalizado');
-    return allFinal ? [...unique, maxJ + 1] : unique;
+    return unique;
   }, [matches]);
 
   const fixtureMatches = useMemo(() => {
@@ -562,6 +560,12 @@ const Fixture: React.FC = () => {
               categoria={tournament.subtitle}
               grupo={selectedGroup}
               selectedGroup={selectedGroup}
+              onMatchClick={(match) => {
+                const isFinal = match.estado === 'finalizado';
+                navigate(isFinal ? '/result-detail' : '/match-result', {
+                  state: { tournament, partidoId: match.id, currentUserId },
+                });
+              }}
             />
           )}
 

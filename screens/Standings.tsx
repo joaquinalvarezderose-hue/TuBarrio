@@ -55,6 +55,7 @@ const Standings: React.FC = () => {
   const [scope, setScope] = useState<TournamentScope | null>(null);
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -90,6 +91,8 @@ const Standings: React.FC = () => {
           // ignore
         }
       }
+
+      if (currentUserId) setCurrentUserId(currentUserId);
 
       let resolvedScope: TournamentScope | null = null;
       if (currentUserId) {
@@ -553,6 +556,12 @@ const Standings: React.FC = () => {
               categoria={scope?.categoria || tournament.subtitle || 'General'}
               grupo={scope?.grupo}
               selectedGroup={selectedGroup || undefined}
+              onMatchClick={(match) => {
+                const isFinal = match.estado === 'finalizado';
+                navigate(isFinal ? '/result-detail' : '/match-result', {
+                  state: { tournament, partidoId: match.id, currentUserId },
+                });
+              }}
             />
           </div>
         ) : (
