@@ -911,7 +911,31 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {blockReason && !loadingMatch && !tournamentStats && (
+        {/* Playoff elimination notice */}
+        {tournamentStatus === 'PLAYOFFS' && !partido && !loadingMatch && !tournamentStats && (
+          <section className="rounded-xl border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40 p-6 text-center space-y-3">
+            <div className="mx-auto size-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <span className="material-symbols-outlined text-amber-500 text-3xl">info</span>
+            </div>
+            <div>
+              <h3 className="text-base font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+                No clasificaste a los playoffs
+              </h3>
+              <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed mt-1">
+                Los playoffs ya están en curso, pero no estás en la fase de eliminación directa. No tenés partidos pendientes.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/standings', { state: { tournament } })}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-600 rounded-lg px-4 py-2 active:scale-95 transition-transform"
+            >
+              <span className="material-symbols-outlined text-base">emoji_events</span>
+              Ver las Llaves
+            </button>
+          </section>
+        )}
+
+        {blockReason && !loadingMatch && !tournamentStats && !(tournamentStatus === 'PLAYOFFS' && !partido) && (
           <section
             className={`rounded-xl border shadow-sm ${
               !partido

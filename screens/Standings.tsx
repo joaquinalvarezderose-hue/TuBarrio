@@ -56,6 +56,7 @@ const Standings: React.FC = () => {
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [clasificadosPorGrupo, setClasificadosPorGrupo] = useState<number>(2);
 
   const savedTournament = localStorage.getItem('active_tournament');
   const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -204,6 +205,16 @@ const Standings: React.FC = () => {
       if (error || !data) {
         setDbRows([]);
         return;
+      }
+
+      // Load qualifying spots per group from tournament config
+      const { data: configRows } = await supabase
+        .from('torneo_configuracion')
+        .select('clasificados_por_grupo')
+        .eq('torneo_id', parsedTournamentId)
+        .limit(1);
+      if (configRows?.[0]?.clasificados_por_grupo) {
+        setClasificadosPorGrupo(Number(configRows[0].clasificados_por_grupo));
       }
 
       const rowsByProfile = new Map<string, TournamentPlayerRow>();
@@ -556,6 +567,7 @@ const Standings: React.FC = () => {
               categoria={scope?.categoria || tournament.subtitle || 'General'}
               grupo={scope?.grupo}
               selectedGroup={selectedGroup || undefined}
+              currentUserId={currentUserId || undefined}
               onMatchClick={(match) => {
                 const isFinal = match.estado === 'finalizado';
                 navigate(isFinal ? '/result-detail' : '/match-result', {
@@ -580,9 +592,9 @@ const Standings: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {calculatedStandings.map((p, idx) => (
-                <tr key={p.id} className={idx < 2 ? 'bg-primary/10 dark:bg-primary/5' : 'bg-white dark:bg-slate-900'}>
-                  <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700' : 'bg-white dark:bg-slate-900'}`}>{idx + 1}</td>
-                  <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${idx < 2 ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
+                <tr key={p.id} className={idx < clasificadosPorGrupo ? 'bg-primary/10 dark:bg-primary/5' : 'bg-white dark:bg-slate-900'}>
+                  <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${idx < clasificadosPorGrupo ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700' : 'bg-white dark:bg-slate-900'}`}>{idx + 1}</td>
+                  <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${idx < clasificadosPorGrupo ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
                     <div className="flex items-center gap-3">
                       <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
                         {String(p.name || 'Jugador')
@@ -610,6 +622,13 @@ const Standings: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+          <div className="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300 flex-shrink-0" />
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Clasifica a los playoffs (Top {clasificadosPorGrupo} por grupo)
+          </span>
         </div>
 
         <div className="p-4 mx-4 my-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">

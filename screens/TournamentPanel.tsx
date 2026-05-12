@@ -104,6 +104,7 @@ const TournamentPanel: React.FC = () => {
   const isEliminated = playerStatus?.estado === 'eliminado';
   const isCampeon = playerStatus?.estado === 'campeon';
   const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
+  const noPlayoffMatch = !nextMatch && tournamentStatus === 'PLAYOFFS' && !isEliminated && !isCampeon && !isWaiting && !loadingNextMatch;
   const rawStats = playerStatus?.stats ?? null;
   const tournamentStats = rawStats && rawStats.total > 0 ? {
     totalMatches: rawStats.total,
@@ -820,6 +821,30 @@ const TournamentPanel: React.FC = () => {
             {/* Mi Próximo Partido */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Mi Próximo Partido</h3>
+
+              {noPlayoffMatch ? (
+                <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="material-symbols-outlined text-amber-500 text-xl">info</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-amber-800 dark:text-amber-300 text-sm uppercase tracking-wide mb-1">
+                        No clasificaste a los playoffs
+                      </h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed">
+                        El torneo continúa en la fase de eliminación directa, pero no estás entre los clasificados de tu grupo.
+                      </p>
+                      <button
+                        onClick={() => navigate('/standings', { state: { tournament } })}
+                        className="mt-3 text-xs font-bold text-amber-700 dark:text-amber-400 underline underline-offset-2 active:opacity-60"
+                      >
+                        Ver las Llaves →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-[#4a9c40]"></div>
                 <div className="flex justify-between items-start mb-4">
@@ -866,6 +891,7 @@ const TournamentPanel: React.FC = () => {
                   ) : null}
                 </div>
               </div>
+              )}
             </section>
 
             {/* Status Footer */}
