@@ -489,13 +489,22 @@ const MatchResult: React.FC = () => {
         const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
         if (!targetPartido) {
           setSubmitError(null);
-          // Check if playoffs are active but user has no bracket match
-          const { count: bracketCount } = await supabase
-            .from('partidos')
-            .select('id', { count: 'exact', head: true })
-            .eq('torneo_id', tournament.id)
-            .eq('bracket_tipo', 'eliminacion_directa');
-          if ((bracketCount ?? 0) > 0) {
+          // Check if playoffs are active but user has no bracket match.
+          // Must also verify the user isn't in any completed bracket match (e.g. won and waiting for next round).
+          const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
+            supabase
+              .from('partidos')
+              .select('id', { count: 'exact', head: true })
+              .eq('torneo_id', tournament.id)
+              .eq('bracket_tipo', 'eliminacion_directa'),
+            supabase
+              .from('partidos')
+              .select('id', { count: 'exact', head: true })
+              .eq('torneo_id', tournament.id)
+              .eq('bracket_tipo', 'eliminacion_directa')
+              .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`),
+          ]);
+          if ((bracketCount ?? 0) > 0 && (userBracketCount ?? 0) === 0) {
             setPlayoffsActiveNoMatch(true);
           } else {
             setBlockReason('Todavia no hay un partido generado para esta jornada.');
