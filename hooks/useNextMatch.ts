@@ -153,7 +153,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
           )
           .eq('torneo_id', parsedTournamentId)
           .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .eq('estado', 'programado')
+          .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
           .eq('bracket_tipo', 'eliminacion_directa')
           .order('jornada', { ascending: true })
           .limit(1);

@@ -79,6 +79,7 @@ const TournamentPanel: React.FC = () => {
   const [adminError, setAdminError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
+  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
   // Single authoritative backend hook for player status
   const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
   // Direct query fallback for when the RPC doesn't return proximo_partido
@@ -105,7 +106,7 @@ const TournamentPanel: React.FC = () => {
   const isEliminated = playerStatus?.estado === 'eliminado';
   const isCampeon = playerStatus?.estado === 'campeon';
   const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
-  const noPlayoffMatch = !nextMatch && bracketMatchesExist && !isEliminated && !isCampeon && !isWaiting && !loadingNextMatch;
+  const noPlayoffMatch = !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isWaiting && !loadingNextMatch;
   const rawStats = playerStatus?.stats ?? null;
   const tournamentStats = rawStats && rawStats.total > 0 ? {
     totalMatches: rawStats.total,
@@ -282,13 +283,22 @@ const TournamentPanel: React.FC = () => {
           setGroupPosition(null);
         }
 
-        // Check if bracket matches exist (to detect playoff elimination)
-        const { count: bracketCount } = await supabase
-          .from('partidos')
-          .select('id', { count: 'exact', head: true })
-          .eq('torneo_id', tournament.id)
-          .eq('bracket_tipo', 'eliminacion_directa');
+        // Check if bracket matches exist, and whether this user is in any of them
+        const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
+          supabase
+            .from('partidos')
+            .select('id', { count: 'exact', head: true })
+            .eq('torneo_id', tournament.id)
+            .eq('bracket_tipo', 'eliminacion_directa'),
+          supabase
+            .from('partidos')
+            .select('id', { count: 'exact', head: true })
+            .eq('torneo_id', tournament.id)
+            .eq('bracket_tipo', 'eliminacion_directa')
+            .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`),
+        ]);
         setBracketMatchesExist((bracketCount ?? 0) > 0);
+        setUserBracketMatchExists((userBracketCount ?? 0) > 0);
       } catch (error) {
         console.error('No se pudo cargar el panel del torneo', error);
         setGroupSize(0);
