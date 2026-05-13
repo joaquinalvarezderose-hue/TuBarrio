@@ -953,7 +953,7 @@ const TournamentPanel: React.FC = () => {
 
             {/* Mi Próximo Partido */}
             <section className="space-y-4">
-              <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Mi Próximo Partido</h3>
+              <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">{isUserWaitingRivalConfirm ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
 
               {noPlayoffMatch ? (
                 <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40">
