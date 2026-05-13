@@ -1,7 +1,7 @@
 
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlayerStats } from '../utils/tournamentLogic';
+import { PlayerStats, TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
 import BracketTab from '../components/BracketTab';
 
@@ -15,6 +15,7 @@ type TournamentPlayerRow = {
   puntos: number | null;
   partidos_jugados: number | null;
   sets_ganados: number | null;
+  sets_perdidos: number | null;
 };
 
 type TournamentMatchRow = {
@@ -30,6 +31,7 @@ type TournamentHistoryRow = {
   grupo: string | null;
   jugador1_perfil_id: string | null;
   jugador2_perfil_id: string | null;
+  ganador_perfil_id: string | null;
   puntos_jugador1: number | null;
   puntos_jugador2: number | null;
   sets_jugador1: number | null;
@@ -52,6 +54,7 @@ const Standings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tabla' | 'llaves'>('tabla');
   const location = useLocation();
   const [dbRows, setDbRows] = useState<any[] | null>(null);
+  const [rawHistorial, setRawHistorial] = useState<TournamentHistoryRow[]>([]);
   const [scope, setScope] = useState<TournamentScope | null>(null);
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
@@ -190,7 +193,7 @@ const Standings: React.FC = () => {
 
       let standingsQuery: any = supabase
         .from('torneo_jugadores')
-        .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+        .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
         .eq('torneo_id', parsedTournamentId);
 
       if (resolvedScope?.categoria) standingsQuery = standingsQuery.eq('categoria', resolvedScope.categoria);
@@ -244,7 +247,7 @@ const Standings: React.FC = () => {
       if (participantIds.length > 0 && uniqueRows.length < participantIds.length) {
         const { data: participantRows, error: participantRowsError } = await supabase
           .from('torneo_jugadores')
-          .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+          .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
           .eq('torneo_id', parsedTournamentId)
           .in('perfil_id', participantIds);
 
@@ -308,7 +311,7 @@ const Standings: React.FC = () => {
         if (participantIds.length > 0) {
           const { data: participantRows, error: participantRowsError } = await supabase
             .from('torneo_jugadores')
-            .select('perfil_id, puntos, partidos_jugados, sets_ganados')
+            .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
             .eq('torneo_id', parsedTournamentId)
             .in('perfil_id', participantIds);
 
@@ -319,13 +322,14 @@ const Standings: React.FC = () => {
             puntos: 0,
             partidos_jugados: 0,
             sets_ganados: 0,
+            sets_perdidos: 0,
           }).filter(Boolean) as TournamentPlayerRow[];
         }
       }
 
       let historyQuery: any = supabase
         .from('torneo_partidos_historial')
-        .select('categoria, grupo, jugador1_perfil_id, jugador2_perfil_id, puntos_jugador1, puntos_jugador2, sets_jugador1, sets_jugador2')
+        .select('categoria, grupo, jugador1_perfil_id, jugador2_perfil_id, ganador_perfil_id, puntos_jugador1, puntos_jugador2, sets_jugador1, sets_jugador2')
         .eq('torneo_id', parsedTournamentId);
       if (resolvedScope?.categoria) historyQuery = historyQuery.eq('categoria', resolvedScope.categoria);
       if (effectiveGroup) historyQuery = historyQuery.eq('grupo', effectiveGroup);
@@ -352,7 +356,12 @@ const Standings: React.FC = () => {
         });
 
         const historyAggByProfile = new Map<string, TournamentPlayerRow>();
-        const addHistory = (perfilIdRaw: string | null, puntosRaw: number | null, setsRaw: number | null) => {
+        const addHistory = (
+          perfilIdRaw: string | null,
+          puntosRaw: number | null,
+          setsGanadosRaw: number | null,
+          setsPerdidosRaw: number | null,
+        ) => {
           const perfilId = String(perfilIdRaw || '');
           if (!perfilId) return;
           const prev = historyAggByProfile.get(perfilId) || {
@@ -360,20 +369,25 @@ const Standings: React.FC = () => {
             puntos: 0,
             partidos_jugados: 0,
             sets_ganados: 0,
+            sets_perdidos: 0,
           };
 
           historyAggByProfile.set(perfilId, {
             perfil_id: perfilId,
             puntos: Number(prev.puntos || 0) + Number(puntosRaw || 0),
             partidos_jugados: Number(prev.partidos_jugados || 0) + 1,
-            sets_ganados: Number(prev.sets_ganados || 0) + Number(setsRaw || 0),
+            sets_ganados: Number(prev.sets_ganados || 0) + Number(setsGanadosRaw || 0),
+            sets_perdidos: Number(prev.sets_perdidos || 0) + Number(setsPerdidosRaw || 0),
           });
         };
 
         for (const row of scopedHistoryRows) {
-          addHistory(row.jugador1_perfil_id, row.puntos_jugador1, row.sets_jugador1);
-          addHistory(row.jugador2_perfil_id, row.puntos_jugador2, row.sets_jugador2);
+          addHistory(row.jugador1_perfil_id, row.puntos_jugador1, row.sets_jugador1, row.sets_jugador2);
+          addHistory(row.jugador2_perfil_id, row.puntos_jugador2, row.sets_jugador2, row.sets_jugador1);
         }
+
+        // Guardar historial crudo para H2H en el sort
+        setRawHistorial(scopedHistoryRows as TournamentHistoryRow[]);
 
         if (historyAggByProfile.size > 0) {
           mergeRows(Array.from(historyAggByProfile.values()));
@@ -415,15 +429,11 @@ const Standings: React.FC = () => {
         pj: Number(row.partidos_jugados || 0),
         pts: Number(row.puntos || 0),
         setsWon: Number(row.sets_ganados || 0),
-        setsLost: 0,
+        setsLost: Number(row.sets_perdidos || 0),
         gamesWon: 0,
         gamesLost: 0,
         matches: [],
       }));
-      mapped.sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts;
-        return b.setsWon - a.setsWon;
-      });
 
       const nameCounts = mapped.reduce((acc: Record<string, number>, row: any) => {
         const key = String(row.name || 'Jugador');
@@ -481,14 +491,64 @@ const Standings: React.FC = () => {
   }, [loadDbStandings, tournament.id]);
 
   const calculatedStandings = useMemo(() => {
-    if (dbRows && dbRows.length > 0) {
-      return dbRows.map((p: any) => ({
-        ...p,
-        average: p.pj > 0 ? (p.pts / p.pj).toFixed(2) : '0.00',
-      }));
+    const source = dbRows && dbRows.length > 0 ? dbRows : (initialPlayers as any[]);
+    if (source.length === 0) return [];
+
+    // Construir mapa de resultados directos desde el historial
+    // h2hWins[winnerId] = Set de losers
+    const h2hWins = new Map<string, Set<string>>();
+    for (const row of rawHistorial) {
+      const winner = row.ganador_perfil_id;
+      const j1 = row.jugador1_perfil_id;
+      const j2 = row.jugador2_perfil_id;
+      if (!winner || !j1 || !j2) continue;
+      const loser = winner === j1 ? j2 : j1;
+      if (!h2hWins.has(winner)) h2hWins.set(winner, new Set());
+      h2hWins.get(winner)!.add(loser);
     }
-    return initialPlayers;
-  }, [dbRows]);
+
+    const getH2H = (idA: string, idB: string): 'A' | 'B' | null => {
+      if (h2hWins.get(idA)?.has(idB)) return 'A';
+      if (h2hWins.get(idB)?.has(idA)) return 'B';
+      return null;
+    };
+
+    // Orden de desempate: pts → dif.sets → sets ganados → H2H → promedio
+    const sorted = [...source].sort((a: any, b: any) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const diffA = a.setsWon - a.setsLost;
+      const diffB = b.setsWon - b.setsLost;
+      if (diffB !== diffA) return diffB - diffA;
+      if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
+      const h2h = getH2H(a.id, b.id);
+      if (h2h === 'A') return -1;
+      if (h2h === 'B') return 1;
+      const avgA = a.pj > 0 ? a.pts / a.pj : 0;
+      const avgB = b.pj > 0 ? b.pts / b.pj : 0;
+      return avgB - avgA;
+    });
+
+    // Anotar el criterio de desempate aplicado entre cada jugador y el anterior con igual pts
+    return sorted.map((p: any, idx: number) => {
+      const average = p.pj > 0 ? (p.pts / p.pj).toFixed(2) : '0.00';
+      if (idx === 0) return { ...p, average, tiebreakerReason: null as string | null };
+      const prev = sorted[idx - 1];
+      if (prev.pts !== p.pts) return { ...p, average, tiebreakerReason: null as string | null };
+      // Mismo pts — identificar qué criterio los separó
+      const diffP = prev.setsWon - prev.setsLost;
+      const diffC = p.setsWon - p.setsLost;
+      let reason: string | null = null;
+      if (diffP !== diffC) {
+        reason = 'Dif. Sets';
+      } else if (prev.setsWon !== p.setsWon) {
+        reason = 'Sets Gan.';
+      } else {
+        const h2h = getH2H(prev.id, p.id);
+        reason = h2h ? 'H2H' : 'Promedio';
+      }
+      return { ...p, average, tiebreakerReason: reason };
+    });
+  }, [dbRows, rawHistorial]);
 
   return (
     <div className="relative flex h-full min-h-full w-full flex-col bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 max-w-4xl mx-auto pb-24 md:pb-12 no-scrollbar overflow-y-auto">
@@ -586,15 +646,29 @@ const Standings: React.FC = () => {
                 <th className="px-4 py-3 sticky left-12 z-20 bg-slate-50 dark:bg-slate-800 min-w-[160px] shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)]">Jugador</th>
                 <th className="px-3 py-3 text-center">PJ</th>
                 <th className="px-3 py-3 text-center">Pts</th>
-                <th className="px-3 py-3 text-center">S. Dif</th>
-                <th className="px-3 py-3 text-center">Prom</th>
+                <th className="px-3 py-3 text-center" title="Sets ganados − sets perdidos">Dif.S</th>
+                <th className="px-3 py-3 text-center" title="Sets ganados">S.G</th>
+                <th className="px-3 py-3 text-center" title="Promedio puntos/partido">Prom</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {calculatedStandings.map((p, idx) => (
-                <tr key={p.id} className={idx < clasificadosPorGrupo ? 'bg-primary/10 dark:bg-primary/5' : 'bg-white dark:bg-slate-900'}>
-                  <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${idx < clasificadosPorGrupo ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700' : 'bg-white dark:bg-slate-900'}`}>{idx + 1}</td>
-                  <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${idx < clasificadosPorGrupo ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
+              {calculatedStandings.map((p: any, idx: number) => {
+                const isClassified = idx < clasificadosPorGrupo;
+                const setDiff = p.setsWon - p.setsLost;
+                const setDiffLabel = setDiff > 0 ? `+${setDiff}` : String(setDiff);
+                return (
+                <tr key={p.id} className={isClassified ? 'bg-primary/10 dark:bg-primary/5' : 'bg-white dark:bg-slate-900'}>
+                  <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${isClassified ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700' : 'bg-white dark:bg-slate-900'}`}>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span>{idx + 1}</span>
+                      {p.tiebreakerReason && (
+                        <span className="text-[9px] font-bold px-1 py-px rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 leading-none whitespace-nowrap">
+                          {p.tiebreakerReason}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${isClassified ? 'bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-900'}`}>
                     <div className="flex items-center gap-3">
                       <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
                         {String(p.name || 'Jugador')
@@ -609,13 +683,16 @@ const Standings: React.FC = () => {
                   </td>
                   <td className="px-3 py-4 text-center text-sm">{p.pj}</td>
                   <td className="px-3 py-4 text-center text-sm font-bold">{p.pts}</td>
-                  <td className="px-3 py-4 text-center text-sm">{p.setsWon - p.setsLost}</td>
+                  <td className={`px-3 py-4 text-center text-sm font-semibold ${setDiff > 0 ? 'text-emerald-600 dark:text-emerald-400' : setDiff < 0 ? 'text-red-500 dark:text-red-400' : 'text-slate-400'}`}>
+                    {setDiffLabel}
+                  </td>
+                  <td className="px-3 py-4 text-center text-sm">{p.setsWon}</td>
                   <td className="px-3 py-4 text-center text-sm font-bold text-primary">{p.average}</td>
                 </tr>
-              ))}
+              );})}
               {calculatedStandings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                     Todavia no hay jugadores inscriptos o no se pudo leer la tabla del torneo en Supabase.
                   </td>
                 </tr>
@@ -631,9 +708,24 @@ const Standings: React.FC = () => {
           </span>
         </div>
 
-        <div className="p-4 mx-4 my-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Resumen de Clasificación Segunda</h4>
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">Se calcula el <strong>Promedio (Pts/PJ)</strong> para determinar el ranking de "Mejores Segundos" entre todos los grupos de la categoría.</p>
+        <div className="mx-4 my-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+            <span className="material-symbols-outlined text-slate-400 text-[18px]">balance</span>
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Criterios de desempate</h4>
+          </div>
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            {TIEBREAKER_CRITERIA.map((criterion, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="text-[10px] font-bold text-slate-400 w-4 shrink-0">{i + 1}</span>
+                <span className="text-xs text-slate-600 dark:text-slate-300">{criterion.replace(/^\d+°\s/, '')}</span>
+              </div>
+            ))}
+          </div>
+          <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-100 dark:border-amber-900/30">
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-relaxed">
+              La insignia junto a la posicion indica el criterio que desempato a dos jugadores con iguales puntos.
+            </p>
+          </div>
         </div>
         </div>
         )}
