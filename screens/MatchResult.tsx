@@ -31,6 +31,9 @@ type MatchContext = {
   set2_j2: number | null;
   set3_j1: number | null;
   set3_j2: number | null;
+  bracket_tipo: string | null;
+  stage_name: string | null;
+  ronda: number | null;
 };
 
 type ProposalSets = {
@@ -115,9 +118,10 @@ const MatchResult: React.FC = () => {
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
+  const [playoffsActiveNoMatch, setPlayoffsActiveNoMatch] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
 
-  const { status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+  const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
   const isChampion = playerStatus?.estado === 'campeon';
   const isPlayerFinished = playerStatus?.estado === 'eliminado' || playerStatus?.estado === 'campeon';
   const rawStats = playerStatus?.stats ?? null;
@@ -326,6 +330,7 @@ const MatchResult: React.FC = () => {
       setLoadingMatch(true);
       setSubmitError(null);
       setBlockReason(null);
+      setPlayoffsActiveNoMatch(false);
       setRivalProposalScores(null);
       setHasOwnProposal(false);
       setLastSubmittedBy(null);
@@ -466,7 +471,7 @@ const MatchResult: React.FC = () => {
 
         let partidoQuery: any = supabase
           .from('partidos')
-          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name')
+          .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
           .eq('torneo_id', tournament.id)
           .eq('categoria', categoria);
 
@@ -485,10 +490,47 @@ const MatchResult: React.FC = () => {
         const { data: partidoRows, error: partidoError } = await partidoQuery;
         if (partidoError) throw partidoError;
 
-        const targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
+        let targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
+
+        // The group filter (grupo = TORNEO_X) misses playoff matches (grupo = TORNEO_X_PLAYOFFS).
+        // If nothing found with the group filter, retry specifically for the user's bracket match.
+        if (!targetPartido && grupo && !selectedPartidoId) {
+          const { data: bracketRows, error: bracketError } = await supabase
+            .from('partidos')
+            .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
+            .eq('torneo_id', tournament.id)
+            .eq('categoria', categoria)
+            .eq('bracket_tipo', 'eliminacion_directa')
+            .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+            .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
+            .order('jornada', { ascending: true })
+            .limit(1);
+          if (bracketError) throw bracketError;
+          targetPartido = Array.isArray(bracketRows) ? bracketRows[0] : null;
+        }
+
         if (!targetPartido) {
           setSubmitError(null);
-          setBlockReason('Todavia no hay un partido generado para esta jornada.');
+          // Check if playoffs are active but user has no bracket match.
+          // Must also verify the user isn't in any completed bracket match (e.g. won and waiting for next round).
+          const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
+            supabase
+              .from('partidos')
+              .select('id', { count: 'exact', head: true })
+              .eq('torneo_id', tournament.id)
+              .eq('bracket_tipo', 'eliminacion_directa'),
+            supabase
+              .from('partidos')
+              .select('id', { count: 'exact', head: true })
+              .eq('torneo_id', tournament.id)
+              .eq('bracket_tipo', 'eliminacion_directa')
+              .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`),
+          ]);
+          if ((bracketCount ?? 0) > 0 && (userBracketCount ?? 0) === 0) {
+            setPlayoffsActiveNoMatch(true);
+          } else {
+            setBlockReason('Todavia no hay un partido generado para esta jornada.');
+          }
           return;
         }
 
@@ -505,6 +547,9 @@ const MatchResult: React.FC = () => {
           set2_j2: targetPartido.set2_j2 != null ? Number(targetPartido.set2_j2) : null,
           set3_j1: targetPartido.set3_j1 != null ? Number(targetPartido.set3_j1) : null,
           set3_j2: targetPartido.set3_j2 != null ? Number(targetPartido.set3_j2) : null,
+          bracket_tipo: targetPartido.bracket_tipo || null,
+          stage_name: targetPartido.stage_name || null,
+          ronda: targetPartido.ronda != null ? Number(targetPartido.ronda) : null,
         });
 
         const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
@@ -747,7 +792,7 @@ const MatchResult: React.FC = () => {
       </header>
 
       <main className="flex-1 p-4 space-y-6">
-        {partido && (
+        {partido && !playoffsActiveNoMatch && (
         <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-white/10">
           <div className="p-4 bg-gradient-to-r from-primary/10 to-transparent">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{tournament.title} - {tournament.subtitle}</p>
@@ -794,7 +839,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Tournament Summary for eliminated/players without active matches */}
-        {tournamentStats && !partido && !loadingMatch && (
+        {tournamentStats && !partido && !loadingMatch && !playoffsActiveNoMatch && (
           <div className="space-y-6">
             {/* Hero - Champion or Regular */}
             {isChampion ? (
@@ -911,7 +956,31 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {blockReason && !loadingMatch && !tournamentStats && (
+        {/* Playoff elimination notice */}
+        {playoffsActiveNoMatch && !loadingMatch && !tournamentStats && (
+          <section className="rounded-xl border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40 p-6 text-center space-y-3">
+            <div className="mx-auto size-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <span className="material-symbols-outlined text-amber-500 text-3xl">info</span>
+            </div>
+            <div>
+              <h3 className="text-base font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+                No clasificaste a los playoffs
+              </h3>
+              <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed mt-1">
+                Los playoffs ya están en curso, pero no estás en la fase de eliminación directa. No tenés partidos pendientes.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/standings', { state: { tournament } })}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-600 rounded-lg px-4 py-2 active:scale-95 transition-transform"
+            >
+              <span className="material-symbols-outlined text-base">emoji_events</span>
+              Ver las Llaves
+            </button>
+          </section>
+        )}
+
+        {blockReason && !loadingMatch && !tournamentStats && !playerStatusLoading && !playoffsActiveNoMatch && (
           <section
             className={`rounded-xl border shadow-sm ${
               !partido
@@ -939,7 +1008,7 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {tournamentStatus === 'FINALIZADO' && !loadingMatch && (
+        {tournamentStatus === 'FINALIZADO' && !loadingMatch && !playoffsActiveNoMatch && (
           <section className="p-4 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-700/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-slate-500 text-lg">history</span>
             <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
@@ -949,7 +1018,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Error si el usuario no es participante del partido */}
-        {!loadingMatch && !isParticipant && currentUserId && (
+        {!loadingMatch && !isParticipant && currentUserId && !playoffsActiveNoMatch && (
           <section className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/30 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-red-500 text-lg flex-shrink-0">error</span>
@@ -978,7 +1047,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Quien debe confirmar pero ya envió su propia propuesta - caso edge */}
-        {isMustConfirm && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && (
+        {isMustConfirm && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && !playoffsActiveNoMatch && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
             <div>
@@ -989,7 +1058,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Quien debe confirmar esperando carga del rival */}
-        {isMustConfirm && isWaitingValidation && !loadingMatch && !hasOwnProposal && !rivalProposalScores && (
+        {isMustConfirm && isWaitingValidation && !loadingMatch && !hasOwnProposal && !rivalProposalScores && !playoffsActiveNoMatch && (
           <section className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
             <div>
@@ -1000,7 +1069,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Panel de confirmación para quien debe confirmar */}
-        {isMustConfirm && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && lastSubmittedBy !== currentUserId && (
+        {isMustConfirm && isWaitingValidation && !loadingMatch && !hasOwnProposal && Boolean(rivalProposalScores) && lastSubmittedBy !== currentUserId && !playoffsActiveNoMatch && (
           <section className="space-y-4">
             <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-200 dark:border-sky-800/30 flex gap-3">
               <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">pending</span>
@@ -1053,17 +1122,17 @@ const MatchResult: React.FC = () => {
                         <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/5 last:border-0">
                           <span className="text-xs font-bold text-gray-400 uppercase w-20">{label}</span>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] text-right whitespace-normal break-words leading-tight">
-                              {orderedPlayers[0].name}
-                              {proposalWinnerIndex === 0 && <span className="ml-2 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">GANADOR</span>}
-                            </span>
+                            <div className="flex flex-col items-end max-w-[140px]">
+                              <span className="text-sm font-black text-gray-500 dark:text-gray-400 text-right break-words leading-tight">{orderedPlayers[0].name}</span>
+                              {proposalWinnerIndex === 0 && <span className="mt-0.5 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">GANADOR</span>}
+                            </div>
                             <span className="text-2xl font-black text-primary">{userScore ?? '-'}</span>
                             <span className="text-xs text-gray-300">—</span>
                             <span className="text-2xl font-black text-primary">{rivalScore ?? '-'}</span>
-                            <span className="text-sm font-black text-gray-500 dark:text-gray-400 max-w-[140px] whitespace-normal break-words leading-tight">
-                              {orderedPlayers[1].name}
-                              {proposalWinnerIndex === 1 && <span className="ml-2 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">GANADOR</span>}
-                            </span>
+                            <div className="flex flex-col items-start max-w-[140px]">
+                              <span className="text-sm font-black text-gray-500 dark:text-gray-400 break-words leading-tight">{orderedPlayers[1].name}</span>
+                              {proposalWinnerIndex === 1 && <span className="mt-0.5 bg-primary/20 text-green-700 dark:text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">GANADOR</span>}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1095,7 +1164,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Mostrar controles de score solo si no estamos esperando validacion y no hay resumen de torneo */}
-        {!blockReason && !isWaitingValidation && !tournamentStats && (
+        {!blockReason && !isWaitingValidation && !tournamentStats && !playoffsActiveNoMatch && (
           <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
           {(['set1', 'set2'] as const).map((setKey, idx) => {
             const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
@@ -1171,28 +1240,28 @@ const MatchResult: React.FC = () => {
           </div>
         )}
 
-        {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && !tournamentStats && (
+        {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && !tournamentStats && !playoffsActiveNoMatch && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm animate-pulse">
             <span className="material-symbols-outlined text-amber-500 text-lg">info</span>
             <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">Por favor completa los sets con resultados validos para poder enviar el partido.</p>
           </div>
         )}
 
-        {!hasDbPlayers && !loadingMatch && !blockReason && (
+        {!hasDbPlayers && !loadingMatch && !blockReason && !playoffsActiveNoMatch && (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
             <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed font-medium">No pudimos resolver los dos perfiles del partido. Reintenta en unos segundos.</p>
           </div>
         )}
 
-        {!isParticipant && !loadingMatch && !submitError && (
+        {!isParticipant && !loadingMatch && !submitError && !playoffsActiveNoMatch && (
           <div className="p-4 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-100 dark:border-slate-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-slate-500 text-lg">visibility</span>
             <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">Estas viendo el detalle de un partido, pero solo sus jugadores pueden enviar o confirmar el resultado.</p>
           </div>
         )}
 
-        {proposalState === 'pendiente' && submitMessage && !submitError && !isWaitingValidation && (
+        {proposalState === 'pendiente' && submitMessage && !submitError && !isWaitingValidation && !playoffsActiveNoMatch && (
           <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl border border-sky-100 dark:border-sky-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-sky-500 text-lg">schedule</span>
             <p className="text-[11px] text-sky-700 dark:text-sky-300 leading-relaxed font-medium">{submitMessage}</p>
@@ -1200,7 +1269,7 @@ const MatchResult: React.FC = () => {
         )}
 
         {/* Resultado enviado por este usuario - esperando confirmacion del rival */}
-        {isWaitingValidation && !isMustConfirm && !loadingMatch && (
+        {isWaitingValidation && !isMustConfirm && !loadingMatch && !playoffsActiveNoMatch && (
           <section className="p-5 bg-sky-50 dark:bg-sky-900/10 rounded-2xl border border-sky-200 dark:border-sky-800/30 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="size-11 rounded-xl bg-sky-100 dark:bg-sky-900/20 flex items-center justify-center flex-shrink-0">
@@ -1216,7 +1285,7 @@ const MatchResult: React.FC = () => {
           </section>
         )}
 
-        {submitError && submitErrorUi && (
+        {submitError && submitErrorUi && !playoffsActiveNoMatch && (
           <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800/20 flex gap-3 shadow-sm">
             <span className="material-symbols-outlined text-red-500 text-lg">error</span>
             <div className="flex-1">
@@ -1235,7 +1304,7 @@ const MatchResult: React.FC = () => {
         )}
       </main>
 
-      {!isWaitingValidation && (
+      {!isWaitingValidation && !playoffsActiveNoMatch && (
       <footer className="fixed bottom-0 left-0 right-0 md:static max-w-2xl mx-auto p-6 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-[60] md:bg-none">
         <button
           onClick={handleConfirm}

@@ -25,9 +25,11 @@ interface BracketTabProps {
   categoria: string;
   grupo?: string;
   selectedGroup?: string;
+  onMatchClick?: (match: BracketMatch) => void;
+  currentUserId?: string;
 }
 
-const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
+const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchClick, currentUserId }) => {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState<BracketMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +123,13 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
     loadBracketMatches();
   }, [torneo_id, categoria]);
 
+  // Lookup map for matches by ID (used for bracket connections)
+  const matchById = useMemo(() => {
+    const map: Record<string, BracketMatch> = {};
+    matches.forEach(m => { map[m.id] = m; });
+    return map;
+  }, [matches]);
+
   // Group matches by round
   const matchesByRound = useMemo(() => {
     const grouped: Record<number, BracketMatch[]> = {};
@@ -152,7 +161,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
     };
     // Map ronda number to proper name based on total rounds
     // If totalRounds is 3 (Cuartos→Semis→Final), then ronda 1 = Cuartos
-    const nameIndex = totalRounds - ronda + 1;
+    const nameIndex = ronda + (5 - totalRounds);
     return roundNames[nameIndex] || `Ronda ${ronda}`;
   };
 
@@ -255,14 +264,29 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
                   const isFinalized = match.estado === 'finalizado';
                   const j1Won = match.ganador_id === match.jugador1_id;
                   const j2Won = match.ganador_id === match.jugador2_id;
-                  
+                  const isMyMatch = !isFinalized && currentUserId && (
+                    match.jugador1_id === currentUserId || match.jugador2_id === currentUserId
+                  );
+
+                  // Bracket connection: find the sibling match feeding into the same next match
+                  const nextMatch = match.siguiente_partido_id ? matchById[match.siguiente_partido_id] : null;
+                  const siblingMatch = match.siguiente_partido_id
+                    ? matches.find(m => m.siguiente_partido_id === match.siguiente_partido_id && m.id !== match.id)
+                    : null;
+                  const nextRoundName = nextMatch ? getRoundName(nextMatch.ronda) : null;
+
                   return (
-                    <div 
-                      key={match.id} 
-                      className={`relative bg-white dark:bg-[#1a3a22] rounded-lg shadow-md overflow-hidden border-2 transition-all ${
-                        isFinalized 
-                          ? 'border-[#61896b]' 
-                          : 'border-[#dbe6de] dark:border-[#2a5a32] hover:border-[#61896b]/50'
+                    <div
+                      key={match.id}
+                      onClick={() => onMatchClick?.(match)}
+                      className={`relative rounded-lg shadow-md overflow-hidden border-2 transition-all ${
+                        onMatchClick ? 'cursor-pointer active:scale-[0.98]' : ''
+                      } ${
+                        isMyMatch
+                          ? 'border-[#4a9c40] bg-primary/5 dark:bg-[#1a3a22]'
+                          : isFinalized
+                          ? 'bg-white dark:bg-[#1a3a22] border-[#61896b]'
+                          : 'bg-white dark:bg-[#1a3a22] border-[#dbe6de] dark:border-[#2a5a32] hover:border-[#61896b]/50'
                       }`}
                     >
                       {/* Player 1 */}
@@ -341,10 +365,29 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
 
                       {/* Status footer */}
                       {!isFinalized && (
-                        <div className="px-4 py-1.5 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/10">
+                        <div className={`px-4 py-1.5 border-t border-gray-100 dark:border-white/10 flex items-center justify-between ${isMyMatch ? 'bg-primary/10' : 'bg-gray-50 dark:bg-white/5'}`}>
                           <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
                             {match.estado === 'en_curso' ? '⏱ En curso' : '📅 Por jugar'}
                           </span>
+                          {isMyMatch && (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/20 text-green-700">
+                              Mi partido
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bracket connection footer */}
+                      {nextRoundName && (
+                        <div className="px-4 py-2 bg-[#f5faf6] dark:bg-[#0f2414] border-t border-[#dbe6de] dark:border-[#2a5a32]">
+                          <p className="text-[10px] font-bold text-[#61896b] uppercase tracking-wide">
+                            → {nextRoundName}
+                          </p>
+                          {siblingMatch && (siblingMatch.jugador1_nombre || siblingMatch.jugador2_nombre) && (
+                            <p className="text-[10px] text-[#61896b]/70 mt-0.5 truncate">
+                              vs. ganador de {siblingMatch.jugador1_nombre || 'TBD'} / {siblingMatch.jugador2_nombre || 'TBD'}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -356,12 +399,14 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria }) => {
         })}
       </div>
 
-      {/* Champion Banner - show winner of the final */}
+      {/* Champion Banner - only show after the true Final is played */}
       {(() => {
         const finalRoundNum = Math.max(...sortedRounds, 0);
         const finalMatches = matchesByRound[finalRoundNum] || [];
         const finalMatch = finalMatches[0];
-        if (finalMatch && finalMatch.estado === 'finalizado' && finalMatch.ganador_id) {
+        // Safety: only show if this round IS the Final (highest possible round for this bracket)
+        const isTrueFinal = finalRoundNum === totalRounds;
+        if (isTrueFinal && finalMatch && finalMatch.estado === 'finalizado' && finalMatch.ganador_id) {
           const winnerName = finalMatch.ganador_id === finalMatch.jugador1_id
             ? finalMatch.jugador1_nombre
             : finalMatch.jugador2_nombre;

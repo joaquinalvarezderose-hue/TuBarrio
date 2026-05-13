@@ -22,8 +22,16 @@ export interface PlayerStats {
   matches: MatchScore[];
 }
 
+// Criterios de desempate en orden de prioridad (fase de grupos)
+export const TIEBREAKER_CRITERIA = [
+  '1° Puntos acumulados',
+  '2° Diferencia de sets (ganados − perdidos)',
+  '3° Sets ganados (total)',
+  '4° Resultado directo (H2H)',
+  '5° Promedio puntos/partido',
+] as const;
+
 export const calculateStandings = (players: PlayerStats[], results: MatchScore[]) => {
-  // Inicializar estadísticas
   const standings = players.map(p => ({
     ...p,
     pj: 0,
@@ -73,36 +81,56 @@ export const calculateStandings = (players: PlayerStats[], results: MatchScore[]
     p2.setsWon += s2;
     p2.setsLost += s1;
 
-    // Regla de Puntos
     if (s1 > s2) {
-      if (s2 === 0) p1.pts += 3; // 2-0
-      else p1.pts += 2; // 2-1
-      if (s2 === 1) p2.pts += 1; // El perdedor suma 1 si hizo un set (2-1)
+      p1.pts += s2 === 0 ? 3 : 2;
+      if (s2 === 1) p2.pts += 1;
     } else {
-      if (s1 === 0) p2.pts += 3; // 0-2
-      else p2.pts += 2; // 1-2
+      p2.pts += s1 === 0 ? 3 : 2;
       if (s1 === 1) p1.pts += 1;
     }
   });
 
-  // Ordenamiento estricto
+  // Construir mapa de resultados directos (H2H)
+  // h2hWinner[idA][idB] = idA si A le ganó a B
+  const h2hWinner: Record<string, Record<string, string>> = {};
+  results.forEach(match => {
+    if (match.isWO) return;
+    let s1 = 0, s2 = 0;
+    match.sets.forEach(set => {
+      if (set.p1 > set.p2) s1++;
+      else if (set.p2 > set.p1) s2++;
+    });
+    if (s1 === s2) return;
+    const winner = s1 > s2 ? match.player1Id : match.player2Id;
+    const loser  = s1 > s2 ? match.player2Id : match.player1Id;
+    if (!h2hWinner[winner]) h2hWinner[winner] = {};
+    h2hWinner[winner][loser] = winner;
+  });
+
+  const getH2HWinner = (idA: string, idB: string): string | null =>
+    h2hWinner[idA]?.[idB] ? idA : h2hWinner[idB]?.[idA] ? idB : null;
+
   return standings.sort((a, b) => {
     // 1° Puntos
     if (b.pts !== a.pts) return b.pts - a.pts;
-    
-    // 2° Diferencia de Sets
+
+    // 2° Diferencia de sets
     const diffSetsA = a.setsWon - a.setsLost;
     const diffSetsB = b.setsWon - b.setsLost;
     if (diffSetsB !== diffSetsA) return diffSetsB - diffSetsA;
 
-    // 3° Diferencia de Games
-    const diffGamesA = a.gamesWon - a.gamesLost;
-    const diffGamesB = b.gamesWon - b.gamesLost;
-    if (diffGamesB !== diffGamesA) return diffGamesB - diffGamesA;
+    // 3° Sets ganados
+    if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
 
-    // 4° H2H (Simplificado: el que tenga ID menor por ahora, 
-    // en una app real buscaríamos el match específico entre ellos)
-    return 0;
+    // 4° Resultado directo (H2H)
+    const h2h = getH2HWinner(a.id, b.id);
+    if (h2h === a.id) return -1;
+    if (h2h === b.id) return 1;
+
+    // 5° Promedio puntos/partido
+    const avgA = a.pj > 0 ? a.pts / a.pj : 0;
+    const avgB = b.pj > 0 ? b.pts / b.pj : 0;
+    return avgB - avgA;
   });
 };
 

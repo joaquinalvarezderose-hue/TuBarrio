@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
+import { useNextMatch } from '../hooks/useNextMatch';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const PANEL_READY_STATUSES = new Set([
@@ -79,21 +80,31 @@ const TournamentPanel: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [proposalMustConfirmBy, setProposalMustConfirmBy] = useState<string | null>(null);
   const [loadingProposal, setLoadingProposal] = useState(false);
+  const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
+  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
   // Single authoritative backend hook for player status
   const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+  // Direct query fallback for when the RPC doesn't return proximo_partido
+  const { match: nextMatchFallback } = useNextMatch(tournament.id);
 
-  const nextMatch = playerStatus?.proximo_partido;
+  const rpcNextMatch = playerStatus?.proximo_partido ?? null;
+  const nextMatch = rpcNextMatch ?? (nextMatchFallback ? {
+    id: nextMatchFallback.id,
+    jornada: nextMatchFallback.jornada,
+    estado: nextMatchFallback.estado,
+    fecha_programada: nextMatchFallback.fecha_programada,
+    jugador1_id: nextMatchFallback.jugador1_id,
+    jugador2_id: nextMatchFallback.jugador2_id,
+    ronda: null as number | null,
+    bracket_tipo: null as string | null,
+    grupo: '',
+    categoria: '',
+    stage_name: null as string | null,
+    rival_id: nextMatchFallback.rivalId,
+    rival_nombre: nextMatchFallback.rivalName,
+    rival_whatsapp: nextMatchFallback.rivalWhatsapp,
+  } : null);
   
-  // Debug: Log the next match data to see if stage_name is present
-  if (nextMatch) {
-    console.log('TournamentPanel - nextMatch data:', {
-      id: nextMatch.id,
-      bracket_tipo: nextMatch.bracket_tipo,
-      ronda: nextMatch.ronda,
-      stage_name: nextMatch.stage_name,
-      jornada: nextMatch.jornada
-    });
-  }
   const isEliminated = playerStatus?.estado === 'eliminado';
   const isCampeon = playerStatus?.estado === 'campeon';
   const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
@@ -105,6 +116,7 @@ const TournamentPanel: React.FC = () => {
     String(proposalMustConfirmBy).toLowerCase() === String(currentUserId).toLowerCase();
   const isUserWaitingRivalConfirm = matchIsWaitingValidation && !isUserMustConfirm;
 
+  const noPlayoffMatch = !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isWaiting && !loadingNextMatch;
   const rawStats = playerStatus?.stats ?? null;
   const tournamentStats = rawStats && rawStats.total > 0 ? {
     totalMatches: rawStats.total,
@@ -301,6 +313,23 @@ const TournamentPanel: React.FC = () => {
           setGroupSize(0);
           setGroupPosition(null);
         }
+
+        // Check if bracket matches exist, and whether this user is in any of them
+        const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
+          supabase
+            .from('partidos')
+            .select('id', { count: 'exact', head: true })
+            .eq('torneo_id', tournament.id)
+            .eq('bracket_tipo', 'eliminacion_directa'),
+          supabase
+            .from('partidos')
+            .select('id', { count: 'exact', head: true })
+            .eq('torneo_id', tournament.id)
+            .eq('bracket_tipo', 'eliminacion_directa')
+            .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`),
+        ]);
+        setBracketMatchesExist((bracketCount ?? 0) > 0);
+        setUserBracketMatchExists((userBracketCount ?? 0) > 0);
       } catch (error) {
         console.error('No se pudo cargar el panel del torneo', error);
         setGroupSize(0);
@@ -705,7 +734,12 @@ const TournamentPanel: React.FC = () => {
           </button>
         </section>
 
-        {(isEliminated || isCampeon || isWaiting) ? (
+        {loadingNextMatch ? (
+          <section className="space-y-4">
+            <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="h-28 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse"></div>
+          </section>
+        ) : (isEliminated || isCampeon || isWaiting) ? (
           /* ── Resumen del torneo (eliminado / campeón / esperando ronda) ── */
           <section className="space-y-4">
             {tournamentStats ? (
@@ -920,6 +954,30 @@ const TournamentPanel: React.FC = () => {
             {/* Mi Próximo Partido */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Mi Próximo Partido</h3>
+
+              {noPlayoffMatch ? (
+                <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="material-symbols-outlined text-amber-500 text-xl">info</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-amber-800 dark:text-amber-300 text-sm uppercase tracking-wide mb-1">
+                        No clasificaste a los playoffs
+                      </h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed">
+                        El torneo continúa en la fase de eliminación directa, pero no estás entre los clasificados de tu grupo.
+                      </p>
+                      <button
+                        onClick={() => navigate('/standings', { state: { tournament } })}
+                        className="mt-3 text-xs font-bold text-amber-700 dark:text-amber-400 underline underline-offset-2 active:opacity-60"
+                      >
+                        Ver las Llaves →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-[#4a9c40]"></div>
                 <div className="flex justify-between items-start mb-4">
@@ -966,6 +1024,7 @@ const TournamentPanel: React.FC = () => {
                   ) : null}
                 </div>
               </div>
+              )}
             </section>
 
             {/* Status Footer */}
