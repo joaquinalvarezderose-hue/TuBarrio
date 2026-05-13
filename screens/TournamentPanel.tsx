@@ -739,7 +739,7 @@ const TournamentPanel: React.FC = () => {
             <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             <div className="h-28 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse"></div>
           </section>
-        ) : (isEliminated || isCampeon || isWaiting) ? (
+        ) : (isEliminated || isCampeon || (isWaiting && !matchIsWaitingValidation)) ? (
           /* ── Resumen del torneo (eliminado / campeón / esperando ronda) ── */
           <section className="space-y-4">
             {tournamentStats ? (
