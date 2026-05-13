@@ -901,13 +901,6 @@ const TournamentPanel: React.FC = () => {
                       Cargaste el resultado del partido. Cuando tu rival lo confirme, el partido quedará cerrado.
                     </p>
                   </div>
-                  <button
-                    onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id } })}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-md hover:bg-amber-600 active:scale-[0.98] transition-all"
-                  >
-                    <span className="material-symbols-outlined text-lg">visibility</span>
-                    Ver partido
-                  </button>
                 </div>
               </section>
             )}

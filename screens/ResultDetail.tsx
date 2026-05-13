@@ -94,8 +94,10 @@ const ResultDetail: React.FC = () => {
     return `${set.p1}-${set.p2}`;
   };
 
-  const userWon = currentUserId && historial && historial.ganador_perfil_id === currentUserId;
-  const userLost = currentUserId && historial && historial.ganador_perfil_id && historial.ganador_perfil_id !== currentUserId;
+  const isParticipant = currentUserId && historial &&
+    (historial.jugador1_id === currentUserId || historial.jugador2_id === currentUserId);
+  const userWon = isParticipant && historial!.ganador_perfil_id === currentUserId;
+  const userLost = isParticipant && !!historial!.ganador_perfil_id && historial!.ganador_perfil_id !== currentUserId;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background-light to-background dark:from-[#0d1b10] dark:to-background-dark flex flex-col">
@@ -203,19 +205,6 @@ const ResultDetail: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Formato Texto */}
-            {historial.sets_json && historial.sets_json.length > 0 && (
-              <div className="bg-[#f5f7f6] dark:bg-[#0d1b10] rounded-xl p-4 text-center">
-                <p className="text-xs text-[#61896b] mb-2">Formato resumen</p>
-                <p className="text-sm font-mono font-bold text-[#111813] dark:text-white">
-                  {historial.sets_json
-                    .filter((s) => s.p1 > 0 || s.p2 > 0)
-                    .map((s) => formatSetScore(s))
-                    .join(' | ')}
-                </p>
               </div>
             )}
 
