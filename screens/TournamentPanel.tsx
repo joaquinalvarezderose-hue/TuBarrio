@@ -746,7 +746,7 @@ const TournamentPanel: React.FC = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id } })}
+                onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id, currentUserId } })}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-md hover:bg-sky-600 active:scale-[0.98] transition-all"
               >
                 <span className="material-symbols-outlined text-lg">check_circle</span>
@@ -946,7 +946,7 @@ const TournamentPanel: React.FC = () => {
           <>
             {/* Mi Próximo Partido */}
             <section className="space-y-4">
-              <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">{isUserWaitingRivalConfirm ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
+              <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">{(isUserWaitingRivalConfirm || isUserMustConfirm) ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
 
               {noPlayoffMatch ? (
                 <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700/40">
