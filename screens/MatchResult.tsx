@@ -475,7 +475,7 @@ const MatchResult: React.FC = () => {
           .eq('torneo_id', tournament.id)
           .eq('categoria', categoria);
 
-        if (grupo) partidoQuery = partidoQuery.eq('grupo', grupo);
+        if (grupo && !selectedPartidoId) partidoQuery = partidoQuery.eq('grupo', grupo);
 
         if (selectedPartidoId) {
           partidoQuery = partidoQuery.eq('id', selectedPartidoId);
