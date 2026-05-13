@@ -685,6 +685,77 @@ const TournamentPanel: React.FC = () => {
           </section>
         )}
 
+        {/* Banner: usuario envió resultado, esperando confirmación del rival */}
+        {isUserWaitingRivalConfirm && !loadingProposal && (
+          <section className="space-y-4">
+            <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Partido</h3>
+            <div className="space-y-3">
+              <div className="text-center bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/20 p-6 rounded-2xl border border-amber-200 dark:border-amber-800/40">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 shadow-sm mb-3">
+                  <span className="material-symbols-outlined text-amber-500 text-4xl">schedule</span>
+                </div>
+                <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
+                  Resultado enviado
+                </h2>
+                <p className="text-amber-600 dark:text-amber-400 text-sm font-medium mt-1">
+                  Esperá que tu rival confirme el marcador
+                </p>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-200 dark:border-amber-800/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3 opacity-10">
+                  <span className="material-symbols-outlined text-4xl">format_quote</span>
+                </div>
+                <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+                  <span className="material-symbols-outlined text-amber-500">info</span>
+                  Pendiente de confirmación
+                </h3>
+                <p className="text-amber-700 dark:text-amber-300 text-sm leading-relaxed">
+                  Cargaste el resultado del partido. Cuando tu rival lo confirme, el partido quedará cerrado.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Banner: rival envió resultado, usuario debe confirmarlo */}
+        {isUserMustConfirm && !loadingProposal && (
+          <section className="space-y-4">
+            <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Partido</h3>
+            <div className="space-y-3">
+              <div className="text-center bg-gradient-to-b from-sky-50 to-transparent dark:from-sky-900/20 p-6 rounded-2xl border border-sky-200 dark:border-sky-800/40">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 dark:bg-sky-900/30 shadow-sm mb-3 animate-pulse">
+                  <span className="material-symbols-outlined text-sky-500 text-4xl">pending_actions</span>
+                </div>
+                <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
+                  Confirmá el resultado
+                </h2>
+                <p className="text-sky-600 dark:text-sky-400 text-sm font-medium mt-1">
+                  Tu rival cargó el marcador. Revisalo y confirmalo
+                </p>
+              </div>
+              <div className="bg-sky-50 dark:bg-sky-900/10 p-4 rounded-xl border border-sky-200 dark:border-sky-800/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3 opacity-10">
+                  <span className="material-symbols-outlined text-4xl">format_quote</span>
+                </div>
+                <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+                  <span className="material-symbols-outlined text-sky-500">info</span>
+                  Acción requerida
+                </h3>
+                <p className="text-sky-700 dark:text-sky-300 text-sm leading-relaxed">
+                  Tu rival ya ingresó el marcador. Entrá al partido, revisá el resultado y confirmalo o rechazalo.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id } })}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-md hover:bg-sky-600 active:scale-[0.98] transition-all"
+              >
+                <span className="material-symbols-outlined text-lg">check_circle</span>
+                Ir a confirmar
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Quick Action Grid 2x2 */}
         <section className="grid grid-cols-2 gap-4">
           <button 
@@ -873,77 +944,6 @@ const TournamentPanel: React.FC = () => {
           </section>
         ) : (
           <>
-            {/* Banner: usuario envió resultado, esperando confirmación del rival */}
-            {isUserWaitingRivalConfirm && !loadingProposal && (
-              <section className="space-y-4">
-                <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Partido</h3>
-                <div className="space-y-3">
-                  <div className="text-center bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/20 p-6 rounded-2xl border border-amber-200 dark:border-amber-800/40">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 shadow-sm mb-3">
-                      <span className="material-symbols-outlined text-amber-500 text-4xl">schedule</span>
-                    </div>
-                    <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
-                      Resultado enviado
-                    </h2>
-                    <p className="text-amber-600 dark:text-amber-400 text-sm font-medium mt-1">
-                      Esperá que tu rival confirme el marcador
-                    </p>
-                  </div>
-                  <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-200 dark:border-amber-800/30 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 opacity-10">
-                      <span className="material-symbols-outlined text-4xl">format_quote</span>
-                    </div>
-                    <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
-                      <span className="material-symbols-outlined text-amber-500">info</span>
-                      Pendiente de confirmación
-                    </h3>
-                    <p className="text-amber-700 dark:text-amber-300 text-sm leading-relaxed">
-                      Cargaste el resultado del partido. Cuando tu rival lo confirme, el partido quedará cerrado.
-                    </p>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Banner: rival envió resultado, usuario debe confirmarlo */}
-            {isUserMustConfirm && !loadingProposal && (
-              <section className="space-y-4">
-                <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Partido</h3>
-                <div className="space-y-3">
-                  <div className="text-center bg-gradient-to-b from-sky-50 to-transparent dark:from-sky-900/20 p-6 rounded-2xl border border-sky-200 dark:border-sky-800/40">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 dark:bg-sky-900/30 shadow-sm mb-3 animate-pulse">
-                      <span className="material-symbols-outlined text-sky-500 text-4xl">pending_actions</span>
-                    </div>
-                    <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
-                      Confirmá el resultado
-                    </h2>
-                    <p className="text-sky-600 dark:text-sky-400 text-sm font-medium mt-1">
-                      Tu rival cargó el marcador. Revisalo y confirmalo
-                    </p>
-                  </div>
-                  <div className="bg-sky-50 dark:bg-sky-900/10 p-4 rounded-xl border border-sky-200 dark:border-sky-800/30 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 opacity-10">
-                      <span className="material-symbols-outlined text-4xl">format_quote</span>
-                    </div>
-                    <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
-                      <span className="material-symbols-outlined text-sky-500">info</span>
-                      Acción requerida
-                    </h3>
-                    <p className="text-sky-700 dark:text-sky-300 text-sm leading-relaxed">
-                      Tu rival ya ingresó el marcador. Entrá al partido, revisá el resultado y confirmalo o rechazalo.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id } })}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-md hover:bg-sky-600 active:scale-[0.98] transition-all"
-                  >
-                    <span className="material-symbols-outlined text-lg">check_circle</span>
-                    Ir a confirmar
-                  </button>
-                </div>
-              </section>
-            )}
-
             {/* Mi Próximo Partido */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">{isUserWaitingRivalConfirm ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
