@@ -90,19 +90,19 @@ const BracketView: React.FC<BracketViewProps> = ({ torneo_id, categoria, grupo }
         ) : (
           <div className="space-y-1">
             <div className={`text-sm p-1 rounded ${
-              match.ganador_id === match.jugador1_id 
-                ? 'bg-green-100 dark:bg-green-900/30 font-medium' 
+              match.ganador_id === match.jugador1_id
+                ? 'bg-green-100 dark:bg-green-900/30 font-medium'
                 : ''
             }`}>
-              {match.jugador1_id || 'TBD'}
+              {match.jugador1_id || 'A definir'}
             </div>
             <div className="text-xs text-center text-gray-500">VS</div>
             <div className={`text-sm p-1 rounded ${
-              match.ganador_id === match.jugador2_id 
-                ? 'bg-green-100 dark:bg-green-900/30 font-medium' 
+              match.ganador_id === match.jugador2_id
+                ? 'bg-green-100 dark:bg-green-900/30 font-medium'
                 : ''
             }`}>
-              {match.jugador2_id || 'TBD'}
+              {match.jugador2_id || 'A definir'}
             </div>
             {match.resultado && (
               <div className="text-xs text-center text-gray-600 dark:text-gray-400 mt-1">

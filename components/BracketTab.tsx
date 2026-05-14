@@ -97,8 +97,8 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
           // Transform data to include player names
           const transformedMatches: BracketMatch[] = matchesData.map((match: any) => ({
             ...match,
-            jugador1_nombre: nameMap[match.jugador1_id] || 'TBD',
-            jugador2_nombre: nameMap[match.jugador2_id] || 'TBD',
+            jugador1_nombre: nameMap[match.jugador1_id] || 'A definir',
+            jugador2_nombre: nameMap[match.jugador2_id] || 'A definir',
           }));
           setMatches(transformedMatches);
         } else {
@@ -302,7 +302,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
                           <span className={`text-sm truncate ${
                             j1Won ? 'font-bold text-[#111813] dark:text-white' : 'text-gray-700 dark:text-gray-300'
                           } ${isFinalized && !j1Won ? 'opacity-50' : ''}`}>
-                            {match.jugador1_nombre || 'TBD'}
+                            {match.jugador1_nombre || 'A definir'}
                           </span>
                         </div>
                         {isFinalized && (
@@ -339,7 +339,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
                           <span className={`text-sm truncate ${
                             j2Won ? 'font-bold text-[#111813] dark:text-white' : 'text-gray-700 dark:text-gray-300'
                           } ${isFinalized && !j2Won ? 'opacity-50' : ''}`}>
-                            {match.jugador2_nombre || 'TBD'}
+                            {match.jugador2_nombre || 'A definir'}
                           </span>
                         </div>
                         {isFinalized && (
@@ -385,7 +385,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
                           </p>
                           {siblingMatch && (siblingMatch.jugador1_nombre || siblingMatch.jugador2_nombre) && (
                             <p className="text-[10px] text-[#61896b]/70 mt-0.5 truncate">
-                              vs. ganador de {siblingMatch.jugador1_nombre || 'TBD'} / {siblingMatch.jugador2_nombre || 'TBD'}
+                              vs. ganador de {siblingMatch.jugador1_nombre || 'A definir'} / {siblingMatch.jugador2_nombre || 'A definir'}
                             </p>
                           )}
                         </div>
