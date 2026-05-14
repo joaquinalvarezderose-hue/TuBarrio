@@ -74,6 +74,8 @@ const Payment: React.FC = () => {
         }
       }
 
+      const updatedUser = JSON.parse(localStorage.getItem('app_user') || '{}');
+
       const payload = {
         torneo_id: Number(tournament.id),
         perfil_id: perfilId,
@@ -86,6 +88,8 @@ const Payment: React.FC = () => {
         alias_destino: aliasDestino,
         whatsapp_destino: whatsappDestino,
         referencia_manual: reference || null,
+        nombre_contacto: updatedUser.nombre_completo || null,
+        whatsapp_contacto: updatedUser.whatsapp || null,
       };
 
       // Evitamos upsert porque si ya existe una fila aprobada/rechazada,
@@ -112,7 +116,11 @@ const Payment: React.FC = () => {
       } else if (existente.estado === 'pendiente_revision') {
         const { data: updateData, error: updateError } = await supabase
           .from('inscripciones_torneo')
-          .update({ referencia_manual: reference || null })
+          .update({
+            referencia_manual: reference || null,
+            nombre_contacto: updatedUser.nombre_completo || null,
+            whatsapp_contacto: updatedUser.whatsapp || null,
+          })
           .eq('id', existente.id)
           .select('id, estado')
           .single();
