@@ -688,6 +688,7 @@ const MatchResult: React.FC = () => {
       setHasOwnProposal(true);
       setLastSubmittedBy(String(currentUserId));
       setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
+      navigate('/tournament-panel', { state: { tournament } });
     } catch (error) {
       console.error('Error enviando el resultado', error);
       const anyErr: any = error as any;
