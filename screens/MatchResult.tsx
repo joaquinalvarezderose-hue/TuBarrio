@@ -734,7 +734,7 @@ const MatchResult: React.FC = () => {
       }
 
       setPartido((prev) => prev ? { ...prev, estado: 'finalizado' } : prev);
-      navigate('/standings', { state: { tournament } });
+      navigate('/tournament-panel', { state: { tournament } });
     } catch (error) {
       console.error('Error confirmando el resultado', error);
       setSubmitError('No se pudo confirmar el resultado. Intenta nuevamente.');
