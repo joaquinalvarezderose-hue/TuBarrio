@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #13ec49;
+  --color-primary-dark: #0eb538;
+  --color-secondary: #111813;
+  --color-surface: #ffffff;
+  --color-accent: #ff4b4b;
+  --color-tournament-primary: #6dec13;
+  --color-background-light: #f6f8f6;
+  --color-background-dark: #102215;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #f9fafb;
+  --color-secondary-text: #61896b;
+  --color-card-light: #ffffff;
+  --color-card-dark: #1a3322;
+  --color-text-light: #111813;
+  --color-text-dark: #e0e6e2;
+
+  --font-family-sans: 'Manrope', sans-serif;
+  --font-family-display: 'Lexend', sans-serif;
+}
