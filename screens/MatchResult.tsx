@@ -123,7 +123,16 @@ const MatchResult: React.FC = () => {
 
   const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
   const isChampion = playerStatus?.estado === 'campeon';
-  const isPlayerFinished = playerStatus?.estado === 'eliminado' || playerStatus?.estado === 'campeon';
+  const isFinalista = playerStatus?.estado === 'finalista';
+  const isPlayerFinished = playerStatus?.estado === 'eliminado' || playerStatus?.estado === 'campeon' || playerStatus?.estado === 'finalista';
+  const [showConfetti, setShowConfetti] = useState(false);
+  useEffect(() => {
+    if (isChampion) {
+      setShowConfetti(true);
+      const t = setTimeout(() => setShowConfetti(false), 3200);
+      return () => clearTimeout(t);
+    }
+  }, [isChampion]);
   const rawStats = playerStatus?.stats ?? null;
   const tournamentStats: TournamentStats | null = isPlayerFinished && rawStats && rawStats.total > 0 ? {
     totalMatches: rawStats.total,
@@ -777,7 +786,54 @@ const MatchResult: React.FC = () => {
     }
   };
 
+  const confettiParticles = [
+    { left: '5%', delay: '0s', dur: '2.8s', color: '#13ec49' },
+    { left: '10%', delay: '0.1s', dur: '3.1s', color: '#f59e0b' },
+    { left: '18%', delay: '0.3s', dur: '2.6s', color: '#fff' },
+    { left: '25%', delay: '0s', dur: '3.3s', color: '#13ec49' },
+    { left: '33%', delay: '0.2s', dur: '2.9s', color: '#f59e0b' },
+    { left: '40%', delay: '0.4s', dur: '3.0s', color: '#3b82f6' },
+    { left: '48%', delay: '0.1s', dur: '2.7s', color: '#fff' },
+    { left: '55%', delay: '0.3s', dur: '3.2s', color: '#13ec49' },
+    { left: '62%', delay: '0s', dur: '2.8s', color: '#f59e0b' },
+    { left: '70%', delay: '0.2s', dur: '3.1s', color: '#3b82f6' },
+    { left: '77%', delay: '0.4s', dur: '2.6s', color: '#fff' },
+    { left: '84%', delay: '0.1s', dur: '3.0s', color: '#13ec49' },
+    { left: '90%', delay: '0.3s', dur: '2.9s', color: '#f59e0b' },
+    { left: '95%', delay: '0s', dur: '3.3s', color: '#3b82f6' },
+    { left: '15%', delay: '0.5s', dur: '2.7s', color: '#fff' },
+    { left: '45%', delay: '0.6s', dur: '3.1s', color: '#13ec49' },
+    { left: '72%', delay: '0.5s', dur: '2.8s', color: '#f59e0b' },
+    { left: '88%', delay: '0.7s', dur: '3.0s', color: '#3b82f6' },
+  ];
+
   return (
+    <>
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          <style>{`
+            @keyframes confettiFall {
+              0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+            }
+          `}</style>
+          {confettiParticles.map((p, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: p.left,
+                top: '-10px',
+                width: i % 3 === 0 ? '10px' : '8px',
+                height: i % 3 === 0 ? '10px' : '14px',
+                backgroundColor: p.color,
+                borderRadius: i % 2 === 0 ? '50%' : '2px',
+                animation: `confettiFall ${p.dur} ${p.delay} ease-in forwards`,
+              }}
+            />
+          ))}
+        </div>
+      )}
     <div className="max-w-2xl mx-auto min-h-full flex flex-col bg-background-light dark:bg-background-dark font-display pb-32 md:pb-12">
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-white/10 px-4 py-4 flex items-center justify-between">
         <div className="flex w-10 justify-start">
@@ -844,15 +900,27 @@ const MatchResult: React.FC = () => {
           <div className="space-y-6">
             {/* Hero - Champion or Regular */}
             {isChampion ? (
-              <div className="text-center bg-gradient-to-b from-[#f0fdf4] to-transparent dark:from-[#1a3a22]/50 p-6 rounded-2xl">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#13ec49]/20 shadow-lg shadow-[#13ec49]/20 mb-3 animate-bounce">
-                  <span className="material-symbols-outlined text-[#13ec49] text-5xl">emoji_events</span>
+              <div className="text-center bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/30 p-6 rounded-2xl">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/40 shadow-lg shadow-amber-200/50 dark:shadow-amber-900/30 mb-3 animate-bounce">
+                  <span className="material-symbols-outlined text-amber-500 text-5xl">emoji_events</span>
                 </div>
                 <h2 className="font-black text-3xl tracking-tight text-[#111813] dark:text-white uppercase">
-                  Campeon del Torneo
+                  ¡Campeón del Torneo!
                 </h2>
                 <p className="text-[#61896b] text-sm font-bold mt-2">
-                  Felicitaciones! Ganaste {tournament.title}
+                  ¡Felicitaciones! Ganaste {tournament.title}
+                </p>
+              </div>
+            ) : isFinalista ? (
+              <div className="text-center bg-gradient-to-b from-indigo-50 to-transparent dark:from-indigo-900/20 p-6 rounded-2xl">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/40 shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/30 mb-3">
+                  <span className="material-symbols-outlined text-indigo-500 text-5xl">military_tech</span>
+                </div>
+                <h2 className="font-black text-3xl tracking-tight text-[#111813] dark:text-white uppercase">
+                  ¡Finalista!
+                </h2>
+                <p className="text-[#61896b] text-sm font-bold mt-2">
+                  Llegaste a la Final de {tournament.title}
                 </p>
               </div>
             ) : (
@@ -1323,6 +1391,7 @@ const MatchResult: React.FC = () => {
       </footer>
       )}
     </div>
+    </>
   );
 };
 

@@ -5,6 +5,7 @@ export type PlayerTournamentEstado =
   | 'activo'
   | 'eliminado'
   | 'campeon'
+  | 'finalista'
   | 'esperando_siguiente_ronda'
   | 'sin_participacion';
 

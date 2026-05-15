@@ -82,6 +82,7 @@ const TournamentPanel: React.FC = () => {
   const [loadingProposal, setLoadingProposal] = useState(false);
   const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
   const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
+  const [tournamentChampion, setTournamentChampion] = useState<string | null>(null);
   // Single authoritative backend hook for player status
   const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
   // Direct query fallback for when the RPC doesn't return proximo_partido
@@ -107,6 +108,7 @@ const TournamentPanel: React.FC = () => {
   
   const isEliminated = playerStatus?.estado === 'eliminado';
   const isCampeon = playerStatus?.estado === 'campeon';
+  const isFinalista = playerStatus?.estado === 'finalista';
   const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
 
   const matchIsWaitingValidation = nextMatch?.estado === 'esperando_validacion';
@@ -116,7 +118,7 @@ const TournamentPanel: React.FC = () => {
     String(proposalMustConfirmBy).toLowerCase() === String(currentUserId).toLowerCase();
   const isUserWaitingRivalConfirm = matchIsWaitingValidation && !isUserMustConfirm;
 
-  const noPlayoffMatch = !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isWaiting && !loadingNextMatch;
+  const noPlayoffMatch = !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isFinalista && !isWaiting && !loadingNextMatch;
   const rawStats = playerStatus?.stats ?? null;
   const tournamentStats = rawStats && rawStats.total > 0 ? {
     totalMatches: rawStats.total,
@@ -330,6 +332,24 @@ const TournamentPanel: React.FC = () => {
         ]);
         setBracketMatchesExist((bracketCount ?? 0) > 0);
         setUserBracketMatchExists((userBracketCount ?? 0) > 0);
+
+        // Fetch champion name from finalized final match
+        const { data: finalMatch } = await supabase
+          .from('partidos')
+          .select('ganador_id')
+          .eq('torneo_id', tournament.id)
+          .eq('bracket_tipo', 'eliminacion_directa')
+          .is('siguiente_partido_id', null)
+          .eq('estado', 'finalizado')
+          .maybeSingle();
+        if (finalMatch?.ganador_id) {
+          const { data: champProfile } = await supabase
+            .from('perfiles')
+            .select('nombre_completo')
+            .eq('id', finalMatch.ganador_id)
+            .maybeSingle();
+          setTournamentChampion(champProfile?.nombre_completo ?? null);
+        }
       } catch (error) {
         console.error('No se pudo cargar el panel del torneo', error);
         setGroupSize(0);
@@ -810,9 +830,21 @@ const TournamentPanel: React.FC = () => {
             <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             <div className="h-28 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse"></div>
           </section>
-        ) : (isEliminated || isCampeon || (isWaiting && !matchIsWaitingValidation)) ? (
-          /* ── Resumen del torneo (eliminado / campeón / esperando ronda) ── */
+        ) : (isEliminated || isCampeon || isFinalista || (isWaiting && !matchIsWaitingValidation)) ? (
+          /* ── Resumen del torneo (eliminado / campeón / finalista / esperando ronda) ── */
           <section className="space-y-4">
+            {/* Banner de campeón visible para todos excepto el propio campeón */}
+            {!isCampeon && tournamentChampion && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-amber-500 text-2xl">emoji_events</span>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Campeón del Torneo</p>
+                  <p className="font-black text-sm text-amber-900 dark:text-amber-100 uppercase">{tournamentChampion}</p>
+                </div>
+              </div>
+            )}
             {tournamentStats ? (
               <>
                 <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] dark:text-white">Resumen del Torneo</h3>
@@ -820,19 +852,19 @@ const TournamentPanel: React.FC = () => {
                   {/* Hero */}
                   <div className="text-center bg-gradient-to-b from-[#f0fdf4] to-transparent dark:from-[#1a3a22]/50 p-6 rounded-2xl border border-[#dbe6de] dark:border-[#2a5a32]">
                     <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full shadow-sm mb-3 ${
-                      isCampeon ? 'bg-amber-100 dark:bg-amber-900/30' : isWaiting ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-[#e8f6eb] dark:bg-[#1a3a22]'
+                      isCampeon ? 'bg-amber-100 dark:bg-amber-900/30' : isFinalista ? 'bg-indigo-100 dark:bg-indigo-900/30' : isWaiting ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-[#e8f6eb] dark:bg-[#1a3a22]'
                     }`}>
                       <span className={`material-symbols-outlined text-4xl ${
-                        isCampeon ? 'text-amber-500' : isWaiting ? 'text-blue-500' : 'text-[#61896b]'
+                        isCampeon ? 'text-amber-500' : isFinalista ? 'text-indigo-500' : isWaiting ? 'text-blue-500' : 'text-[#61896b]'
                       }`}>
-                        {isCampeon ? 'emoji_events' : isWaiting ? 'hourglass_top' : 'sports_tennis'}
+                        {isCampeon ? 'emoji_events' : isFinalista ? 'military_tech' : isWaiting ? 'hourglass_top' : 'sports_tennis'}
                       </span>
                     </div>
                     <h2 className="font-bold text-2xl tracking-tight text-[#111813] dark:text-white uppercase">
-                      {isCampeon ? '¡Campeón!' : isWaiting ? 'Avanzaste de ronda' : (tournamentStats.wins > tournamentStats.losses ? 'Gran Torneo' : 'Fin del Torneo')}
+                      {isCampeon ? '¡Campeón!' : isFinalista ? '¡Finalista!' : isWaiting ? 'Avanzaste de ronda' : (tournamentStats.wins > tournamentStats.losses ? 'Gran Torneo' : 'Fin del Torneo')}
                     </h2>
                     <p className="text-[#61896b] text-sm font-medium mt-1">
-                      {isCampeon ? `¡Ganaste ${tournament.title}!` : isWaiting ? 'Esperá que se generen los próximos cruces' : 'No avanzaste a la siguiente ronda'}
+                      {isCampeon ? `¡Ganaste ${tournament.title}!` : isFinalista ? `Llegaste a la Final de ${tournament.title}` : isWaiting ? 'Esperá que se generen los próximos cruces' : 'No avanzaste a la siguiente ronda'}
                     </p>
                   </div>
 
@@ -907,11 +939,13 @@ const TournamentPanel: React.FC = () => {
                     </div>
                     <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
                       <span className="material-symbols-outlined text-[#61896b]">info</span>
-                      {isCampeon ? 'Campeón del torneo' : isWaiting ? 'Esperando siguiente ronda' : (tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia')}
+                      {isCampeon ? 'Campeón del torneo' : isFinalista ? 'Finalista del torneo' : isWaiting ? 'Esperando siguiente ronda' : (tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia')}
                     </h3>
                     <p className="text-[#61896b] text-sm leading-relaxed">
                       {isCampeon
                         ? 'Felicitaciones, ganaste el torneo. Podés ver el fixture completo en la pestaña Llaves.'
+                        : isFinalista
+                        ? 'Llegaste a la Final del torneo, una actuación increíble. Podés ver el fixture completo en la pestaña Llaves.'
                         : isWaiting
                         ? 'Ganaste tu última serie. Los próximos cruces se generarán próximamente.'
                         : tournamentStatus === 'FINALIZADO'
@@ -928,11 +962,13 @@ const TournamentPanel: React.FC = () => {
                 </div>
                 <h3 className="font-bold text-[#111813] dark:text-white tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
                   <span className="material-symbols-outlined text-[#61896b]">info</span>
-                  {isCampeon ? 'Campeón del torneo' : isWaiting ? 'Esperando siguiente ronda' : (tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia')}
+                  {isCampeon ? 'Campeón del torneo' : isFinalista ? 'Finalista del torneo' : isWaiting ? 'Esperando siguiente ronda' : (tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia')}
                 </h3>
                 <p className="text-[#61896b] text-sm leading-relaxed">
                   {isCampeon
                     ? 'Felicitaciones, ganaste el torneo.'
+                    : isFinalista
+                    ? 'Llegaste a la Final del torneo, una actuación increíble.'
                     : isWaiting
                     ? 'Ganaste tu última serie. Los próximos cruces se generarán próximamente.'
                     : tournamentStatus === 'FINALIZADO'

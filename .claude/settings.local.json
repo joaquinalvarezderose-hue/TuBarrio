@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "mcp__claude_ai_Supabase__list_tables",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__apply_migration"
     ]
   }
 }
