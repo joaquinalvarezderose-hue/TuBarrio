@@ -26,6 +26,12 @@ DROP POLICY IF EXISTS "partidos_select_admin"                ON public.partidos;
 DROP POLICY IF EXISTS "partidos_select_participante"         ON public.partidos;
 DROP POLICY IF EXISTS "partidos_select_all"                  ON public.partidos;
 DROP POLICY IF EXISTS "partidos_select_torneos_participante" ON public.partidos;
+-- IMPORTANTE: estas dos policies existían en producción con USING (true) y NO
+-- estaban registradas en ninguna migración del repo. Si no las dropeamos, la
+-- policy nueva queda inútil (RLS hace OR entre policies). partidos_select_anon
+-- es especialmente peligrosa: permitía a usuarios NO autenticados leer todo.
+DROP POLICY IF EXISTS "partidos_select_anon"                 ON public.partidos;
+DROP POLICY IF EXISTS "partidos_select_authenticated"        ON public.partidos;
 
 CREATE POLICY "partidos_select_torneos_participante"
   ON public.partidos
