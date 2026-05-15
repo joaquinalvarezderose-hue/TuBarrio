@@ -4,7 +4,15 @@
       "mcp__claude_ai_Supabase__list_tables",
       "Bash(git log *)",
       "mcp__claude_ai_Supabase__execute_sql",
-      "mcp__claude_ai_Supabase__apply_migration"
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(Get-ChildItem -Path C:\\\\Users\\\\Joaquin\\\\Documents\\\\GitHub\\\\TuBarrio -Recurse -Include *.sql)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Joaquin\\\\Documents\\\\GitHub\\\\TuBarrio\" -Force)",
+      "Bash(Select-Object -First 20)",
+      "mcp__claude_ai_Supabase__get_advisors",
+      "Bash(head -c 3000 /c/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/1e21b8fd-93db-4538-8ec4-62107902527e/tool-results/mcp-claude_ai_Supabase-get_advisors-1778810943011.txt)",
+      "Read(//c/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/1e21b8fd-93db-4538-8ec4-62107902527e/tool-results/**)",
+      "mcp__claude_ai_Supabase__generate_typescript_types"
     ]
   }
 }

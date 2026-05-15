@@ -1,0 +1,94 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # lunes 04:00 UTC — auditoría semanal
+    - cron: '0 4 * * 1'
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+
+  lint-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript check (no-emit)
+        run: npx tsc --noEmit
+        continue-on-error: true  # TODO: bajar a false cuando se complete strict mode
+
+  secret-scan:
+    name: Secret Scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # historia completa
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: npm audit (high+critical)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  build-verify:
+    name: Build & Bundle verification
+    runs-on: ubuntu-latest
+    needs: [lint-typecheck, secret-scan, dependency-audit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build production bundle
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: npm run build
+      - name: Verify no .map files in dist/
+        shell: bash
+        run: |
+          if find dist -name '*.map' 2>/dev/null | grep -q .; then
+            echo "::error::Source maps found in dist/. Asegurate de tener build.sourcemap: false en vite.config.ts"
+            exit 1
+          fi
+          echo "OK: sin .map en dist/"
+      - name: Scan bundle for leaked secrets
+        shell: bash
+        run: |
+          # Buscar claves comunes que NUNCA deben llegar al bundle
+          if grep -rE "(service_role|sk-user-[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35})" dist/ 2>/dev/null; then
+            echo "::error::Posible secreto filtrado en el bundle de producción"
+            exit 1
+          fi
+          echo "OK: no se detectaron secretos obvios en el bundle"

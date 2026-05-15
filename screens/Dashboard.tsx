@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  
-  const userStr = localStorage.getItem('app_user');
-  const user = userStr ? JSON.parse(userStr) : { name: "Mi Barrio" };
+  const { perfil } = useCurrentUser();
+  const displayName = perfil?.nombre_completo || 'Mi Barrio';
 
   return (
     <div className="relative flex h-full w-full flex-col bg-white dark:bg-background-dark font-display text-[#111813] dark:text-white antialiased pb-24 md:pb-0">
@@ -20,7 +20,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-none">Hola de nuevo,</span>
-            <h2 className="text-[#111813] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">{user.name}</h2>
+            <h2 className="text-[#111813] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">{displayName}</h2>
           </div>
         </div>
         <button className="relative flex items-center justify-center rounded-full size-10 bg-gray-50 dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-[#111813] dark:text-white transition-colors">

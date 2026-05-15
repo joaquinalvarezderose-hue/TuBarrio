@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { verifyAddress } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
+import {
+  RegisterSchema,
+  flattenZodErrors,
+  normalizeWhatsApp,
+} from '../lib/schemas';
 
 interface RegisterProps {
   onComplete: () => void;
@@ -15,12 +20,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [terms, setTerms] = useState(false);
   const [whatsappLocal, setWhatsappLocal] = useState('');
-
-  // Normalizes a local Argentine number to E.164 format: +549XXXXXXXXXX
-  const normalizeWhatsApp = (local: string): string => {
-    const digits = local.replace(/\D/g, '');
-    return digits ? `+549${digits}` : '';
-  };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +28,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const handleVerify = async () => {
-    console.log('handleVerify called', { address });
     if (!address) return;
     setLoading(true);
     setError(null);
@@ -44,20 +42,26 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   };
 
   const handleRegister = async () => {
-    console.log('handleRegister called', { name, email, password, confirmPassword, address, whatsapp: whatsappLocal, terms });
-    // Client-side validation
     setError(null);
     setFieldErrors({});
-    const errors: { [k: string]: string } = {};
-    if (!name || name.trim().length < 3) errors.name = 'Ingresa tu nombre completo (mín. 3 caracteres).';
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Ingresa un correo válido.';
-    if (!password || password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres.';
-    if (!confirmPassword || confirmPassword !== password) errors.confirmPassword = 'Las contraseñas no coinciden.';
-    if (!terms) errors.terms = 'Debes aceptar los términos y condiciones.';
-    if (!address || address.trim().length < 5) errors.address = 'Ingresa una dirección válida.';
-    if (whatsappLocal && !/^\d[\d\s\-]{7,11}$/.test(whatsappLocal)) errors.whatsapp = 'Ingresa el número local (ej: 11 1234-5678).';
 
-    if (Object.keys(errors).length > 0) {
+    const result = RegisterSchema.safeParse({
+      name,
+      email,
+      password,
+      confirmPassword,
+      address,
+      whatsappLocal,
+      terms,
+    });
+
+    if (!result.success) {
+      const errors = flattenZodErrors(result);
+      // Mapeo de 'whatsappLocal' al key 'whatsapp' que usa el componente
+      if (errors.whatsappLocal) {
+        errors.whatsapp = errors.whatsappLocal;
+        delete errors.whatsappLocal;
+      }
       setFieldErrors(errors);
       setError('Por favor corrige los campos indicados.');
       return;
@@ -67,13 +71,12 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     try {
       // Intentar registrar con Supabase; si falla (config), usar fallback local (MVP)
       const normalizedWA = normalizeWhatsApp(whatsappLocal);
-      if (supabase && typeof (supabase as any).auth?.signUp === 'function') {
-        const { data: authData, error: authError } = await (supabase as any).auth.signUp({
+      if (supabase && typeof supabase.auth?.signUp === 'function') {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { nombre_completo: name, whatsapp: normalizedWA || null } },
         });
-        console.log('supabase signUp result', { authData, authError });
 
         // Si el mail ya está registrado, mostramos mensaje y sugerimos iniciar sesión
         if (authError && /already registered/i.test(authError.message || '')) {
@@ -100,23 +103,20 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
             )
             .select()
             .single();
-          console.log('supabase insert response', insertResponse);
           const dbError = (insertResponse as any).error;
           if (dbError) throw dbError;
           const insertedProfile = (insertResponse as any).data;
           if (insertedProfile) {
             localStorage.setItem('app_user', JSON.stringify(insertedProfile));
           } else {
-            const { data: fetched, error: fetchErr } = await supabase
+            const { data: fetched } = await supabase
               .from('perfiles')
               .select('*')
               .eq('id', authData.user.id)
               .single();
-            console.log('fetched profile after insert (signup path)', { fetched, fetchErr });
             if (fetched) localStorage.setItem('app_user', JSON.stringify(fetched));
           }
         } else {
-          console.log('No auth user returned from signUp; email confirmation may be required.');
           // Guardar datos temporalmente para cuando confirme el email
           localStorage.setItem('pending_profile', JSON.stringify({ nombre_completo: name, whatsapp: normalizedWA || null, direccion: verifiedAddress || address }));
         }

@@ -1,0 +1,51 @@
+title = "TuBarrio gitleaks config"
+
+# Hereda las reglas default de gitleaks (AWS, GitHub tokens, Stripe, etc.)
+[extend]
+useDefault = true
+
+# ============================================================
+# Reglas custom para los servicios de TuBarrio
+# ============================================================
+
+[[rules]]
+id = "testsprite-api-key"
+description = "TestSprite API Key"
+regex = '''sk-user-[A-Za-z0-9_-]{40,}'''
+tags = ["key", "TestSprite"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase service_role JWT (NUNCA debe estar en código)"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]*"role":"service_role"'''
+tags = ["key", "Supabase", "service_role", "critical"]
+
+[[rules]]
+id = "google-gemini-api-key"
+description = "Google Gemini / Google AI Studio API Key"
+regex = '''AIza[0-9A-Za-z_-]{35}'''
+tags = ["key", "Google", "Gemini"]
+
+[[rules]]
+id = "supabase-access-token"
+description = "Supabase Personal Access Token"
+regex = '''sbp_[A-Za-z0-9]{40,}'''
+tags = ["key", "Supabase"]
+
+# ============================================================
+# Allowlist
+# ============================================================
+
+[allowlist]
+description = "Excepciones que NO son secretos"
+regexes = [
+  # La anon key de Supabase es pública por diseño (proteja por RLS)
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]*"role":"anon"''',
+]
+paths = [
+  '''\.env\.example$''',
+  '''docs/.*\.md$''',
+  '''node_modules/''',
+  '''dist/''',
+  '''package-lock\.json''',
+]

@@ -1,59 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { WhatsAppE164Schema } from '../lib/schemas';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const userStr = localStorage.getItem('app_user');
-  const cachedUser = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi", address: "Calle Falsa 123" };
-
-  const [user, setUser] = useState(cachedUser);
+  const { authUser, perfil, refresh } = useCurrentUser();
   const [editingWa, setEditingWa] = useState(false);
-  const [waValue, setWaValue] = useState<string>(cachedUser?.whatsapp || '');
+  const [waValue, setWaValue] = useState<string>('');
   const [waSaving, setWaSaving] = useState(false);
   const [waError, setWaError] = useState<string | null>(null);
   const [waSuccess, setWaSuccess] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data: authData } = await (supabase as any).auth.getUser();
-        const userId = authData?.user?.id || cachedUser?.id;
-        if (!userId) return;
-        const { data: profile } = await supabase
-          .from('perfiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        if (profile) {
-          localStorage.setItem('app_user', JSON.stringify(profile));
-          setUser(profile);
-          setWaValue(profile.whatsapp || '');
-        }
-      } catch (_) {}
-    };
-    fetchProfile();
-  }, []);
+    setWaValue(perfil?.whatsapp || '');
+  }, [perfil?.whatsapp]);
 
   const handleSaveWhatsapp = async () => {
     setWaError(null);
     setWaSuccess(false);
-    if (waValue && !/^[+0-9()\s-]{7,}$/.test(waValue)) {
-      setWaError('Número inválido. Ej: +54 9 11 1234-5678');
-      return;
+    if (waValue) {
+      const parsed = WhatsAppE164Schema.safeParse(waValue);
+      if (!parsed.success) {
+        setWaError(parsed.error.issues[0]?.message ?? 'Número inválido');
+        return;
+      }
     }
     setWaSaving(true);
     try {
-      const { data: authData } = await (supabase as any).auth.getUser();
-      const userId = authData?.user?.id || user?.id;
+      const userId = authUser?.id;
       if (!userId) throw new Error('Sin sesión');
       const { error } = await supabase
         .from('perfiles')
         .update({ whatsapp: waValue || null })
         .eq('id', userId);
       if (error) throw error;
-      const updated = { ...user, whatsapp: waValue || null };
-      localStorage.setItem('app_user', JSON.stringify(updated));
+      await refresh();
       setWaSuccess(true);
       setEditingWa(false);
     } catch (err: any) {
@@ -65,22 +48,25 @@ const Profile: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // Sign out from Supabase with global scope (all devices/tabs)
-      await (supabase as any).auth.signOut({ scope: 'global' });
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      // Clear ALL storage
-      localStorage.clear();  // Remove all localStorage including app_user
-      sessionStorage.clear();  // Remove all sessionStorage
-      
-      // Clear Supabase specific items
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-your-project-ref-auth-token');
-      
-      // Force navigation to login using HashRouter format
+      localStorage.clear();
+      sessionStorage.clear();
       window.location.href = '/#/login';
     }
+  };
+
+  // Compatibilidad con el JSX existente: mapear nombre_completo → name
+  const user = {
+    id: perfil?.id ?? authUser?.id,
+    email: perfil?.email ?? authUser?.email ?? null,
+    name: perfil?.nombre_completo ?? 'Jugador',
+    nombre_completo: perfil?.nombre_completo ?? null,
+    whatsapp: perfil?.whatsapp ?? null,
+    direccion: perfil?.direccion ?? null,
+    address: perfil?.direccion ?? null,
   };
 
   return (

@@ -6,7 +6,7 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "types": ["node", "react", "react-dom"],   // 👈 agregá estos
+    "types": ["node", "react", "react-dom"],
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -14,6 +14,26 @@
     "jsx": "react-jsx",
     "paths": { "@/*": ["./*"] },
     "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "noEmit": true,
+
+    // TODO: Migración gradual a strict mode. Habilitar de a poco:
+    //   1. strictNullChecks (rompe ~30 archivos legacy con null checks faltantes)
+    //   2. noImplicitAny (rompe casts implícitos)
+    //   3. strict: true (todo lo demás)
+    // "strict": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests"
+  ]
 }

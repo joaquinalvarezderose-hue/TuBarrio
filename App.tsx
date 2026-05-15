@@ -17,6 +17,7 @@ import Profile from './screens/Profile';
 import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import Navigation from './components/Navigation';
+import { useCurrentUser } from './hooks/useCurrentUser';
 
 interface AppContentProps {
   user: boolean;
@@ -57,11 +58,24 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
 };
 
 const App: React.FC = () => {
-  const [user, setUser] = React.useState<boolean>(!!localStorage.getItem('app_user'));
+  const { authUser, loading } = useCurrentUser();
+  // Mantenemos setUser como compatibilidad para Login/Register callbacks que aún no
+  // disparan el evento de auth — al recibir true, forzamos refresco vía window.location.
+  const [overrideUser, setOverrideUser] = React.useState<boolean>(false);
+
+  const user = !!authUser || overrideUser;
+
+  if (loading && !overrideUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-on-surface-variant text-sm">Cargando…</div>
+      </div>
+    );
+  }
 
   return (
     <Router>
-      <AppContent user={user} setUser={setUser} />
+      <AppContent user={user} setUser={setOverrideUser} />
     </Router>
   );
 };
