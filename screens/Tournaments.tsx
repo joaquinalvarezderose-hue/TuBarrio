@@ -42,6 +42,20 @@ type Torneo = {
   activo: boolean;
 };
 
+type TorneoHistorialItem = {
+  torneo_id: number;
+  titulo: string;
+  subtitulo: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  partidos_jugados: number;
+  sets_ganados: number;
+  sets_perdidos: number;
+  campeon_nombre: string | null;
+  campeon_perfil_id: string | null;
+  es_campeon: boolean;
+};
+
 const DEFAULT_TOURNAMENT_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE';
 
 const FALLBACK_TORNEOS: Torneo[] = [
@@ -107,6 +121,8 @@ const Tournaments: React.FC = () => {
   const [cargandoTorneos, setCargandoTorneos] = useState(true);
   const [torneosError, setTorneosError] = useState<string | null>(null);
   const [usingFallbackData, setUsingFallbackData] = useState(false);
+  const [historialTorneos, setHistorialTorneos] = useState<TorneoHistorialItem[]>([]);
+  const [mySubView, setMySubView] = useState<'activos' | 'finalizados'>('activos');
 
   useEffect(() => {
     const loadRegistrations = async () => {
@@ -304,6 +320,78 @@ const Tournaments: React.FC = () => {
     cargarTorneos();
   }, []);
 
+  useEffect(() => {
+    const loadHistorial = async () => {
+      const { data: authData } = await (supabase as any).auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) return;
+
+      const { data: jugadoresData, error: jugErr } = await supabase
+        .from('torneo_jugadores')
+        .select('torneo_id, partidos_jugados, sets_ganados, sets_perdidos')
+        .eq('perfil_id', userId);
+
+      if (jugErr || !jugadoresData?.length) return;
+
+      const torneoIds = (jugadoresData as any[]).map((r) => Number(r.torneo_id));
+
+      const { data: torneosData } = await supabase
+        .from('torneos')
+        .select('id, titulo, subtitulo, fecha_inicio, fecha_fin')
+        .eq('activo', false)
+        .in('id', torneoIds);
+
+      if (!torneosData?.length) return;
+
+      const finalizadoIds = (torneosData as any[]).map((t) => t.id);
+
+      const { data: estadoData } = await supabase
+        .from('torneo_estado')
+        .select('torneo_id, campeon_perfil_id, perfiles:campeon_perfil_id(nombre)')
+        .in('torneo_id', finalizadoIds)
+        .like('grupo', '%_PLAYOFFS')
+        .not('campeon_perfil_id', 'is', null);
+
+      const campeonByTorneo: Record<number, { nombre: string | null; perfil_id: string | null }> = {};
+      (estadoData || []).forEach((row: any) => {
+        const id = Number(row.torneo_id);
+        if (!campeonByTorneo[id]) {
+          campeonByTorneo[id] = {
+            nombre: row.perfiles?.nombre || null,
+            perfil_id: row.campeon_perfil_id || null,
+          };
+        }
+      });
+
+      const jugadoresByTorneo: Record<number, any> = {};
+      (jugadoresData as any[]).forEach((row) => {
+        jugadoresByTorneo[Number(row.torneo_id)] = row;
+      });
+
+      const items: TorneoHistorialItem[] = (torneosData as any[]).map((t) => {
+        const stats = jugadoresByTorneo[t.id] || {};
+        const campeon = campeonByTorneo[t.id] || {};
+        return {
+          torneo_id: t.id,
+          titulo: t.titulo,
+          subtitulo: t.subtitulo,
+          fecha_inicio: t.fecha_inicio,
+          fecha_fin: t.fecha_fin,
+          partidos_jugados: stats.partidos_jugados || 0,
+          sets_ganados: stats.sets_ganados || 0,
+          sets_perdidos: stats.sets_perdidos || 0,
+          campeon_nombre: campeon.nombre || null,
+          campeon_perfil_id: campeon.perfil_id || null,
+          es_campeon: campeon.perfil_id === userId,
+        };
+      });
+
+      setHistorialTorneos(items);
+    };
+
+    loadHistorial();
+  }, []);
+
   // Convierte una fila de DB al objeto que esperan las sub-pantallas del torneo
   const toNavTorneo = (t: Torneo) => ({
     id: t.id,
@@ -437,7 +525,7 @@ const Tournaments: React.FC = () => {
     return (
       <div className="relative flex min-h-full w-full flex-col bg-background-light dark:bg-background-dark font-display pb-32 md:pb-0">
         <header className="flex items-center bg-white dark:bg-background-dark p-4 md:px-8 justify-between border-b border-gray-100 dark:border-gray-800 sticky top-0 z-20">
-          <button 
+          <button
             onClick={() => setView('hub')}
             className="size-12 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[#111813] dark:text-white"
           >
@@ -447,43 +535,116 @@ const Tournaments: React.FC = () => {
           <div className="w-12"></div>
         </header>
 
-        <div className="max-w-7xl mx-auto w-full p-4 md:p-8">
-          {myRegisteredTournaments.length === 0 ? (
-            <div className="bg-white dark:bg-[#1a2e1f] p-12 rounded-3xl text-center shadow-sm border border-gray-100 dark:border-gray-800 max-w-lg mx-auto mt-10">
-              <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl mb-4">sports_tennis</span>
-              <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">No tienes torneos activos.</p>
-              <button onClick={() => setView('available')} className="mt-6 text-[#4a9c40] font-bold text-lg hover:underline">Ver torneos disponibles</button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myRegisteredTournaments.map((t) => {
-                const status = statusByTournamentId[t.id] || 'RECRUITING';
-                const isReady = isTournamentReadyForPanel(status);
-                const hasLifecycleInfo = Boolean(statusByTournamentId[t.id]);
-                const canOpenPanel = isReady || !hasLifecycleInfo;
+        {/* Sub-tabs */}
+        <div className="flex border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-background-dark sticky top-[73px] z-10">
+          <button
+            onClick={() => setMySubView('activos')}
+            className={`flex-1 py-3 text-sm font-bold transition-colors border-b-2 ${mySubView === 'activos' ? 'border-[#4a9c40] text-[#4a9c40]' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+          >
+            Activos
+          </button>
+          <button
+            onClick={() => setMySubView('finalizados')}
+            className={`flex-1 py-3 text-sm font-bold transition-colors border-b-2 ${mySubView === 'finalizados' ? 'border-[#4a9c40] text-[#4a9c40]' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+          >
+            Finalizados {historialTorneos.length > 0 && <span className="ml-1 text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">{historialTorneos.length}</span>}
+          </button>
+        </div>
 
-                return (
-                <div 
-                  key={t.id} 
-                  onClick={() => {
-                    if (canOpenPanel) {
-                      navigate('/tournament-panel', { state: { tournament: toNavTorneo(t) } });
-                    }
-                  }}
-                  className={`bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-all group ${canOpenPanel ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}
-                >
-                  <img src={t.imagen_url || DEFAULT_TOURNAMENT_IMAGE} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
-                  <div className="flex-1">
-                    <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.titulo}</h4>
-                    <span className={`text-xs font-bold mt-1 inline-block ${canOpenPanel ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
-                      {canOpenPanel ? 'Ver Panel' : 'Torneo en preparación'}
-                    </span>
+        <div className="max-w-7xl mx-auto w-full p-4 md:p-8">
+          {mySubView === 'activos' && (
+            myRegisteredTournaments.length === 0 ? (
+              <div className="bg-white dark:bg-[#1a2e1f] p-12 rounded-3xl text-center shadow-sm border border-gray-100 dark:border-gray-800 max-w-lg mx-auto mt-10">
+                <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl mb-4">sports_tennis</span>
+                <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">No tienes torneos activos.</p>
+                <button onClick={() => setView('available')} className="mt-6 text-[#4a9c40] font-bold text-lg hover:underline">Ver torneos disponibles</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myRegisteredTournaments.map((t) => {
+                  const status = statusByTournamentId[t.id] || 'RECRUITING';
+                  const isReady = isTournamentReadyForPanel(status);
+                  const hasLifecycleInfo = Boolean(statusByTournamentId[t.id]);
+                  const canOpenPanel = isReady || !hasLifecycleInfo;
+
+                  return (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      if (canOpenPanel) {
+                        navigate('/tournament-panel', { state: { tournament: toNavTorneo(t) } });
+                      }
+                    }}
+                    className={`bg-white dark:bg-[#1a2e1f] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-all group ${canOpenPanel ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}
+                  >
+                    <img src={t.imagen_url || DEFAULT_TOURNAMENT_IMAGE} className="size-24 rounded-2xl object-cover" alt={t.titulo} />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg text-[#111813] dark:text-white leading-tight mb-2">{t.titulo}</h4>
+                      <span className={`text-xs font-bold mt-1 inline-block ${canOpenPanel ? 'text-primary' : 'text-amber-600 dark:text-amber-300'}`}>
+                        {canOpenPanel ? 'Ver Panel' : 'Torneo en preparación'}
+                      </span>
+                    </div>
+                    <span className="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">chevron_right</span>
                   </div>
-                  <span className="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">chevron_right</span>
-                </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
+          {mySubView === 'finalizados' && (
+            historialTorneos.length === 0 ? (
+              <div className="bg-white dark:bg-[#1a2e1f] p-12 rounded-3xl text-center shadow-sm border border-gray-100 dark:border-gray-800 max-w-lg mx-auto mt-10">
+                <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl mb-4">emoji_events</span>
+                <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Todavía no participaste en torneos finalizados.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {historialTorneos.map((t) => (
+                  <div key={t.torneo_id} className="bg-white dark:bg-[#1a2e1f] rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-base text-[#111813] dark:text-white leading-tight">{t.titulo}</h4>
+                        <p className="text-xs text-gray-400 mt-0.5">{t.subtitulo}</p>
+                      </div>
+                      {t.es_campeon && (
+                        <span className="text-yellow-500 text-2xl" title="Campeón">🏆</span>
+                      )}
+                    </div>
+
+                    {t.campeon_nombre && (
+                      <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-3 py-2">
+                        <span className="material-symbols-outlined text-yellow-500 text-[18px]">emoji_events</span>
+                        <span className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                          {t.es_campeon ? 'Sos el campeón' : `Campeón: ${t.campeon_nombre}`}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 text-center">
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl py-2">
+                        <p className="text-lg font-bold text-[#111813] dark:text-white">{t.partidos_jugados}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Partidos</p>
+                      </div>
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl py-2">
+                        <p className="text-lg font-bold text-[#4a9c40]">{t.sets_ganados}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Sets G</p>
+                      </div>
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl py-2">
+                        <p className="text-lg font-bold text-red-400">{t.sets_perdidos}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Sets P</p>
+                      </div>
+                    </div>
+
+                    {(t.fecha_inicio || t.fecha_fin) && (
+                      <p className="text-[11px] text-gray-400 text-right">
+                        {[t.fecha_inicio, t.fecha_fin].filter(Boolean).join(' — ')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>
