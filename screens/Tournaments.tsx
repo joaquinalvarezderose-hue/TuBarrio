@@ -677,7 +677,7 @@ const Tournaments: React.FC = () => {
                       <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800/20">
                         <span className="material-symbols-outlined text-amber-500 text-[16px]">emoji_events</span>
                         <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                          {t.es_campeon ? 'Sos el campeón del torneo' : `Campeón: ${t.campeon_nombre}`}
+                          {t.es_campeon ? 'Fuiste el campeón del torneo' : `Campeón: ${t.campeon_nombre}`}
                         </span>
                       </div>
                     )}
@@ -729,9 +729,16 @@ const Tournaments: React.FC = () => {
                             </div>
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sets</span>
                           </div>
-                          <span className="text-sm font-bold text-[#111813] dark:text-white">
-                            {t.sets_ganados}/{t.sets_ganados + t.sets_perdidos} ganados
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-[#111813] dark:text-white">
+                              {t.sets_ganados}/{t.sets_ganados + t.sets_perdidos} ganados
+                            </span>
+                            {t.sets_ganados + t.sets_perdidos > 0 && (
+                              <span className="bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                {Math.round((t.sets_ganados / (t.sets_ganados + t.sets_perdidos)) * 100)}% SR
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
                           <div
