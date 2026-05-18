@@ -49,11 +49,15 @@ type TorneoHistorialItem = {
   fecha_inicio: string | null;
   fecha_fin: string | null;
   partidos_jugados: number;
+  victorias: number;
+  derrotas: number;
   sets_ganados: number;
   sets_perdidos: number;
+  win_rate: number;
   campeon_nombre: string | null;
   campeon_perfil_id: string | null;
   es_campeon: boolean;
+  es_finalista: boolean;
 };
 
 const DEFAULT_TOURNAMENT_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE';
@@ -327,12 +331,13 @@ const Tournaments: React.FC = () => {
       const userId = authData?.user?.id;
       if (!userId) return;
 
-      const { data: jugadoresData, error: jugErr } = await supabase
+      // Torneos donde el usuario participó (como jugador registrado)
+      const { data: jugadoresData } = await supabase
         .from('torneo_jugadores')
-        .select('torneo_id, partidos_jugados, sets_ganados, sets_perdidos')
+        .select('torneo_id')
         .eq('perfil_id', userId);
 
-      if (jugErr || !jugadoresData?.length) return;
+      if (!jugadoresData?.length) return;
 
       const torneoIds = (jugadoresData as any[]).map((r) => Number(r.torneo_id));
 
@@ -346,44 +351,84 @@ const Tournaments: React.FC = () => {
 
       const finalizadoIds = (torneosData as any[]).map((t) => t.id);
 
+      // Stats reales desde partidos (incluye fase de grupo + playoffs)
+      const { data: partidosData } = await supabase
+        .from('partidos')
+        .select('torneo_id, jugador1_id, jugador2_id, ganador_id, sets_jugador1, sets_jugador2')
+        .eq('estado', 'finalizado')
+        .in('torneo_id', finalizadoIds)
+        .or(`jugador1_id.eq.${userId},jugador2_id.eq.${userId}`);
+
+      // Campeon y finalista por torneo
       const { data: estadoData } = await supabase
         .from('torneo_estado')
-        .select('torneo_id, campeon_perfil_id, perfiles:campeon_perfil_id(nombre)')
+        .select('torneo_id, campeon_perfil_id, perfiles:campeon_perfil_id(nombre_completo)')
         .in('torneo_id', finalizadoIds)
         .like('grupo', '%_PLAYOFFS')
         .not('campeon_perfil_id', 'is', null);
+
+      // Detectar finalistas: el perdedor de la final
+      const { data: finalData } = await supabase
+        .from('partidos')
+        .select('torneo_id, jugador1_id, jugador2_id, ganador_id')
+        .eq('estado', 'finalizado')
+        .eq('stage_name', 'Final')
+        .in('torneo_id', finalizadoIds);
 
       const campeonByTorneo: Record<number, { nombre: string | null; perfil_id: string | null }> = {};
       (estadoData || []).forEach((row: any) => {
         const id = Number(row.torneo_id);
         if (!campeonByTorneo[id]) {
           campeonByTorneo[id] = {
-            nombre: row.perfiles?.nombre || null,
+            nombre: (row.perfiles as any)?.nombre_completo || null,
             perfil_id: row.campeon_perfil_id || null,
           };
         }
       });
 
-      const jugadoresByTorneo: Record<number, any> = {};
-      (jugadoresData as any[]).forEach((row) => {
-        jugadoresByTorneo[Number(row.torneo_id)] = row;
+      const finalistaByTorneo: Record<number, string | null> = {};
+      (finalData || []).forEach((row: any) => {
+        const id = Number(row.torneo_id);
+        if (row.ganador_id) {
+          finalistaByTorneo[id] = row.jugador1_id === row.ganador_id
+            ? row.jugador2_id
+            : row.jugador1_id;
+        }
+      });
+
+      const statsByTorneo: Record<number, { jugados: number; victorias: number; derrotas: number; sets_ganados: number; sets_perdidos: number }> = {};
+      (partidosData || []).forEach((p: any) => {
+        const id = Number(p.torneo_id);
+        if (!statsByTorneo[id]) statsByTorneo[id] = { jugados: 0, victorias: 0, derrotas: 0, sets_ganados: 0, sets_perdidos: 0 };
+        const s = statsByTorneo[id];
+        s.jugados += 1;
+        const esJ1 = p.jugador1_id === userId;
+        s.victorias += p.ganador_id === userId ? 1 : 0;
+        s.derrotas += p.ganador_id !== userId ? 1 : 0;
+        s.sets_ganados += esJ1 ? (p.sets_jugador1 || 0) : (p.sets_jugador2 || 0);
+        s.sets_perdidos += esJ1 ? (p.sets_jugador2 || 0) : (p.sets_jugador1 || 0);
       });
 
       const items: TorneoHistorialItem[] = (torneosData as any[]).map((t) => {
-        const stats = jugadoresByTorneo[t.id] || {};
+        const stats = statsByTorneo[t.id] || { jugados: 0, victorias: 0, derrotas: 0, sets_ganados: 0, sets_perdidos: 0 };
         const campeon = campeonByTorneo[t.id] || {};
+        const win_rate = stats.jugados > 0 ? Math.round((stats.victorias / stats.jugados) * 100) : 0;
         return {
           torneo_id: t.id,
           titulo: t.titulo,
           subtitulo: t.subtitulo,
           fecha_inicio: t.fecha_inicio,
           fecha_fin: t.fecha_fin,
-          partidos_jugados: stats.partidos_jugados || 0,
-          sets_ganados: stats.sets_ganados || 0,
-          sets_perdidos: stats.sets_perdidos || 0,
+          partidos_jugados: stats.jugados,
+          victorias: stats.victorias,
+          derrotas: stats.derrotas,
+          sets_ganados: stats.sets_ganados,
+          sets_perdidos: stats.sets_perdidos,
+          win_rate,
           campeon_nombre: campeon.nombre || null,
           campeon_perfil_id: campeon.perfil_id || null,
           es_campeon: campeon.perfil_id === userId,
+          es_finalista: finalistaByTorneo[t.id] === userId,
         };
       });
 
@@ -602,46 +647,106 @@ const Tournaments: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {historialTorneos.map((t) => (
-                  <div key={t.torneo_id} className="bg-white dark:bg-[#1a2e1f] rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-base text-[#111813] dark:text-white leading-tight">{t.titulo}</h4>
-                        <p className="text-xs text-gray-400 mt-0.5">{t.subtitulo}</p>
+                  <div key={t.torneo_id} className="bg-white dark:bg-[#1a2e1f] rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden">
+                    {/* Hero */}
+                    <div className={`text-center p-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-b ${
+                      t.es_campeon
+                        ? 'from-amber-50 to-white dark:from-amber-900/20 dark:to-[#1a2e1f]'
+                        : t.es_finalista
+                        ? 'from-indigo-50 to-white dark:from-indigo-900/20 dark:to-[#1a2e1f]'
+                        : 'from-[#f0fdf4] to-white dark:from-[#1a3a22]/50 dark:to-[#1a2e1f]'
+                    }`}>
+                      <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
+                        t.es_campeon ? 'bg-amber-100 dark:bg-amber-900/30' : t.es_finalista ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-[#e8f6eb] dark:bg-[#1a3a22]'
+                      }`}>
+                        <span className={`material-symbols-outlined text-2xl ${
+                          t.es_campeon ? 'text-amber-500' : t.es_finalista ? 'text-indigo-500' : 'text-[#61896b]'
+                        }`}>
+                          {t.es_campeon ? 'emoji_events' : t.es_finalista ? 'military_tech' : 'sports_tennis'}
+                        </span>
                       </div>
-                      {t.es_campeon && (
-                        <span className="text-yellow-500 text-2xl" title="Campeón">🏆</span>
-                      )}
+                      <h4 className="font-bold text-base text-[#111813] dark:text-white leading-tight">
+                        {t.es_campeon ? '¡Campeón!' : t.es_finalista ? '¡Finalista!' : t.victorias > t.derrotas ? 'Gran participación' : 'Torneo finalizado'}
+                      </h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">{t.titulo}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t.subtitulo}</p>
                     </div>
 
+                    {/* Champion banner */}
                     {t.campeon_nombre && (
-                      <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-3 py-2">
-                        <span className="material-symbols-outlined text-yellow-500 text-[18px]">emoji_events</span>
-                        <span className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                          {t.es_campeon ? 'Sos el campeón' : `Campeón: ${t.campeon_nombre}`}
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800/20">
+                        <span className="material-symbols-outlined text-amber-500 text-[16px]">emoji_events</span>
+                        <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                          {t.es_campeon ? 'Sos el campeón del torneo' : `Campeón: ${t.campeon_nombre}`}
                         </span>
                       </div>
                     )}
 
-                    <div className="flex gap-3 text-center">
-                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl py-2">
-                        <p className="text-lg font-bold text-[#111813] dark:text-white">{t.partidos_jugados}</p>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Partidos</p>
+                    {/* Stats */}
+                    <div className="p-4 flex flex-col gap-2">
+                      {/* Partidos */}
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-white/10">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#61896b] text-[16px]">sports_tennis</span>
+                          </div>
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Partidos</span>
+                        </div>
+                        <span className="text-sm font-bold text-[#111813] dark:text-white">{t.partidos_jugados} jugados</span>
                       </div>
-                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl py-2">
-                        <p className="text-lg font-bold text-[#4a9c40]">{t.sets_ganados}</p>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Sets G</p>
-                      </div>
-                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl py-2">
-                        <p className="text-lg font-bold text-red-400">{t.sets_perdidos}</p>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Sets P</p>
-                      </div>
-                    </div>
 
-                    {(t.fecha_inicio || t.fecha_fin) && (
-                      <p className="text-[11px] text-gray-400 text-right">
-                        {[t.fecha_inicio, t.fecha_fin].filter(Boolean).join(' — ')}
-                      </p>
-                    )}
+                      {/* Victorias + WR */}
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-xl px-3 py-2.5 border border-l-[4px] border-[#13ec49] dark:border-white/10 dark:border-l-[#13ec49]">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#61896b] text-[16px]">emoji_events</span>
+                          </div>
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Victorias</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-[#111813] dark:text-white">{t.victorias}</span>
+                          <span className="bg-[#e8f6eb] dark:bg-[#1a3a22] text-[#61896b] text-[10px] font-bold px-2 py-0.5 rounded-full">{t.win_rate}% WR</span>
+                        </div>
+                      </div>
+
+                      {/* Derrotas */}
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-white/10">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-gray-400 text-[16px]">close</span>
+                          </div>
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Derrotas</span>
+                        </div>
+                        <span className="text-sm font-bold text-[#111813] dark:text-white">{t.derrotas}</span>
+                      </div>
+
+                      {/* Sets con barra de progreso */}
+                      <div className="bg-gray-50 dark:bg-white/5 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-white/10 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-[#e8f6eb] dark:bg-[#1a3a22] flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[#61896b] text-[16px]">leaderboard</span>
+                            </div>
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sets</span>
+                          </div>
+                          <span className="text-sm font-bold text-[#111813] dark:text-white">
+                            {t.sets_ganados}/{t.sets_ganados + t.sets_perdidos} ganados
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-[#13ec49] h-full transition-all"
+                            style={{ width: `${t.sets_ganados + t.sets_perdidos > 0 ? (t.sets_ganados / (t.sets_ganados + t.sets_perdidos)) * 100 : 0}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {(t.fecha_inicio || t.fecha_fin) && (
+                        <p className="text-[10px] text-gray-400 text-right pt-1">
+                          {[t.fecha_inicio, t.fecha_fin].filter(Boolean).join(' — ')}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
