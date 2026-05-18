@@ -204,6 +204,7 @@ const Tournaments: React.FC = () => {
         const torneosFromInscripciones: Torneo[] = (inscripcionesData || [])
           .map((row: any) => row.torneos)
           .filter(Boolean)
+          .filter((t: any) => t.activo !== false)
           .filter((t: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.id === t.id) === idx);
 
         setMyTorneos(torneosFromInscripciones);
