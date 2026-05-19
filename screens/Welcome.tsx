@@ -1,0 +1,104 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const Welcome: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-[#f7f8f6]">
+      {/* Hero Image */}
+      <div className="relative h-[60%] w-full flex-shrink-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuBF4TcVNpgk0NHcBlydxxHPcmn4nvygdoGMe7WQkcaS22P9vR0ADcvgw4iRKNwrisBqqI8Ni-HZXP8QU3BYu_M9rZQNOvhT5AcSfYttQsnMQTaKOtct1oRSSSB2kWJqaQNkCT2DAtKFybo-W0Rx8avEA8yegFQntGlhIW_RR-ntl9swbEriy_PEIDcV233v-ZY1KbLCluFhoL_FZZCbNSeTd7ZLva_W7JU8gL7d9-gkImbcdpl3LbqM61iCjo6q65EGk3chFypZLRI")`,
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#f7f8f6] opacity-60" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#f7f8f6] to-transparent" />
+      </div>
+
+      {/* Content Sheet */}
+      <div className="relative z-10 flex flex-1 flex-col items-center px-6 pb-8 -mt-10 bg-[#f7f8f6] rounded-t-[2.5rem]">
+        {/* Logo */}
+        <div className="-mt-10 mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-4 ring-[#f7f8f6]">
+          <span
+            className="text-4xl"
+            style={{
+              fontFamily: 'Material Symbols Outlined',
+              fontVariationSettings: '"FILL" 1',
+              color: '#6dec13',
+            }}
+          >
+            location_city
+          </span>
+        </div>
+
+        {/* Title */}
+        <div className="flex flex-col items-center text-center space-y-3 max-w-xs mx-auto mb-auto">
+          <h1 className="text-[#131b0d] text-3xl font-extrabold tracking-tight leading-tight font-display">
+            TuBarrio
+          </h1>
+          <p className="text-gray-600 text-lg font-medium leading-relaxed">
+            Tu comunidad, digitalizada y segura.
+          </p>
+        </div>
+
+        {/* Buttons */}
+        <div className="w-full max-w-md flex flex-col gap-4 mb-8">
+          <button
+            onClick={() => navigate('/register')}
+            className="flex w-full cursor-pointer items-center justify-center rounded-full h-14 px-6 font-bold text-base tracking-wide text-[#131b0d] shadow-lg transition-all active:scale-[0.98]"
+            style={{ backgroundColor: '#6dec13', boxShadow: '0 8px 24px rgba(109,236,19,0.35)' }}
+          >
+            Crear mi cuenta
+          </button>
+
+          <button
+            onClick={() => navigate('/login')}
+            className="flex w-full cursor-pointer items-center justify-center rounded-full h-14 px-6 font-bold text-base tracking-wide text-[#131b0d] bg-transparent border-2 border-[#131b0d]/10 hover:bg-[#131b0d]/5 transition-all active:scale-[0.98]"
+          >
+            Ya tengo cuenta, iniciar sesión
+          </button>
+        </div>
+
+        {/* Footer Pillars */}
+        <div className="flex items-center justify-center gap-4 text-xs font-semibold uppercase tracking-wider text-[#6c9a4c]">
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-base"
+              style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: '"FILL" 1' }}
+            >
+              shield
+            </span>
+            <span>Seguridad</span>
+          </div>
+          <span className="h-1 w-1 rounded-full bg-current opacity-40" />
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-base"
+              style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: '"FILL" 1' }}
+            >
+              handshake
+            </span>
+            <span>Servicios</span>
+          </div>
+          <span className="h-1 w-1 rounded-full bg-current opacity-40" />
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-base"
+              style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: '"FILL" 1' }}
+            >
+              trophy
+            </span>
+            <span>Torneos</span>
+          </div>
+        </div>
+
+        <div className="h-4 w-full" />
+      </div>
+    </div>
+  );
+};
+
+export default Welcome;

@@ -17,6 +17,7 @@ import Profile from './screens/Profile';
 import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import Navigation from './components/Navigation';
+import Welcome from './screens/Welcome';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 interface AppContentProps {
@@ -26,7 +27,7 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
-  const hideNavigation = location.pathname === '/login' || location.pathname === '/register';
+  const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/welcome';
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
@@ -34,7 +35,8 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
       
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
         <Routes>
-          <Route path="/" element={user ? <Dashboard /> : <Navigate to="/register" replace />} />
+          <Route path="/" element={user ? <Dashboard /> : <Navigate to="/welcome" replace />} />
+          <Route path="/welcome" element={!user ? <Welcome /> : <Navigate to="/" replace />} />
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
           <Route path="/services" element={user ? <Services /> : <Navigate to="/login" replace />} />
