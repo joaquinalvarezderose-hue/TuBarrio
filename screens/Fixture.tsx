@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Logo from '../components/Logo';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import BracketTab from '../components/BracketTab';
@@ -427,7 +428,10 @@ const Fixture: React.FC = () => {
           <button onClick={() => navigate(-1)} className="text-[#111813] dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-background-light dark:hover:bg-white/10 cursor-pointer transition-colors">
             <span className="material-symbols-outlined">arrow_back_ios_new</span>
           </button>
-          <h1 className="text-[#111813] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Fixture por Jornadas</h1>
+          <div className="flex-1 flex justify-center pr-10">
+            <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+            <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
+          </div>
         </div>
 
         <div className="px-4 pb-3">

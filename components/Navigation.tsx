@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Logo from './Logo';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -22,14 +23,9 @@ const Navigation: React.FC = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:static md:w-64 md:h-screen md:flex-col md:border-r md:border-t-0 bg-white dark:bg-card-dark border-t border-gray-100 dark:border-white/5 flex justify-around md:justify-start items-center md:items-stretch py-2 md:py-8 md:px-4 shadow-lg md:shadow-none">
       
-      <div className="hidden md:flex items-center gap-3 px-4 mb-10">
-        <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-white">
-          <span className="material-symbols-outlined">location_city</span>
-        </div>
-        <div>
-          <h1 className="font-black text-lg leading-none text-secondary dark:text-white">TuBarrio</h1>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">App Web</p>
-        </div>
+      <div className="hidden md:flex items-center px-4 mb-10">
+        <Logo variant="primary" className="h-8 w-auto dark:hidden" />
+        <Logo variant="dark" className="h-8 w-auto hidden dark:block" />
       </div>
 
       <div className="contents md:flex md:flex-col md:gap-2 w-full">

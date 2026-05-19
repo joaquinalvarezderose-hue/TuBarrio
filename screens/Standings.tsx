@@ -1,6 +1,7 @@
 
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Logo from '../components/Logo';
 import { PlayerStats, TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
 import BracketTab from '../components/BracketTab';
@@ -555,7 +556,10 @@ const Standings: React.FC = () => {
       <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center p-4 pb-2 justify-between">
           <button onClick={() => navigate(-1)} className="text-slate-900 dark:text-white flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"><span className="material-symbols-outlined">arrow_back_ios_new</span></button>
-          <h2 className="text-lg font-bold flex-1 text-center">Tabla de Posiciones</h2>
+          <div className="flex-1 flex justify-center">
+            <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+            <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
+          </div>
           <div className="size-10 flex items-center justify-center"><span className="material-symbols-outlined text-slate-600">info</span></div>
         </div>
         <div className="px-4 pb-4 pt-2">

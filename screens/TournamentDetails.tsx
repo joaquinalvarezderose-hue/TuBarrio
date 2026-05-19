@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
+import Logo from '../components/Logo';
 
 const TournamentDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -70,7 +71,10 @@ const TournamentDetails: React.FC = () => {
       >
         <span className="material-symbols-outlined transition-transform group-hover:-translate-x-0.5">arrow_back</span>
       </button>
-      <h2 className="flex-1 pr-10 text-center text-lg font-bold leading-tight tracking-tight">Detalles del Torneo</h2>
+      <div className="flex-1 flex justify-center pr-10">
+        <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+        <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
+      </div>
     </div>
   );
 

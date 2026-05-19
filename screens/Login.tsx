@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { LoginSchema, flattenZodErrors } from '../lib/schemas';
+import Logo from '../components/Logo';
 
 interface LoginProps {
   onSuccess?: () => void;
@@ -105,12 +106,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   return (
     <div className="bg-background text-on-background min-h-screen flex flex-col items-center justify-center p-6 selection:bg-primary selection:text-on-primary">
       <header className="mb-12 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full mb-6">
-          <span className="material-symbols-outlined text-primary text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            apartment
-          </span>
-        </div>
-        <h1 className="font-headline font-black text-4xl tracking-tighter text-on-background mb-2">TuBarrio</h1>
+        <Logo variant="primary" className="h-12 w-auto mx-auto mb-4" />
         <p className="font-body text-on-surface-variant text-sm tracking-tight">Tu comunidad, a un toque de distancia.</p>
       </header>
 

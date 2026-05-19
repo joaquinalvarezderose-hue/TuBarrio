@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { verifyAddress } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
+import Logo from '../components/Logo';
 import {
   RegisterSchema,
   flattenZodErrors,
@@ -140,9 +141,8 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   return (
     <div className="bg-surface-container-low text-on-surface min-h-screen flex flex-col">
       <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-outline-variant shadow-sm h-16 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-2xl">nearby</span>
-          <span className="font-display font-black tracking-tighter uppercase text-lg text-secondary">TuBarrio</span>
+        <div className="flex items-center">
+          <Logo variant="primary" className="h-7 w-auto" />
         </div>
         <button className="p-2 hover:bg-surface-variant rounded-full transition-colors active:scale-95 duration-200">
           <span className="material-symbols-outlined text-on-surface-variant">help_outline</span>

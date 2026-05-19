@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../components/Logo';
 
 const HERO_IMAGE = `url("https://lh3.googleusercontent.com/aida-public/AB6AXuBF4TcVNpgk0NHcBlydxxHPcmn4nvygdoGMe7WQkcaS22P9vR0ADcvgw4iRKNwrisBqqI8Ni-HZXP8QU3BYu_M9rZQNOvhT5AcSfYttQsnMQTaKOtct1oRSSSB2kWJqaQNkCT2DAtKFybo-W0Rx8avEA8yegFQntGlhIW_RR-ntl9swbEriy_PEIDcV233v-ZY1KbLCluFhoL_FZZCbNSeTd7ZLva_W7JU8gL7d9-gkImbcdpl3LbqM61iCjo6q65EGk3chFypZLRI")`;
 
@@ -44,21 +45,12 @@ const Welcome: React.FC = () => {
       ">
         {/* Logo */}
         <div className="
-          -mt-10 mb-6 flex h-20 w-20 items-center justify-center
+          -mt-10 mb-6 flex items-center justify-center
           rounded-2xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-          ring-4 ring-[#f7f8f6]
+          ring-4 ring-[#f7f8f6] px-5 py-3
           md:mt-0 md:mb-8 md:ring-white
         ">
-          <span
-            className="text-4xl"
-            style={{
-              fontFamily: 'Material Symbols Outlined',
-              fontVariationSettings: '"FILL" 1',
-              color: '#6dec13',
-            }}
-          >
-            location_city
-          </span>
+          <Logo variant="primary" className="h-10 w-auto" />
         </div>
 
         {/* Title & tagline */}

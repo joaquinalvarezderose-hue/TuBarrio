@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Logo from '../components/Logo';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import { useNextMatch } from '../hooks/useNextMatch';
@@ -569,7 +570,8 @@ const TournamentPanel: React.FC = () => {
           >
             <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
           </button>
-          <h1 className="text-lg font-bold tracking-tight text-[#111813] dark:text-white">Panel del Torneo</h1>
+          <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+          <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
           <div className="w-8"></div>
         </header>
 
@@ -595,7 +597,8 @@ const TournamentPanel: React.FC = () => {
         >
           <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
         </button>
-        <h1 className="text-lg font-bold tracking-tight text-[#111813] dark:text-white">Panel del Torneo</h1>
+        <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+        <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
         <div className="w-8"></div>
       </header>
 

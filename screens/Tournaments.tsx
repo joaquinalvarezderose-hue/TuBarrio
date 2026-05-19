@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import Logo from '../components/Logo';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -478,7 +479,10 @@ const Tournaments: React.FC = () => {
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h2 className="text-[#111813] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center md:text-left md:pl-4">Centro de Torneos</h2>
+          <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
+            <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+            <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
+          </div>
           <div className="flex w-12 items-center justify-end">
             <button className="flex items-center justify-center rounded-full size-12 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-[#111813] dark:text-white">
               <span className="material-symbols-outlined">search</span>
@@ -577,7 +581,10 @@ const Tournaments: React.FC = () => {
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h2 className="text-lg font-bold text-[#111813] dark:text-white flex-1 text-center md:text-left md:pl-4">Mis Torneos</h2>
+          <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
+            <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+            <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
+          </div>
           <div className="w-12"></div>
         </header>
 
@@ -774,7 +781,10 @@ const Tournaments: React.FC = () => {
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </div>
-        <h2 className="text-[#111813] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center md:text-left md:pl-4">Centro de Torneos</h2>
+        <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
+          <Logo variant="tournament" className="h-6 w-auto dark:hidden" />
+          <Logo variant="dark" className="h-6 w-auto hidden dark:block" />
+        </div>
         <div className="flex w-12 items-center justify-end"></div>
       </header>
 
