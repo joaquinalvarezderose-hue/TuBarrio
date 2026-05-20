@@ -770,6 +770,7 @@ const Tournaments: React.FC = () => {
  }
 
  // HUB VIEW
+ const activeTorneosCount = registeredIds.filter(id => statusByTournamentId[id] !== 'FINALIZADO').length;
  return (
  <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-28 md:pb-0">
  <header className="flex items-center p-4 md:px-8 pb-2 justify-between bg-background-light sticky top-0 z-10 border-b border-transparent md:border-gray-100 ">
@@ -797,7 +798,7 @@ const Tournaments: React.FC = () => {
  <span className="material-symbols-outlined text-5xl">sports_tennis</span>
  </div>
  <span className="inline-flex items-center rounded-full bg-[#4a9c40]/20 px-4 py-1.5 text-xs font-bold text-green-800 ring-1 ring-inset ring-green-600/20">
- {registeredIds.length} {registeredIds.length === 1 ? 'Activo' : 'Activos'}
+ {activeTorneosCount} {activeTorneosCount === 1 ? 'Activo' : 'Activos'}
  </span>
  </div>
  <div className="mt-auto relative z-10">
