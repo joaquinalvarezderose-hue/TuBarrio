@@ -557,7 +557,7 @@ const Standings: React.FC = () => {
  <div className="flex items-center p-4 pb-2 justify-between">
  <button onClick={() => navigate(-1)} className="text-slate-900 flex size-10 items-center justify-center rounded-full hover:bg-slate-100 "><span className="material-symbols-outlined">arrow_back_ios_new</span></button>
  <div className="flex-1 flex justify-center">
- <Logo variant="tournament" className="h-10 w-auto" />
+ <Logo variant="tournament" className="h-[120px] w-auto" />
  </div>
  <div className="size-10 flex items-center justify-center"><span className="material-symbols-outlined text-slate-600">info</span></div>
  </div>

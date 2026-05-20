@@ -24,7 +24,7 @@ const Navigation: React.FC = () => {
  <nav className="fixed bottom-0 left-0 right-0 z-50 md:static md:w-64 md:h-screen md:flex-col md:border-r md:border-t-0 bg-white border-t border-gray-100 flex justify-around md:justify-start items-center md:items-stretch py-2 md:py-8 md:px-4 shadow-lg md:shadow-none">
  
  <div className="hidden md:flex items-center px-4 mb-10">
- <Logo variant="primary" className="h-10 w-auto" />
+ <Logo variant="primary" className="h-[120px] w-auto" />
  </div>
 
  <div className="contents md:flex md:flex-col md:gap-2 w-full">
