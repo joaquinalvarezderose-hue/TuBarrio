@@ -50,7 +50,7 @@ const Welcome: React.FC = () => {
           ring-4 ring-[#f7f8f6] px-5 py-5
           md:mt-0 md:mb-8 md:ring-white
         ">
-          <Logo variant="symbol" className="h-10 w-auto" />
+          <Logo variant="symbol" className="h-[120px] w-auto" />
         </div>
 
         {/* Title & tagline */}

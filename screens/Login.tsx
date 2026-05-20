@@ -106,7 +106,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   return (
     <div className="bg-background text-on-background min-h-screen flex flex-col items-center justify-center p-6 selection:bg-primary selection:text-on-primary">
       <header className="mb-12 text-center">
-        <Logo variant="primary" className="h-12 w-auto mx-auto mb-4" />
+        <Logo variant="primary" className="h-[120px] w-auto mx-auto mb-4" />
         <p className="font-body text-on-surface-variant text-sm tracking-tight">Tu comunidad, a un toque de distancia.</p>
       </header>
 
