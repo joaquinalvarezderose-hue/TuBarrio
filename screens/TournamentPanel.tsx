@@ -570,7 +570,7 @@ const TournamentPanel: React.FC = () => {
  >
  <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
  </button>
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  <div className="w-8"></div>
  </header>
 
@@ -596,7 +596,7 @@ const TournamentPanel: React.FC = () => {
  >
  <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
  </button>
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  <div className="w-8"></div>
  </header>
 

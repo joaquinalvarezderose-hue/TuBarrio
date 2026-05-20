@@ -480,7 +480,7 @@ const Tournaments: React.FC = () => {
  <span className="material-symbols-outlined">arrow_back</span>
  </button>
  <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  </div>
  <div className="flex w-12 items-center justify-end">
  <button className="flex items-center justify-center rounded-full size-12 hover:bg-gray-200 transition-colors text-[#111813] ">
@@ -581,7 +581,7 @@ const Tournaments: React.FC = () => {
  <span className="material-symbols-outlined">arrow_back</span>
  </button>
  <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  </div>
  <div className="w-12"></div>
  </header>
@@ -780,7 +780,7 @@ const Tournaments: React.FC = () => {
  <span className="material-symbols-outlined">arrow_back</span>
  </div>
  <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  </div>
  <div className="flex w-12 items-center justify-end"></div>
  </header>

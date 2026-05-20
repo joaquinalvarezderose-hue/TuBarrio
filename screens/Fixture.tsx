@@ -429,7 +429,7 @@ const Fixture: React.FC = () => {
  <span className="material-symbols-outlined">arrow_back_ios_new</span>
  </button>
  <div className="flex-1 flex justify-center pr-10">
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  </div>
  </div>
 

@@ -72,7 +72,7 @@ const TournamentDetails: React.FC = () => {
  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-0.5">arrow_back</span>
  </button>
  <div className="flex-1 flex justify-center pr-10">
- <Logo variant="tournament" className="h-6 w-auto" />
+ <Logo variant="tournament" className="h-10 w-auto" />
  </div>
  </div>
  );
