@@ -82,6 +82,36 @@ export type Database = {
         }
         Relationships: []
       }
+      valoraciones_servicios: {
+        Row: {
+          id: string
+          servicio_id: string
+          usuario_id: string
+          puntuacion: number
+          comentario: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          servicio_id: string
+          usuario_id: string
+          puntuacion: number
+          comentario?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          servicio_id?: string
+          usuario_id?: string
+          puntuacion?: number
+          comentario?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       marketplace_servicios: {
         Row: {
           categoria: string | null
@@ -350,7 +380,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_servicios_con_stats: {
+        Row: {
+          id: string
+          titulo: string
+          descripcion: string | null
+          categoria: string | null
+          precio: number | null
+          proveedor_id: string | null
+          contacto_email: string | null
+          contacto_whatsapp: string | null
+          imagen_url: string | null
+          estado: string | null
+          created_at: string | null
+          updated_at: string | null
+          proveedor_nombre: string | null
+          promedio_rating: number
+          total_valoraciones: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calcular_stage_name: { Args: { p_ronda: number; p_torneo_id: number }; Returns: string }

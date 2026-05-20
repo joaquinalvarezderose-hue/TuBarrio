@@ -5,6 +5,7 @@ import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
 import Login from './screens/Login';
 import Services from './screens/Services';
+import ServiceDetail from './screens/ServiceDetail';
 import Tournaments from './screens/Tournaments';
 import TournamentDetails from './screens/TournamentDetails';
 import TournamentPanel from './screens/TournamentPanel';
@@ -40,6 +41,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
           <Route path="/services" element={user ? <Services /> : <Navigate to="/login" replace />} />
+          <Route path="/service/:id" element={user ? <ServiceDetail /> : <Navigate to="/login" replace />} />
           <Route path="/tournaments" element={user ? <Tournaments /> : <Navigate to="/login" replace />} />
           <Route path="/tournament-details" element={user ? <TournamentDetails /> : <Navigate to="/login" replace />} />
           <Route path="/tournament-panel" element={user ? <TournamentPanel /> : <Navigate to="/login" replace />} />
