@@ -46,11 +46,11 @@ const Welcome: React.FC = () => {
         {/* Logo */}
         <div className="
           -mt-10 mb-6 flex items-center justify-center
-          rounded-2xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-          ring-4 ring-[#f7f8f6] px-5 py-3
+          rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+          ring-4 ring-[#f7f8f6] px-5 py-5
           md:mt-0 md:mb-8 md:ring-white
         ">
-          <Logo variant="primary" className="h-10 w-auto" />
+          <Logo variant="symbol" className="h-10 w-auto" />
         </div>
 
         {/* Title & tagline */}
