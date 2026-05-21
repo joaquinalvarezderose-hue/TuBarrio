@@ -4,6 +4,17 @@ import { supabase } from '../services/supabaseClient';
 import { LoginSchema, flattenZodErrors } from '../lib/schemas';
 import Logo from '../components/Logo';
 
+function traducirErrorSupabase(msg: string): string {
+  if (!msg) return 'Error al iniciar sesión. Intentá de nuevo.';
+  const m = msg.toLowerCase();
+  if (/invalid login credentials/.test(m)) return 'Correo o contraseña incorrectos.';
+  if (/email not confirmed/.test(m)) return 'Debés confirmar tu correo antes de iniciar sesión.';
+  if (/email rate limit|too many requests|rate limit/.test(m)) return 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+  if (/user not found/.test(m)) return 'No existe una cuenta con ese correo.';
+  if (/network|fetch|connection/.test(m)) return 'Error de conexión. Verificá tu internet e intentá de nuevo.';
+  return 'Error al iniciar sesión. Intentá de nuevo.';
+}
+
 interface LoginProps {
   onSuccess?: () => void;
 }
@@ -73,7 +84,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
       }
     } catch (err: any) {
       console.error('login error', err);
-      setError(err?.message || 'Error al iniciar sesión');
+      setError(traducirErrorSupabase(err?.message));
     } finally {
       setLoading(false);
     }
