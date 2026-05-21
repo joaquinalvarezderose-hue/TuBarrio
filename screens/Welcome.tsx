@@ -47,8 +47,8 @@ const Welcome: React.FC = () => {
         <div className="
           -mt-10 mb-6 flex items-center justify-center
           rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-          bg-white ring-4 ring-[#f7f8f6] px-5 py-5
-          md:mt-0 md:mb-8 md:ring-white
+          bg-white border-[3px] border-[#13ec49] px-5 py-5
+          md:mt-0 md:mb-8
         ">
           <Logo variant="symbol" className="h-[120px] w-auto" />
         </div>
@@ -68,7 +68,7 @@ const Welcome: React.FC = () => {
           <button
             onClick={() => navigate('/register')}
             className="flex w-full cursor-pointer items-center justify-center rounded-full h-14 px-6 font-bold text-base tracking-wide text-[#131b0d] transition-all active:scale-[0.98]"
-            style={{ backgroundColor: '#6dec13', boxShadow: '0 8px 24px rgba(109,236,19,0.35)' }}
+            style={{ backgroundColor: '#13ec49', boxShadow: '0 8px 24px rgba(19,236,73,0.35)' }}
           >
             Crear mi cuenta
           </button>
