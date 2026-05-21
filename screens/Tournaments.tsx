@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
@@ -536,15 +536,7 @@ const Tournaments: React.FC = () => {
  <div className="flex items-center gap-2 text-secondary-text text-sm">
  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
  <span>
- {TOURNAMENT_SEASON_LABEL} • {(() => {
- const cap = capacityByTournamentId[tournament.id];
- if (!cap) return 'Cupo disponible';
- const m = cap.max;
- if (m !== null && m > 0) {
- return `${cap.current}/${m} Inscriptos`;
- }
- return cap.current > 0 ? `${cap.current} Inscriptos` : 'Cupo disponible';
- })()}
+ {TOURNAMENT_SEASON_LABEL}
  </span>
  </div>
  </div>
