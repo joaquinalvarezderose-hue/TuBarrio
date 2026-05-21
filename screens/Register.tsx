@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { verifyAddress } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
@@ -26,8 +26,7 @@ interface RegisterProps {
   onComplete: () => void;
 }
 
-const Register: React.FC<RegisterProps> = ({ onComplete }) => {
-  const navigate = useNavigate();
+const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [verifiedAddress, setVerifiedAddress] = useState('');
@@ -144,8 +143,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
         localStorage.setItem('app_user', JSON.stringify(localUser));
       }
 
-      if (onComplete) onComplete();
-      navigate('/');
+      window.location.replace('/#/');
     } catch (err: any) {
       console.error('register error', err);
       const msg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
