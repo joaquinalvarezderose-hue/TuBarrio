@@ -9,6 +9,19 @@ import {
   normalizeWhatsApp,
 } from '../lib/schemas';
 
+function traducirErrorSupabase(msg: string): string {
+  if (!msg) return 'Error al registrarse. Intentá de nuevo.';
+  const m = msg.toLowerCase();
+  if (/already registered/.test(m)) return 'Este correo ya está registrado.';
+  if (/invalid login credentials/.test(m)) return 'Correo o contraseña incorrectos.';
+  if (/email rate limit|too many requests|rate limit/.test(m)) return 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+  if (/database error/.test(m)) return 'Error al guardar el usuario. Intentá de nuevo.';
+  if (/password.*characters|characters.*password/.test(m)) return 'La contraseña no cumple los requisitos mínimos.';
+  if (/email.*invalid|invalid.*email/.test(m)) return 'El correo ingresado no es válido.';
+  if (/network|fetch|connection/.test(m)) return 'Error de conexión. Verificá tu internet e intentá de nuevo.';
+  return 'Error al registrarse. Intentá de nuevo.';
+}
+
 interface RegisterProps {
   onComplete: () => void;
 }
@@ -121,6 +134,10 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
           // Guardar datos temporalmente para cuando confirme el email
           localStorage.setItem('pending_profile', JSON.stringify({ nombre_completo: name, whatsapp: normalizedWA || null, direccion: verifiedAddress || address }));
         }
+
+        // Crear sesión activa inmediatamente para no depender del override temporal
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) console.warn('Auto sign-in tras registro falló:', signInError.message);
       } else {
         // Fallback: persist minimal user locally
         const localUser = { id: `local-${Date.now()}`, email, name, address: verifiedAddress || address };
@@ -132,7 +149,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     } catch (err: any) {
       console.error('register error', err);
       const msg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
-      setError(msg || 'Error al registrarse');
+      setError(traducirErrorSupabase(msg));
     } finally {
       setLoading(false);
     }
