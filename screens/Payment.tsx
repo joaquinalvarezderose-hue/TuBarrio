@@ -19,8 +19,8 @@ const Payment: React.FC = () => {
     date: "Sáb, 24 Oct • 9:00 AM"
   };
 
-  const aliasDestino = 'tubarrio.torneos';
-  const whatsappDestino = '+54 9 11 5555-1234';
+  const aliasDestino = 'torneo.canton';
+  const whatsappDestino = '+54 9 11 6421-9155';
 
   const handleManualPaymentSubmit = async () => {
     setError(null);
@@ -80,7 +80,7 @@ const Payment: React.FC = () => {
         torneo_id: Number(tournament.id),
         perfil_id: perfilId,
         estado: 'pendiente_revision',
-        monto: 27,
+        monto: 50000,
         moneda: 'ARS',
         metodo_pago: 'transferencia_alias',
         categoria: tournament.subtitle || null,
@@ -175,16 +175,12 @@ const Payment: React.FC = () => {
           <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Costo de Inscripción</span>
-              <span className="text-[#111813] font-black">$25.00</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Costo de Servicio</span>
-              <span className="text-[#111813] font-black">$2.00</span>
+              <span className="text-[#111813] font-black">$50.000</span>
             </div>
             <div className="h-px bg-gray-50 my-2"></div>
             <div className="flex justify-between items-center">
               <span className="text-[#111813] font-black text-lg tracking-tight">Total</span>
-              <span className="text-[#111813] font-black text-2xl tracking-tighter">$27.00</span>
+              <span className="text-[#111813] font-black text-2xl tracking-tighter">$50.000</span>
             </div>
           </div>
         </section>
