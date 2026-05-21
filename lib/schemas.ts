@@ -16,7 +16,8 @@ export const PasswordSchema = z
   .max(72, 'Máximo 72 caracteres')
   .refine((p) => /[A-Z]/.test(p), 'Requiere al menos una mayúscula')
   .refine((p) => /[a-z]/.test(p), 'Requiere al menos una minúscula')
-  .refine((p) => /\d/.test(p), 'Requiere al menos un dígito');
+  .refine((p) => /\d/.test(p), 'Requiere al menos un dígito')
+  .refine((p) => /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/.test(p), 'Requiere al menos un carácter especial (!@#$...)');
 
 export const NombreCompletoSchema = z
   .string()

@@ -16,7 +16,7 @@ function traducirErrorSupabase(msg: string): string {
   if (/invalid login credentials/.test(m)) return 'Correo o contraseña incorrectos.';
   if (/email rate limit|too many requests|rate limit/.test(m)) return 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
   if (/database error/.test(m)) return 'Error al guardar el usuario. Intentá de nuevo.';
-  if (/password.*characters|characters.*password/.test(m)) return 'La contraseña no cumple los requisitos mínimos.';
+  if (/password.*character|character.*password|weak.?password|password.*weak|password.*strong|password.*requirements/.test(m)) return 'La contraseña debe tener mín. 12 caracteres, mayúscula, minúscula, número y símbolo (!@#$...).';
   if (/email.*invalid|invalid.*email/.test(m)) return 'El correo ingresado no es válido.';
   if (/network|fetch|connection/.test(m)) return 'Error de conexión. Verificá tu internet e intentá de nuevo.';
   return 'Error al registrarse. Intentá de nuevo.';
@@ -254,6 +254,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
+                <p className="text-xs text-on-surface-variant mt-1 ml-1">Mín. 12 caracteres, mayúscula, minúscula, número y símbolo (!@#$...).</p>
                 {fieldErrors.password && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.password}</p>}
               </div>
 
