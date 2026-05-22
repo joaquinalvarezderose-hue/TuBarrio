@@ -175,7 +175,6 @@ const Services: React.FC = () => {
   const navigate = useNavigate();
   const [busqueda, setBusqueda] = useState('');
   const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   const { servicios, recomendados, loading, error, refetch } = useServicios({
     busqueda,
@@ -189,20 +188,10 @@ const Services: React.FC = () => {
 
   const hayBusqueda = busqueda.trim().length > 0;
 
-  const handleRecomendar = () => {
-    setToast('Próximamente podrás enviar recomendaciones al barrio');
-    setTimeout(() => setToast(null), 3000);
-  };
+  const handleRecomendar = () => navigate('/recomendar-profesional');
 
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-y-auto no-scrollbar">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl text-sm font-bold shadow-lg text-white bg-secondary max-w-xs text-center">
-          {toast}
-        </div>
-      )}
-
       {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-5 h-16 transition-all">
         <button

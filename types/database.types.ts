@@ -112,6 +112,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recomendaciones_servicios: {
+        Row: {
+          id: string
+          usuario_id: string
+          nombre_proveedor: string
+          rubro: string
+          telefono: string
+          motivo: string | null
+          estado: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          nombre_proveedor: string
+          rubro: string
+          telefono: string
+          motivo?: string | null
+          estado?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          nombre_proveedor?: string
+          rubro?: string
+          telefono?: string
+          motivo?: string | null
+          estado?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       marketplace_servicios: {
         Row: {
           categoria: string | null
