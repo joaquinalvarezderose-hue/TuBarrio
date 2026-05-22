@@ -276,7 +276,6 @@ export type Database = {
           grupo: string
           id: number
           max_participantes: number | null
-          max_participantes_total: number | null
           sorteo_realizado: boolean
           torneo_id: number
           updated_at: string | null
