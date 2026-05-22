@@ -264,10 +264,16 @@ const RecommendProfessional: React.FC = () => {
 
         {/* Banner motivacional */}
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary to-gray-700 flex items-center justify-center">
-            <span className="material-symbols-outlined text-6xl text-white/20">handyman</span>
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-5">
+          <img
+            src="https://images.unsplash.com/photo-1676210134190-3f2c0d5cf58d?w=800&q=80&auto=format&fit=crop"
+            alt="Profesional trabajando"
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-secondary/60 to-gray-900/80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
             <p className="text-white font-display font-bold text-lg leading-tight mb-1">
               Tu recomendación fortalece al barrio.
             </p>
