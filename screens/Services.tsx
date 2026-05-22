@@ -212,9 +212,7 @@ const Services: React.FC = () => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="font-display font-bold text-base text-secondary">Directorio de Servicios</h1>
-        <button className="hover:opacity-80 transition-opacity active:scale-95 text-secondary">
-          <span className="material-symbols-outlined">tune</span>
-        </button>
+        <div className="w-6" />
       </header>
 
       <main className="pt-20 pb-28 px-5 max-w-screen-sm mx-auto w-full">
