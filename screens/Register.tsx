@@ -293,17 +293,17 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
               <div className="flex items-center h-5">
                 <input id="terms" name="terms" type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="h-5 w-5 rounded border-outline text-primary focus:ring-primary" />
               </div>
-              <label className="text-xs text-on-surface-variant leading-tight" htmlFor="terms">
-                Acepto los{' '}
+              <div className="text-xs text-on-surface-variant leading-tight">
+                <label htmlFor="terms" className="cursor-pointer">Acepto los </label>
                 <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-bold underline hover:text-secondary transition-colors">
                   términos y condiciones
                 </Link>
-                {' '}y la{' '}
+                <label htmlFor="terms" className="cursor-pointer"> y la </label>
                 <Link to="/terms#privacidad" target="_blank" rel="noopener noreferrer" className="text-primary font-bold underline hover:text-secondary transition-colors">
                   política de privacidad
                 </Link>
-                {' '}de TuBarrio.
-              </label>
+                <label htmlFor="terms" className="cursor-pointer"> de TuBarrio.</label>
+              </div>
             </div>
             {fieldErrors.terms && <p className="text-xs text-red-600 mt-1">{fieldErrors.terms}</p>}
 

@@ -108,7 +108,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         )
         .eq('torneo_id', parsedTournamentId)
         .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-        .eq('estado', 'programado')
+        .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
         .order('jornada', { ascending: true })
         .order('fecha_programada', { ascending: true, nullsFirst: false })
         .limit(1);
@@ -129,7 +129,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
           .select('id, jornada, estado, fecha_programada, torneo_id, jugador1_id, jugador2_id')
           .eq('torneo_id', parsedTournamentId)
           .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
-          .eq('estado', 'programado')
+          .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
           .order('jornada', { ascending: true })
           .order('fecha_programada', { ascending: true, nullsFirst: false })
           .limit(1);
