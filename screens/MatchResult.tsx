@@ -302,22 +302,29 @@ const MatchResult: React.FC = () => {
  if (data?.user?.id) {
  const authId = String(data.user.id).toLowerCase();
  const storedId = String(appUser?.id || '').toLowerCase();
- 
+
  // Check for mismatch between stored and auth
  if (storedId && storedId !== authId) {
  localStorage.clear();
- localStorage.setItem('app_user', JSON.stringify({ 
- id: data.user.id, 
+ localStorage.setItem('app_user', JSON.stringify({
+ id: data.user.id,
  email: data.user.email
  }));
  window.location.reload();
  return;
  }
- 
+
  setCurrentUserId(String(data.user.id));
+ } else if (appUser?.id) {
+ // Session expired but local user exists — use it as fallback
+ setCurrentUserId(String(appUser.id));
  }
  } catch (err) {
  console.error('Auth check error:', err);
+ // Fallback to localStorage if auth throws
+ if (appUser?.id) {
+ setCurrentUserId(String(appUser.id));
+ }
  }
  };
  
@@ -334,6 +341,7 @@ const MatchResult: React.FC = () => {
  const loadMatchContext = async () => {
  // Don't load until we have a valid currentUserId from Supabase auth
  if (!currentUserId) {
+ setLoadingMatch(false);
  return;
  }
  setLoadingMatch(true);
