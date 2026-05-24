@@ -20,6 +20,7 @@ import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import AdminPanel from './screens/AdminPanel';
 import Ayuda from './screens/Ayuda';
+import TermsAndConditions from './screens/TermsAndConditions';
 import Navigation from './components/Navigation';
 import Welcome from './screens/Welcome';
 import { useCurrentUser } from './hooks/useCurrentUser';
@@ -31,7 +32,7 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
-  const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/welcome';
+  const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/welcome' || location.pathname === '/terms';
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
@@ -59,6 +60,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
           <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" replace />} />
           <Route path="/ayuda" element={user ? <Ayuda /> : <Navigate to="/login" replace />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           {/* Agregá acá el resto de tus rutas siguiendo el mismo formato */}
         </Routes>
