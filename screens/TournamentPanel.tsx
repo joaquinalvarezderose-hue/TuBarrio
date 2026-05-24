@@ -49,7 +49,6 @@ type GroupStatusRow = {
  grupo: string;
  estado: string;
  current_participantes: number;
- max_participantes: number;
  sorteo_realizado: boolean;
 };
 
@@ -239,7 +238,7 @@ const TournamentPanel: React.FC = () => {
 
  let groupStatusQuery: any = supabase
  .from('torneo_estado')
- .select('categoria, grupo, estado, current_participantes, max_participantes, sorteo_realizado')
+ .select('categoria, grupo, estado, current_participantes, sorteo_realizado')
  .eq('torneo_id', tournament.id);
 
  const statusCategory = resolvedScope?.categoria || fallbackCategory;
@@ -667,7 +666,7 @@ const TournamentPanel: React.FC = () => {
  <div key={`${row.categoria}-${row.grupo}`} className="flex items-center justify-between gap-3 text-sm">
  <div>
  <p className="font-semibold text-slate-900 ">{row.grupo}</p>
- <p className="text-xs text-slate-500 ">{row.current_participantes}/{row.max_participantes} jugadores</p>
+ <p className="text-xs text-slate-500 ">{row.current_participantes} jugadores</p>
  </div>
  <span className="text-xs font-bold uppercase tracking-wide text-slate-600 ">{normalizeStatus(row.estado)}</span>
  </div>

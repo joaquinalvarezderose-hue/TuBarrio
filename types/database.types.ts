@@ -275,7 +275,6 @@ export type Database = {
           estado: string | null
           grupo: string
           id: number
-          max_participantes: number | null
           sorteo_realizado: boolean
           torneo_id: number
           updated_at: string | null
@@ -520,7 +519,6 @@ export type Database = {
           byes: string[]
           estado_antes: string
           estado_despues: string
-          max_participantes: number
           participantes_actuales: number
           partidos_creados: number
           perfil_id: string

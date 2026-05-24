@@ -199,31 +199,10 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  <h3 className="text-lg font-bold text-[#111813] mb-3">
  Playoffs no generados
  </h3>
- <p className="text-sm text-[#61896b] leading-relaxed mb-4">
- Las llaves de eliminación directa aún no han sido generadas para este torneo.
- <br /><br />
- <strong>Para generar los playoffs desde Supabase:</strong>
+ <p className="text-sm text-[#61896b] leading-relaxed">
+   Las llaves de eliminación directa aún no han sido generadas para este torneo.
  </p>
- <div className="text-left text-xs text-[#61896b] bg-white/50 p-4 rounded-lg">
- <ol className="list-decimal list-inside space-y-2">
- <li>Verificá que <code>torneo_configuracion.crear_playoffs_eliminacion_directa = true</code></li>
- <li>Ejecutá la función SQL:
- <pre className="mt-1 bg-gray-100 p-2 rounded text-[10px] overflow-x-auto">
-{`SELECT * FROM generar_playoffs_eliminacion_directa_torneo(
- ${torneo_id}, 
- '${categoria}'
-);`}
- </pre>
- </li>
- </ol>
- </div>
- </div>
- <div className="flex flex-col gap-3 text-xs text-[#61896b] w-full max-w-sm mt-2">
- <div className="flex items-center justify-center gap-2">
- <span className="material-symbols-outlined text-sm flex-shrink-0">info</span>
- <span className="text-center">Los cruces serán: #1 Grupo A vs #2 Grupo B, #1 Grupo B vs #2 Grupo A</span>
- </div>
- </div>
+</div>
  </div>
  </div>
  );

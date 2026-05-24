@@ -159,7 +159,6 @@ export type RegisterParticipantResult = {
   statusBefore: TournamentStatus;
   statusAfter: TournamentStatus;
   currentParticipants: number;
-  maxParticipants: number;
   drawTriggered: boolean;
   createdMatches: number;
   byes: string[];
@@ -172,7 +171,6 @@ type RegisterParticipantRpcRow = {
   estado_antes: TournamentStatus;
   estado_despues: TournamentStatus;
   participantes_actuales: number;
-  max_participantes: number;
   sorteo_disparado: boolean;
   partidos_creados: number;
   byes: string[] | null;
@@ -207,7 +205,6 @@ export const registerParticipant = async (params: {
       statusBefore: row.estado_antes,
       statusAfter: row.estado_despues,
       currentParticipants: Number(row.participantes_actuales || 0),
-      maxParticipants: Number(row.max_participantes || 0),
       drawTriggered: Boolean(row.sorteo_disparado),
       createdMatches: Number(row.partidos_creados || 0),
       byes: row.byes || [],

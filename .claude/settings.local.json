@@ -13,7 +13,8 @@
       "Bash(head -c 3000 /c/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/1e21b8fd-93db-4538-8ec4-62107902527e/tool-results/mcp-claude_ai_Supabase-get_advisors-1778810943011.txt)",
       "Read(//c/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/1e21b8fd-93db-4538-8ec4-62107902527e/tool-results/**)",
       "mcp__claude_ai_Supabase__generate_typescript_types",
-      "Bash(Get-ChildItem -Recurse -Name \"types.ts\" -o \"types.tsx\")"
+      "Bash(Get-ChildItem -Recurse -Name \"types.ts\" -o \"types.tsx\")",
+      "mcp__claude_ai_Supabase__list_projects"
     ]
   }
 }

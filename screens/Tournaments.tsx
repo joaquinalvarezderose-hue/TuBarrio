@@ -225,7 +225,7 @@ const Tournaments: React.FC = () => {
  const loadTournamentLifecycle = async () => {
  try {
  const [{ data: estadoData, error: estadoError }, { data: configData, error: configError }] = await Promise.all([
- supabase.from('torneo_estado').select('torneo_id, estado, current_participantes, max_participantes'),
+ supabase.from('torneo_estado').select('torneo_id, estado, current_participantes'),
  supabase.from('torneo_configuracion').select('torneo_id, max_participantes_total'),
  ]);
 
@@ -240,11 +240,9 @@ const Tournaments: React.FC = () => {
  });
 
  const sumCurrentByTorneo: Record<number, number> = {};
- const sumMaxEstadoByTorneo: Record<number, number> = {};
  (estadoData || []).forEach((row: any) => {
  const id = Number(row.torneo_id);
  sumCurrentByTorneo[id] = (sumCurrentByTorneo[id] || 0) + Number(row.current_participantes || 0);
- sumMaxEstadoByTorneo[id] = (sumMaxEstadoByTorneo[id] || 0) + Number(row.max_participantes || 0);
  });
 
  const nextStatus: Record<number, string> = {};
@@ -268,12 +266,9 @@ const Tournaments: React.FC = () => {
 
  allIds.forEach((id) => {
  const configured = maxTotalByTournamentId[id];
- const fallbackGrupoMaxSum = sumMaxEstadoByTorneo[id] || 0;
  const max =
  configured !== null && configured !== undefined && configured > 0
  ? configured
- : fallbackGrupoMaxSum > 0
- ? fallbackGrupoMaxSum
  : null;
 
  nextCapacity[id] = {
@@ -762,7 +757,7 @@ const Tournaments: React.FC = () => {
  }
 
  // HUB VIEW
- const activeTorneosCount = registeredIds.filter(id => statusByTournamentId[id] !== 'FINALIZADO').length;
+ const activeTorneosCount = myRegisteredTournaments.filter(t => statusByTournamentId[t.id] !== 'FINALIZADO').length;
  return (
  <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-28 md:pb-0">
  <header className="flex items-center p-4 md:px-8 pb-2 justify-between bg-background-light sticky top-0 z-10 border-b border-transparent md:border-gray-100 ">
