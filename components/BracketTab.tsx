@@ -200,9 +200,9 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  Playoffs no generados
  </h3>
  <p className="text-sm text-[#61896b] leading-relaxed">
-   Las llaves de eliminación directa aún no han sido generadas para este torneo.
+  Las llaves de eliminación directa aún no han sido generadas para este torneo.
  </p>
-</div>
+ </div>
  </div>
  </div>
  );
