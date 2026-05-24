@@ -305,7 +305,8 @@ const MatchResult: React.FC = () => {
 
  // Check for mismatch between stored and auth
  if (storedId && storedId !== authId) {
- localStorage.clear();
+ localStorage.removeItem('app_user');
+ localStorage.removeItem('active_tournament');
  localStorage.setItem('app_user', JSON.stringify({
  id: data.user.id,
  email: data.user.email

@@ -19,6 +19,7 @@ import Profile from './screens/Profile';
 import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import AdminPanel from './screens/AdminPanel';
+import Ayuda from './screens/Ayuda';
 import Navigation from './components/Navigation';
 import Welcome from './screens/Welcome';
 import { useCurrentUser } from './hooks/useCurrentUser';
@@ -57,6 +58,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
           <Route path="/payment" element={user ? <Payment /> : <Navigate to="/login" replace />} />
           <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" replace />} />
+          <Route path="/ayuda" element={user ? <Ayuda /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           {/* Agregá acá el resto de tus rutas siguiendo el mismo formato */}
         </Routes>

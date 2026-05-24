@@ -61,6 +61,8 @@ const Standings: React.FC = () => {
  const [selectedGroup, setSelectedGroup] = useState<string>('');
  const [currentUserId, setCurrentUserId] = useState<string>('');
  const [clasificadosPorGrupo, setClasificadosPorGrupo] = useState<number>(2);
+ const [incluirMejoresTerceros, setIncluirMejoresTerceros] = useState<boolean>(false);
+ const [cantidadMejoresTerceros, setCantidadMejoresTerceros] = useState<number>(0);
 
  const savedTournament = localStorage.getItem('active_tournament');
  const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -214,12 +216,14 @@ const Standings: React.FC = () => {
  // Load qualifying spots per group from tournament config
  const { data: configRows } = await supabase
  .from('torneo_configuracion')
- .select('clasificados_por_grupo')
+ .select('clasificados_por_grupo, incluir_mejores_terceros, cantidad_mejores_terceros')
  .eq('torneo_id', parsedTournamentId)
  .limit(1);
  if (configRows?.[0]?.clasificados_por_grupo) {
  setClasificadosPorGrupo(Number(configRows[0].clasificados_por_grupo));
  }
+ setIncluirMejoresTerceros(Boolean(configRows?.[0]?.incluir_mejores_terceros));
+ setCantidadMejoresTerceros(Number(configRows?.[0]?.cantidad_mejores_terceros ?? 0));
 
  const rowsByProfile = new Map<string, TournamentPlayerRow>();
  const mergeRows = (rows: TournamentPlayerRow[]) => {
@@ -710,6 +714,14 @@ const Standings: React.FC = () => {
  Clasifica a los playoffs (Top {clasificadosPorGrupo} por grupo)
  </span>
  </div>
+ {incluirMejoresTerceros && cantidadMejoresTerceros > 0 && (
+ <div className="flex items-center gap-2 px-4 pb-1">
+ <div className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-300 flex-shrink-0" />
+ <span className="text-xs text-slate-500">
+ Los {cantidadMejoresTerceros} mejores terceros de todos los grupos también clasifican
+ </span>
+ </div>
+ )}
 
  <div className="mx-4 my-4 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
  <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
@@ -730,6 +742,31 @@ const Standings: React.FC = () => {
  </p>
  </div>
  </div>
+
+ {incluirMejoresTerceros && cantidadMejoresTerceros > 0 && (
+ <div className="mx-4 mb-4 bg-white rounded-xl border border-amber-100 shadow-sm overflow-hidden">
+ <div className="px-4 py-3 border-b border-amber-100 flex items-center gap-2">
+ <span className="material-symbols-outlined text-amber-400 text-[18px]">emoji_events</span>
+ <h4 className="text-xs font-bold text-amber-600 uppercase tracking-widest">Ranking de mejores terceros</h4>
+ </div>
+ <div className="px-4 py-2.5 text-[11px] text-slate-600 leading-relaxed">
+ Los {cantidadMejoresTerceros} mejores terceros se determinan comparando a todos los jugadores ubicados 3° en su grupo, usando este orden de prioridad:
+ </div>
+ <div className="divide-y divide-slate-50">
+ {['Puntos acumulados', 'Sets ganados (total)', 'Menos partidos jugados'].map((c, i) => (
+ <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+ <span className="text-[10px] font-bold text-slate-400 w-4 shrink-0">{i + 1}</span>
+ <span className="text-xs text-slate-600">{c}</span>
+ </div>
+ ))}
+ </div>
+ <div className="px-4 py-2.5 bg-amber-50 border-t border-amber-100">
+ <p className="text-[10px] text-amber-700 leading-relaxed">
+ Este criterio es entre grupos — el H2H y diferencia de sets no aplican en comparaciones cruzadas.
+ </p>
+ </div>
+ </div>
+ )}
  </div>
  )}
  </main>

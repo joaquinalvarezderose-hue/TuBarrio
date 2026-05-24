@@ -14,7 +14,10 @@
       "Read(//c/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/1e21b8fd-93db-4538-8ec4-62107902527e/tool-results/**)",
       "mcp__claude_ai_Supabase__generate_typescript_types",
       "Bash(Get-ChildItem -Recurse -Name \"types.ts\" -o \"types.tsx\")",
-      "mcp__claude_ai_Supabase__list_projects"
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__get_logs",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Joaquin\\\\Documents\\\\GitHub\\\\TuBarrio\" -Force)",
+      "Bash(Select-Object Name, FullName)"
     ]
   }
 }

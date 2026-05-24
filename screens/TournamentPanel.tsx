@@ -159,6 +159,7 @@ const TournamentPanel: React.FC = () => {
  let cancelled = false;
  setLoadingProposal(true);
  (async () => {
+ try {
  const { data } = await supabase
  .from('torneo_propuestas_partido')
  .select('debe_confirmar_por')
@@ -166,7 +167,11 @@ const TournamentPanel: React.FC = () => {
  .maybeSingle();
  if (!cancelled) {
  setProposalMustConfirmBy(data?.debe_confirmar_por ?? null);
- setLoadingProposal(false);
+ }
+ } catch {
+ // swallow
+ } finally {
+ if (!cancelled) setLoadingProposal(false);
  }
  })();
  return () => { cancelled = true; };

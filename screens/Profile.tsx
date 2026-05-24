@@ -189,7 +189,7 @@ const Profile: React.FC = () => {
  <span className="material-symbols-outlined text-gray-400 text-[20px] group-hover:translate-x-1 transition-transform">chevron_right</span>
  </button>
 
- <button className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group last:border-0">
+ <button onClick={() => navigate('/ayuda')} className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group last:border-0">
  <div className="flex items-center gap-3">
  <div className="bg-teal-50 text-teal-600 p-2 rounded-lg flex items-center justify-center">
  <span className="material-symbols-outlined text-[20px]">help</span>
