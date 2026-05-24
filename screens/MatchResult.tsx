@@ -296,7 +296,6 @@ const MatchResult: React.FC = () => {
  useEffect(() => {
  const checkAuth = async () => {
  try {
- const { data: refreshData } = await (supabase as any).auth.refreshSession();
  const { data } = await (supabase as any).auth.getUser();
  
  if (data?.user?.id) {

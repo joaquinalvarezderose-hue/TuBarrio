@@ -58,7 +58,42 @@ const Rules: React.FC = () => {
  </div>
  </details>
 
- {/* Question 2 */}
+ {/* Fase de Grupos */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">groups</span>
+ <span className="font-semibold text-slate-800">Fase de Grupos</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ En la fase de grupos cada jugador enfrenta a todos los demás de su zona (round-robin). Se suman puntos por cada partido: <strong className="text-slate-800">3 puntos</strong> por victoria, <strong className="text-slate-800">1 punto</strong> por completar el encuentro y <strong className="text-slate-800">0</strong> en caso de W.O. Al finalizar la fase, los mejores clasificados de cada grupo avanzan a los Playoffs según la configuración del torneo.
+ </div>
+ </details>
+
+ {/* Criterios de Desempate */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">balance</span>
+ <span className="font-semibold text-slate-800">Criterios de Desempate</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ <p className="mb-3">Cuando dos o más jugadores igualan en puntos, el orden se determina aplicando los siguientes criterios en orden de prioridad:</p>
+ <ol className="space-y-2 list-none">
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">1°</span> Puntos acumulados</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">2°</span> Diferencia de sets (ganados − perdidos)</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">3°</span> Sets ganados (total)</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">4°</span> Resultado directo entre los empatados (H2H)</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">5°</span> Promedio de puntos por partido</li>
+ </ol>
+ </div>
+ </details>
+
+ {/* Question 2 - Reglas de Clasificación */}
  <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
  <div className="flex items-center gap-3">
@@ -69,6 +104,40 @@ const Rules: React.FC = () => {
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
  Para clasificar a los Playoffs, se consideran: 1) Puntos totales. 2) Resultado directo entre los involucrados. 3) Diferencia de sets. 4) Diferencia de games. Es obligatorio haber disputado al menos el 80% de los partidos de la fase regular.
+ </div>
+ </details>
+
+ {/* Playoffs */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">account_tree</span>
+ <span className="font-semibold text-slate-800">Playoffs — Eliminación Directa</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Los Playoffs se juegan en formato de eliminación directa. El ganador de cada cruce avanza a la siguiente ronda y el perdedor queda eliminado. Los partidos son al mejor de 3 sets. El cuadro se genera automáticamente al cierre de la fase de grupos, cruzando a los clasificados según su posición final: el 1° de un grupo enfrenta al 2° de otro, alternando semillas para equilibrar el cuadro.
+ </div>
+ </details>
+
+ {/* Mejores Terceros */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">emoji_events</span>
+ <span className="font-semibold text-slate-800">Mejores Terceros</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ <p className="mb-3">Cuando el formato lo requiere para completar el cuadro de Playoffs a una potencia de 2, los mejores terceros puestos de todos los grupos también clasifican. Para determinar cuáles pasan, se comparan todos los jugadores que terminaron 3° en su grupo usando:</p>
+ <ol className="space-y-2 list-none mb-3">
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">1°</span> Puntos acumulados</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">2°</span> Sets ganados (total)</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">3°</span> Menos partidos jugados</li>
+ </ol>
+ <p className="text-xs text-slate-500">El resultado directo (H2H) y la diferencia de sets no aplican en este ranking ya que son comparaciones entre grupos distintos.</p>
  </div>
  </details>
 
