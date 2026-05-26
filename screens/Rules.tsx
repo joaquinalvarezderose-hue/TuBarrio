@@ -194,11 +194,11 @@ const Rules: React.FC = () => {
  {/* Contact Support */}
  <div className="px-4 mt-10 text-center">
  <p className="text-slate-500 text-sm mb-4 font-bold">¿No encontraste lo que buscabas?</p>
- <button className="w-full bg-[#111813] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:bg-slate-800 active:scale-95 shadow-lg">
+ <a href="https://wa.me/5491164219155" target="_blank" rel="noopener noreferrer" className="w-full bg-[#111813] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:bg-slate-800 active:scale-95 shadow-lg">
  <span className="material-symbols-outlined">chat</span>
  Contactar Organización
- </button>
- <p className="mt-6 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Versión 2024.3 - TuBarrio AR</p>
+ </a>
+ <p className="mt-6 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Versión 2026.3 - TuBarrio AR</p>
  </div>
  </main>
 

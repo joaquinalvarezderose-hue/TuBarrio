@@ -322,7 +322,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
       </main>
 
       <footer className="mt-auto py-6 text-center">
-        <p className="text-[10px] text-on-surface-variant font-medium tracking-widest uppercase opacity-50">TuBarrio © 2024 - Buenos Aires, Argentina</p>
+        <p className="text-[10px] text-on-surface-variant font-medium tracking-widest uppercase opacity-50">TuBarrio © 2026 - Buenos Aires, Argentina</p>
       </footer>
     </div>
   );
