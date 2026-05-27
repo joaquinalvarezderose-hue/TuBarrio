@@ -15,7 +15,7 @@ const Dashboard: React.FC = () => {
  <div className="flex items-center gap-3">
  <div className="relative cursor-pointer" onClick={() => navigate('/profile')}>
  <div className="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary/20" 
- style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDWCTIBw_oy-Ors3ZoHYHQLWWrP2rYitUAFYDQC96qpBg5zRQ0UJuzTU7TEXguGpmAtxIPehAFk_tIgue4CCUN_W31HX3c55gL_84iUycQWel6T6UNHnhJIl2xGIJHC1UnS12MTxFZeY96N83at-jCptspK9-sdolZivh3Kdq9PXrWqIV-o0608UHWWTicGLNzlT9hA1hEWMwr0k-wV_VKfbfmm5DgQiB8jSEBNeHXaqmRcsZGrX2D-oynMXF4IBFfHV75S21ziPMU")' }}></div>
+ style={{ backgroundImage: 'url("/images/dashboard-bg.jpg")' }}></div>
  <div className="absolute bottom-0 right-0 size-3 rounded-full bg-primary border-2 border-white "></div>
  </div>
  <div className="flex flex-col">

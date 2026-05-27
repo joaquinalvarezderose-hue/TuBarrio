@@ -158,7 +158,7 @@ const Payment: React.FC = () => {
               <img 
                 alt="Tournament" 
                 className="object-cover w-full h-full" 
-                src={tournament.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuAkACAJDk1YmZUavx4Q84LF1hqvnTyGZ8dMjm5uxDcnrHXbqI61rijPof3U9QxC6iasZVmkyLI6QPBmYx66Ok26F26_LSmiuzEnBcoGKn2c-g0JfRVIWZgLHJwJXNSzk84jRd8yhULaVdXztOioSvTifRFlvQE1NgQSlFVqyxtNZsXdYtXsQfLx-nUPCl6wkYnG2FVX8xpycRncckUiLXikgi6bRf9uiioDsgnwMp-3912I47TViSKhyU0KCOWAxNqtaPDfJiaXFv0"}
+                src={tournament.image || "/images/payment-tournament.jpg"}
               />
             </div>
             <div className="flex flex-col justify-center">

@@ -84,7 +84,7 @@ const TournamentDetails: React.FC = () => {
  <div 
  className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" 
  role="img" 
- style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAVx1WQP7vZEiH8vKxHErY6qX5YFqmrDQUB9rEk_ll74Py9T8DIc2L8ycxTgz4bU4Nbw_zOIQpN_Xslyr0DjQPLL8AbtD1E8qHGdoaleJsH06qvESuPUyjZ36C6Xfdexr91gskv9GQ-vu1ETAdJ_Y0Q-6ZO-QFdbyliEsQY0fp6Ovrk3-5GZNgiNn82ZwmQTDpkMNign_zqT57NAxEMIOf9w_uCCGYx5yPsSBs0FNN6mZJQuWz_7InHrmdy4Gb3DR_t0ZTobexNG9E")' }}
+ style={{ backgroundImage: 'url("/images/tournament-detail-1.jpg")' }}
  ></div>
  <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
  <div className="relative z-20 flex flex-col p-5 gap-2">
@@ -126,7 +126,7 @@ const TournamentDetails: React.FC = () => {
  <div className="mt-3 h-24 w-full overflow-hidden rounded-xl relative border border-gray-200">
  <div 
  className="absolute inset-0 bg-cover bg-center opacity-80" 
- style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZFkqBmThhKQvkFpbT4fetiHM-5Qwb1EB49RzxQMvybIvdYS0-_rV_YwFhARurSeiEAyaiyb8CEZYChh8S1sMwDq73wrqUEZw0IpTJdJeUjgnKygNggWdxujsI92y0Rw-KXIV9aw7H-t5cwPlGYmpB29c1apBELhOwLOEOTos3uSczGbjazrRVXg9DHZzby-STciMc403zow0oXWSLOmalfjEqulvdscR-_X9rO2xyOQIqKpe9RVexjMcoef7MWNOvC9pEnweOuro")' }}
+ style={{ backgroundImage: 'url("/images/tournament-detail-2.jpg")' }}
  ></div>
  <a
  href="https://maps.app.goo.gl/W5j2pF2XkeEyLCqq5"

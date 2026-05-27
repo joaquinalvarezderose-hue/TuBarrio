@@ -61,7 +61,7 @@ type TorneoHistorialItem = {
  es_finalista: boolean;
 };
 
-const DEFAULT_TOURNAMENT_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE';
+const DEFAULT_TOURNAMENT_IMAGE = '/images/tournament-default.jpg';
 
 const FALLBACK_TORNEOS: Torneo[] = [
  {
@@ -70,7 +70,7 @@ const FALLBACK_TORNEOS: Torneo[] = [
  subtitulo: 'Singles Caballeros',
  fecha_inicio: '2026-03-10',
  fecha_fin: '2026-03-15',
- imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE',
+ imagen_url: '/images/tournament-default.jpg',
  activo: true,
  },
  {
@@ -79,7 +79,7 @@ const FALLBACK_TORNEOS: Torneo[] = [
  subtitulo: 'Singles Caballeros',
  fecha_inicio: '2026-03-12',
  fecha_fin: '2026-03-18',
- imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCJdWlacuqkDcu2Q0AVWRtpMog2NYZKB_m6UbjJ9vAC_kOGuh3mbwI_BfJPc5hG9H6gqtvses85VMCYm4RTvxbYb6u7SC9pOoGFf3WcsoMUQNe785z1Z9ALzLdDpndsM0Y81awbpbqwZfJ218iwcyKvs3lpN8yYLn0KLwu_XvTME6ukU9OGSrJbMbx4VyVL0raJpjrrJJz0BXQwhVWHnrVZLJ3R6KHBmMZbtCrZfvYj9AD5b57emWAExThw4FcoUkLlUnWtV4b9gbw',
+ imagen_url: '/images/tournament-2.jpg',
  activo: true,
  },
  {
@@ -88,7 +88,7 @@ const FALLBACK_TORNEOS: Torneo[] = [
  subtitulo: 'Singles Caballeros',
  fecha_inicio: '2026-03-20',
  fecha_fin: '2026-03-25',
- imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBuAVvQAMpWs1A9RwmoapmwZFYSYckJHuLnfshuYRf6nvdqffLuXkcMR81eVmc0q1dFQmvZIZ5J374TuBT7jPOc_F4CubG2eUlnWfwdL2rq3p5mpkSHKJxyjfWsXWQJ5OFnKEh3bD9ClhfY9c9iVENVc5kwGn0FoBuDU99Ep6wEDCKsBDlsCpyzr035p9WEN5KHl-25VBGQ7jirkd7xecbOFfw4WFisYaNRwRdYpqrPUFNV9dxcf8a0WbXGjADZx3z4zpwTHO-6dZA',
+ imagen_url: '/images/tournament-3.jpg',
  activo: true,
  },
  {
@@ -97,7 +97,7 @@ const FALLBACK_TORNEOS: Torneo[] = [
  subtitulo: 'Singles Damas',
  fecha_inicio: '2026-04-08',
  fecha_fin: '2026-04-14',
- imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDxjuplDHRtHd-OUwF9Wwm5vPaBjuJZjHY8AvJejxsz0vrfcVLBOxqADQ76jP5vZAekynJhedQty64BTK8MDV3qzGosWwiEh7pXTKvx42CIvBNVHf8eziGbWpAGDVguikTH8Uena9SbZ4riqBdijv_eW4jffLPebFJ-NPHWRaFjJrPofF6isZ5DXtu-TIzHxMkKw3jdO-I0jdBxgrq7t9SZF7mD-KSZTRCsDROfxNYnleiVj0IbvOYw7jkZsmAOaioxUSes-yG8X0M',
+ imagen_url: '/images/tournament-4.jpg',
  activo: true,
  },
  {
@@ -106,7 +106,7 @@ const FALLBACK_TORNEOS: Torneo[] = [
  subtitulo: 'Dobles Mixtos',
  fecha_inicio: '2026-04-01',
  fecha_fin: '2026-04-05',
- imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD822xk3Z5UFXimD5jaQ65Pnav_h7KOLdQhGDXtI3BeM9pnk_Tt7U_DZ5S9em63Fv8_cmz6E0VSlWflf_IBpjHT4Wz3Xya44BAQa03zjSYZbofwQPZYe4j4iBLfRaHTKdPAu15lgCnuwsHZFrJagJNeKFqZcUxjbSt6yMTfcKpyfClnNxYaroLk8-yrFr5PKz_sruS2a2IJRKHsKhiv9EzWf43769G7WPg8cubAvG5_UXnpRvdzdUdcBrUC8rBeyJD6gUzuwaRV_A8',
+ imagen_url: '/images/tournament-5.jpg',
  activo: true,
  },
 ];

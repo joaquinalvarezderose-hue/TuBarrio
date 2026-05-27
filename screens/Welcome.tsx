@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 
-const HERO_IMAGE = `url("https://lh3.googleusercontent.com/aida-public/AB6AXuBF4TcVNpgk0NHcBlydxxHPcmn4nvygdoGMe7WQkcaS22P9vR0ADcvgw4iRKNwrisBqqI8Ni-HZXP8QU3BYu_M9rZQNOvhT5AcSfYttQsnMQTaKOtct1oRSSSB2kWJqaQNkCT2DAtKFybo-W0Rx8avEA8yegFQntGlhIW_RR-ntl9swbEriy_PEIDcV233v-ZY1KbLCluFhoL_FZZCbNSeTd7ZLva_W7JU8gL7d9-gkImbcdpl3LbqM61iCjo6q65EGk3chFypZLRI")`;
+const HERO_IMAGE = `url("/images/hero-welcome.jpg")`;
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();

@@ -34,7 +34,7 @@ const PlayerProfile: React.FC = () => {
  <div className="h-24 w-24 rounded-full bg-gray-200 overflow-hidden border-4 border-accent-bg-light shadow-md">
  <div 
  className="h-full w-full bg-cover bg-center" 
- style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDvueop6RV7jnajGRJG7PLDzvYTemR0HfPDRvGzDKmtQrghf4Ukk4K-ZuxYLuYQwuKdV4uCGgsBYqbZdLAnpn65-NCHhBu7isoAyAQeY4tjCpB5WOOahqdWEFxP6pXCd7cpse4AsWLK1F6o2qrV42ueB5EW-9tnHiWKggjboGvD9LuYrv2Mbi5ryv8SirOzc8NWL-FVnat9-RrHERojqzOnKi3S6Au7GhdWWtWYH7-IJDr98-XiOBs7NnvmM3_J11KK9z1rVDz1xAQ")' }}
+ style={{ backgroundImage: 'url("/images/profile-bg-1.jpg")' }}
  ></div>
  </div>
  <div className="absolute bottom-0 right-0 h-7 w-7 bg-primary rounded-full border-2 border-white flex items-center justify-center shadow-sm">
@@ -72,7 +72,7 @@ const PlayerProfile: React.FC = () => {
  <div className="relative h-32 w-full bg-gray-200">
  <div 
  className="absolute inset-0 bg-cover bg-center" 
- style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBcSiNAKEJNrLa2M4arvvd0bSblQSYQDccXm2LpEdlBCsOwDZi1xu_lkLSRZdADWafgDhOPEINWFc5u5RVWd1Lo0Wbz6DgwMgcdlk2BLLay4pMzTctgF4yL0MzmMvkAnv0OulwU2J2H7ZxC_S7cSxlKJVfgfgQHORwuCnx-hu9l5yLuj0Nj0qNoXeI_H_yFeaTM1C34ickxSIZz8r3-kyBSTcXtc3Ng1kt5KFtUz8OKIrywlkVKDvGux5IuVlRKDu_2oTSAWooTEF4")' }}
+ style={{ backgroundImage: 'url("/images/profile-bg-2.jpg")' }}
  ></div>
  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
  <div className="absolute bottom-3 left-4 right-4">
