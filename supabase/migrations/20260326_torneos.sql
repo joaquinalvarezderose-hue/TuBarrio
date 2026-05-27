@@ -58,7 +58,7 @@ insert into public.torneos (id, titulo, subtitulo, fecha_inicio, fecha_fin, imag
   'Singles Caballeros',
   '2026-03-10',
   '2026-03-15',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDIkCK9JuzOAYSvIEnZEzVW1-ZAVUeE8egZW2EpjfdMsZim28_IttidOyrb4lpXZ-Z4VavCZ7qY4IPZpesaLzgX3p2NRC_oHeYyyhHVSAh3ptTRqutybTxUSEScEU2OUi8rLmzApP2kELvfkgwVWxuwr6zp22cG6-SReuwbO_ycD8hLiHrtuX5YhGO0PnTj6BWMMHjQptD7EBJF1ckrVVWvvDCVYor5bi7B_ayvBHsBV07mbEFmeaHNkjX6_inckgOqIpQe_toVUJE'
+  '/images/tournament-default.jpg'
 ),
 (
   2,
@@ -66,7 +66,7 @@ insert into public.torneos (id, titulo, subtitulo, fecha_inicio, fecha_fin, imag
   'Singles Caballeros',
   '2026-03-12',
   '2026-03-18',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCJdWlacuqkDcu2Q0AVWRtpMog2NYZKB_m6UbjJ9vAC_kOGuh3mbwI_BfJPc5hG9H6gqtvses85VMCYm4RTvxbYb6u7SC9pOoGFf3WcsoMUQNe785z1Z9ALzLdDpndsM0Y81awbpbqwZfJ218iwcyKvs3lpN8yYLn0KLwu_XvTME6ukU9OGSrJbMbx4VyVL0raJpjrrJJz0BXQwhVWHnrVZLJ3R6KHBmMZbtCrZfvYj9AD5b57emWAExThw4FcoUkLlUnWtV4b9gbw'
+  '/images/tournament-2.jpg'
 ),
 (
   3,
@@ -74,7 +74,7 @@ insert into public.torneos (id, titulo, subtitulo, fecha_inicio, fecha_fin, imag
   'Singles Caballeros',
   '2026-03-20',
   '2026-03-25',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBuAVvQAMpWs1A9RwmoapmwZFYSYckJHuLnfshuYRf6nvdqffLuXkcMR81eVmc0q1dFQmvZIZ5J374TuBT7jPOc_F4CubG2eUlnWfwdL2rq3p5mpkSHKJxyjfWsXWQJ5OFnKEh3bD9ClhfY9c9iVENVc5kwGn0FoBuDU99Ep6wEDCKsBDlsCpyzr035p9WEN5KHl-25VBGQ7jirkd7xecbOFfw4WFisYaNRwRdYpqrPUFNV9dxcf8a0WbXGjADZx3z4zpwTHO-6dZA'
+  '/images/tournament-3.jpg'
 ),
 (
   4,
@@ -82,7 +82,7 @@ insert into public.torneos (id, titulo, subtitulo, fecha_inicio, fecha_fin, imag
   'Singles Damas',
   '2026-04-08',
   '2026-04-14',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDxjuplDHRtHd-OUwF9Wwm5vPaBjuJZjHY8AvJejxsz0vrfcVLBOxqADQ76jP5vZAekynJhedQty64BTK8MDV3qzGosWwiEh7pXTKvx42CIvBNVHf8eziGbWpAGDVguikTH8Uena9SbZ4riqBdijv_eW4jffLPebFJ-NPHWRaFjJrPofF6isZ5DXtu-TIzHxMkKw3jdO-I0jdBxgrq7t9SZF7mD-KSZTRCsDROfxNYnleiVj0IbvOYw7jkZsmAOaioxUSes-yG8X0M'
+  '/images/tournament-4.jpg'
 ),
 (
   5,
@@ -90,14 +90,15 @@ insert into public.torneos (id, titulo, subtitulo, fecha_inicio, fecha_fin, imag
   'Dobles Mixtos',
   '2026-04-01',
   '2026-04-05',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuD822xk3Z5UFXimD5jaQ65Pnav_h7KOLdQhGDXtI3BeM9pnk_Tt7U_DZ5S9em63Fv8_cmz6E0VSlWflf_IBpjHT4Wz3Xya44BAQa03zjSYZbofwQPZYe4j4iBLfRaHTKdPAu15lgCnuwsHZFrJagJNeKFqZcUxjbSt6yMTfcKpyfClnNxYaroLk8-yrFr5PKz_sruS2a2IJRKHsKhiv9EzWf43769G7WPg8cubAvG5_UXnpRvdzdUdcBrUC8rBeyJD6gUzuwaRV_A8'
+  '/images/tournament-5.jpg'
 )
 on conflict (id) do nothing;
 
 -- ============================================================
 -- Para agregar torneos nuevos en el futuro (sin tocar código):
 --   insert into public.torneos (titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url)
---   values ('Nombre del Torneo', 'Categoría', '2026-05-01', '2026-05-10', 'https://...');
+--   values ('Nombre del Torneo', 'Categoría', '2026-05-01', '2026-05-10', '/images/tournament-X.jpg');
 --
+-- Para imágenes dinámicas, sube a Supabase Storage o usa rutas locales en public/images/
 -- El frontend los va a mostrar automáticamente al cargar la página.
 -- ============================================================

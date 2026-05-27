@@ -68,10 +68,10 @@ const Confirmation: React.FC = () => {
     <div className="relative mb-10 w-full drop-shadow-2xl md:mb-0 md:mt-10 md:w-[380px] md:justify-self-end">
           <div className="bg-white rounded-t-[2rem] overflow-hidden relative border-x border-t border-slate-100 shadow-sm">
             <div className="h-44 md:h-56 w-full relative">
-              <img 
-                alt="Tennis" 
-                className="w-full h-full object-cover" 
-                src={tournament.image || "https://images.unsplash.com/photo-1599586120429-48281b6f0ece?w=800&q=80"}
+              <img
+                alt="Tennis"
+                className="w-full h-full object-cover"
+                src={tournament.image || "/images/payment-tournament.jpg"}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
               <div className="absolute bottom-4 left-5 text-white">

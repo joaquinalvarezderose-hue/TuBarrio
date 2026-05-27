@@ -439,7 +439,7 @@ const Tournaments: React.FC = () => {
  id: t.id,
  title: t.titulo,
  subtitle: t.subtitulo,
- image: t.imagen_url || '',
+ image: t.imagen_url || DEFAULT_TOURNAMENT_IMAGE,
  date: TOURNAMENT_SEASON_LABEL,
  });
 
