@@ -30,6 +30,12 @@ const STATUS_PRIORITY: Record<string, number> = {
 const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
 
+// Sanitize external URLs (CSP blocks http/https for images, use local fallback instead)
+const sanitizeTournamentImage = (url?: string): string => {
+  if (!url || url.startsWith('http')) return '/images/tournament-default.jpg';
+  return url;
+};
+
 type TournamentScope = {
  categoria: string;
  grupo: string;
@@ -56,12 +62,14 @@ const TournamentPanel: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
  const savedTournament = localStorage.getItem('active_tournament');
- const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : { 
+ const rawTournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
  title: "Abierto de Tenis TuBarrio",
  id: 1,
  subtitle: "2da Categoría - Singles",
  image: "/images/tournament-default.jpg"
  });
+ // Sanitize image URL to reject external URLs (CSP compliance + localStorage cache cleanup)
+ const tournament = { ...rawTournament, image: sanitizeTournamentImage(rawTournament?.image) };
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
  const isAdmin = String(appUser?.rol || '').trim().toLowerCase() === 'admin';
@@ -608,9 +616,9 @@ const TournamentPanel: React.FC = () => {
  {/* Tournament Highlight Card */}
  <section className="">
  <div className="relative overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100 ">
- <div 
- className="w-full h-32 bg-cover bg-center" 
- style={{ backgroundImage: `url("${tournament.image}")` }}
+ <div
+ className="w-full h-32 bg-cover bg-center"
+ style={{ backgroundImage: `url("${tournament.image || '/images/tournament-default.jpg'}")` }}
  ></div>
  <div className="p-5">
  <div className="flex flex-col gap-1">
