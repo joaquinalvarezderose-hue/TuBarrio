@@ -17,7 +17,11 @@
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Supabase__get_logs",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Joaquin\\\\Documents\\\\GitHub\\\\TuBarrio\" -Force)",
-      "Bash(Select-Object Name, FullName)"
+      "Bash(Select-Object Name, FullName)",
+      "Bash(npm run *)",
+      "Bash(Start-Sleep -Seconds 3)",
+      "Bash(Write-Host \"Dev server starting in background...\")",
+      "Bash(curl -s http://localhost:5173)"
     ]
   }
 }
