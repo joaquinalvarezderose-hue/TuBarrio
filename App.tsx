@@ -38,10 +38,12 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
   useEffect(() => {
+    console.log('[DEBUG] Hash al montar:', window.location.hash);
     if (window.location.hash.includes('type=recovery')) {
+      console.log('[DEBUG] Detectado type=recovery, navegando...');
       navigate('/reset-password', { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
