@@ -98,16 +98,11 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
     setError(null);
     setInfo(null);
     try {
-      if ((supabase as any).auth?.resetPasswordForEmail) {
-        await (supabase as any).auth.resetPasswordForEmail(email);
-        setInfo('Se envió un link de recuperación a tu correo.');
-      } else if ((supabase as any).auth?.resetPasswordForEmail === undefined && (supabase as any).auth?.api?.resetPasswordForEmail) {
-        // older sdk path
-        await (supabase as any).auth.api.resetPasswordForEmail(email);
-        setInfo('Se envió un link de recuperación a tu correo.');
-      } else {
-        setInfo('Pedir recuperación en el dashboard de Supabase si no recibís el email.');
-      }
+      const origin = window.location.origin + window.location.pathname;
+      const redirectTo = `${origin}#/reset-password`;
+
+      await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      setInfo('Se envió un link de recuperación a tu correo.');
     } catch (err: any) {
       console.error('reset error', err);
       setError(err?.message || 'Error al enviar recuperación');

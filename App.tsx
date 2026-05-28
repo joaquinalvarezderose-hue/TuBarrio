@@ -4,6 +4,7 @@ import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'reac
 import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
 import Login from './screens/Login';
+import ResetPassword from './screens/ResetPassword';
 import Services from './screens/Services';
 import ServiceDetail from './screens/ServiceDetail';
 import RecommendProfessional from './screens/RecommendProfessional';
@@ -32,7 +33,7 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
-  const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/welcome' || location.pathname === '/terms';
+  const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
@@ -44,6 +45,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
           <Route path="/welcome" element={!user ? <Welcome /> : <Navigate to="/" replace />} />
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/services" element={user ? <Services /> : <Navigate to="/login" replace />} />
           <Route path="/service/:id" element={user ? <ServiceDetail /> : <Navigate to="/login" replace />} />
           <Route path="/recomendar-profesional" element={user ? <RecommendProfessional /> : <Navigate to="/login" replace />} />
