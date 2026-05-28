@@ -33,7 +33,8 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
-  const isRecovery = window.location.hash.includes('type=recovery');
+  const hash = window.location.hash;
+  const isRecovery = hash.includes('type=recovery') || (hash.includes('error=') && hash.includes('access_token='));
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
 
