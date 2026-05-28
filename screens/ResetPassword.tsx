@@ -15,6 +15,8 @@ function traducirErrorSupabase(msg: string): string {
 const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -22,22 +24,35 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !sessionData.session) {
-          setSessionValid(false);
-          setError('No encontramos tu sesión de recuperación. Pedí un link nuevo en el login.');
-          return;
-        }
-        setSessionValid(true);
-      } catch (err) {
-        setSessionValid(false);
-        setError('Error al verificar tu sesión. Intentá de nuevo.');
-      }
-    };
+    let mounted = true;
+    let timer: ReturnType<typeof setTimeout>;
 
-    checkSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+        clearTimeout(timer);
+        setSessionValid(true);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      if (data.session) {
+        setSessionValid(true);
+        return;
+      }
+      timer = setTimeout(() => {
+        if (!mounted) return;
+        setSessionValid((prev) => (prev === null ? false : prev));
+        setError('No encontramos tu sesión de recuperación. Pedí un link nuevo en el login.');
+      }, 8000);
+    });
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleReset = async (e: React.FormEvent) => {
@@ -129,7 +144,9 @@ const ResetPassword: React.FC = () => {
 
           {success ? (
             <div className="text-center">
-              <p className="text-on-surface-variant text-sm">Contraseña actualizada correctamente. Redirigiendo al login…</p>
+              <span className="material-symbols-outlined text-5xl text-primary mb-4 block">check_circle</span>
+              <p className="font-headline text-lg mb-2">¡Contraseña actualizada!</p>
+              <p className="text-on-surface-variant text-sm">Redirigiendo al login…</p>
             </div>
           ) : (
             <form onSubmit={handleReset} className="space-y-6">
@@ -142,12 +159,19 @@ const ResetPassword: React.FC = () => {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-surface-variant border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-on-surface text-sm transition-all"
+                    className="w-full pl-12 pr-12 py-4 bg-surface-variant border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-on-surface text-sm transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility' : 'visibility_off'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -160,12 +184,19 @@ const ResetPassword: React.FC = () => {
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
+                    type={showConfirm ? 'text' : 'password'}
                     placeholder="••••••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-surface-variant border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-on-surface text-sm transition-all"
+                    className="w-full pl-12 pr-12 py-4 bg-surface-variant border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-on-surface text-sm transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-xl">{showConfirm ? 'visibility' : 'visibility_off'}</span>
+                  </button>
                 </div>
               </div>
 

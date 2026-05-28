@@ -1,6 +1,7 @@
 
-import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from './services/supabaseClient';
 import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
 import Login from './screens/Login';
@@ -33,7 +34,14 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
+
+  useEffect(() => {
+    if (window.location.hash.includes('type=recovery')) {
+      navigate('/reset-password', { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
