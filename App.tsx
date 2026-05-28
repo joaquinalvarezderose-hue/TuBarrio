@@ -41,7 +41,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
     if (window.location.hash.includes('type=recovery')) {
       navigate('/reset-password', { replace: true });
     }
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
