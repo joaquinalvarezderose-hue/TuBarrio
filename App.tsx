@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
 import Login from './screens/Login';
@@ -25,6 +25,7 @@ import TermsAndConditions from './screens/TermsAndConditions';
 import Navigation from './components/Navigation';
 import Welcome from './screens/Welcome';
 import { useCurrentUser } from './hooks/useCurrentUser';
+import { supabase } from './services/supabaseClient';
 
 interface AppContentProps {
   user: boolean;
@@ -33,8 +34,22 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
-  const hash = window.location.hash;
-  const isRecovery = hash.includes('type=recovery') || (hash.includes('error=') && hash.includes('access_token='));
+  const navigate = useNavigate();
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        navigate('/reset-password', { replace: true });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
 
@@ -44,7 +59,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
       
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
         <Routes>
-          <Route path="/" element={isRecovery ? <Navigate to="/reset-password" replace /> : (user ? <Dashboard /> : <Navigate to="/welcome" replace />)} />
+          <Route path="/" element={user ? <Dashboard /> : <Navigate to="/welcome" replace />} />
           <Route path="/welcome" element={!user ? <Welcome /> : <Navigate to="/" replace />} />
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
