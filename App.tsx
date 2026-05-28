@@ -35,20 +35,38 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
+    const hash = window.location.hash;
+    const hasAccessToken = hash.includes('access_token=');
+
+    if (hasAccessToken) {
+      navigate('/reset-password', { replace: true });
+      setIsInitializing(false);
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        setIsPasswordRecovery(true);
         navigate('/reset-password', { replace: true });
       }
+      setIsInitializing(false);
     });
 
+    setIsInitializing(false);
     return () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  if (isInitializing && window.location.hash.includes('access_token=')) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-on-surface-variant text-sm">Cargando…</div>
+      </div>
+    );
+  }
 
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
