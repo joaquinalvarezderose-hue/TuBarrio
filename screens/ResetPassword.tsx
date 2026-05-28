@@ -86,9 +86,7 @@ const ResetPassword: React.FC = () => {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate('/login', {
-          state: { successMessage: 'Contraseña actualizada. Iniciá sesión con tu nueva contraseña.' },
-        });
+        navigate('/', { replace: true });
       }, 2000);
     } catch (err: any) {
       console.error('reset password error', err);
