@@ -1,6 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
 import Login from './screens/Login';
@@ -30,44 +30,11 @@ import { supabase } from './services/supabaseClient';
 interface AppContentProps {
   user: boolean;
   setUser: React.Dispatch<React.SetStateAction<boolean>>;
+  pendingRecovery: boolean;
 }
 
-const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
+const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [isInitializing, setIsInitializing] = useState(true);
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    const hasAccessToken = hash.includes('access_token=');
-
-    if (hasAccessToken) {
-      navigate('/reset-password', { replace: true });
-      setIsInitializing(false);
-      return;
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        navigate('/reset-password', { replace: true });
-      }
-      setIsInitializing(false);
-    });
-
-    setIsInitializing(false);
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  if (isInitializing && window.location.hash.includes('access_token=')) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-on-surface-variant text-sm">Cargando…</div>
-      </div>
-    );
-  }
-
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
 
@@ -77,7 +44,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
       
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
         <Routes>
-          <Route path="/" element={user ? <Dashboard /> : <Navigate to="/welcome" replace />} />
+          <Route path="/" element={pendingRecovery ? <Navigate to="/reset-password" replace /> : (user ? <Dashboard /> : <Navigate to="/welcome" replace />)} />
           <Route path="/welcome" element={!user ? <Welcome /> : <Navigate to="/" replace />} />
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
@@ -109,9 +76,21 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
 
 const App: React.FC = () => {
   const { authUser, loading } = useCurrentUser();
-  // Mantenemos setUser como compatibilidad para Login/Register callbacks que aún no
-  // disparan el evento de auth — al recibir true, forzamos refresco vía window.location.
   const [overrideUser, setOverrideUser] = React.useState<boolean>(false);
+  const [pendingRecovery, setPendingRecovery] = React.useState(false);
+
+  React.useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPendingRecovery(true);
+      } else if (event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
+        setPendingRecovery(false);
+      }
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const user = !!authUser || overrideUser;
 
@@ -125,7 +104,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <AppContent user={user} setUser={setOverrideUser} />
+      <AppContent user={user} setUser={setOverrideUser} pendingRecovery={pendingRecovery} />
     </Router>
   );
 };
