@@ -33,6 +33,7 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
   const location = useLocation();
+  const isRecovery = window.location.hash.includes('type=recovery');
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
 
 
@@ -42,7 +43,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser }) => {
       
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
         <Routes>
-          <Route path="/" element={user ? <Dashboard /> : <Navigate to="/welcome" replace />} />
+          <Route path="/" element={isRecovery ? <Navigate to="/reset-password" replace /> : (user ? <Dashboard /> : <Navigate to="/welcome" replace />)} />
           <Route path="/welcome" element={!user ? <Welcome /> : <Navigate to="/" replace />} />
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
