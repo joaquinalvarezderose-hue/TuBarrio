@@ -19,6 +19,7 @@ const ResetPassword: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
   const [success, setSuccess] = useState(false);
   const [sessionValid, setSessionValid] = useState<boolean | null>(null);
   const navigate = useNavigate();
@@ -58,19 +59,27 @@ const ResetPassword: React.FC = () => {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
 
-    if (!password || !confirmPassword) {
-      setError('Ingresá la nueva contraseña en ambos campos.');
-      return;
+    const newFieldErrors: { password?: string; confirmPassword?: string } = {};
+
+    if (!password) newFieldErrors.password = 'Ingresá tu nueva contraseña.';
+    if (!confirmPassword) newFieldErrors.confirmPassword = 'Confirmá tu nueva contraseña.';
+
+    if (password) {
+      if (password.length < 12) newFieldErrors.password = 'Mín. 12 caracteres.';
+      else if (!/[A-Z]/.test(password)) newFieldErrors.password = 'Requiere al menos una mayúscula.';
+      else if (!/[a-z]/.test(password)) newFieldErrors.password = 'Requiere al menos una minúscula.';
+      else if (!/\d/.test(password)) newFieldErrors.password = 'Requiere al menos un dígito.';
+      else if (!/[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/.test(password)) newFieldErrors.password = 'Requiere al menos un símbolo (!@#$...).';
     }
 
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
-      return;
+    if (password && confirmPassword && !newFieldErrors.password && password !== confirmPassword) {
+      newFieldErrors.confirmPassword = 'Las contraseñas no coinciden.';
     }
 
-    if (password.length < 12) {
-      setError('La contraseña debe tener mín. 12 caracteres.');
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
       return;
     }
 
@@ -141,10 +150,12 @@ const ResetPassword: React.FC = () => {
           <h1 className="font-headline text-lg mb-8 text-center">Nueva contraseña</h1>
 
           {success ? (
-            <div className="text-center">
-              <span className="material-symbols-outlined text-5xl text-primary mb-4 block">check_circle</span>
-              <p className="font-headline text-lg mb-2">¡Contraseña actualizada!</p>
-              <p className="text-on-surface-variant text-sm">Redirigiendo al login…</p>
+            <div className="flex flex-col items-center gap-4 p-5 bg-green-50 border border-green-200 rounded-xl">
+              <span className="material-symbols-outlined text-5xl text-green-600">check_circle</span>
+              <div className="text-center">
+                <p className="font-headline text-lg text-green-700 mb-1">¡Contraseña actualizada!</p>
+                <p className="text-sm text-green-600">Redirigiendo al login…</p>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleReset} className="space-y-6">
@@ -171,6 +182,7 @@ const ResetPassword: React.FC = () => {
                     <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility' : 'visibility_off'}</span>
                   </button>
                 </div>
+                {fieldErrors.password && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.password}</p>}
               </div>
 
               <div className="space-y-2">
@@ -196,9 +208,10 @@ const ResetPassword: React.FC = () => {
                     <span className="material-symbols-outlined text-xl">{showConfirm ? 'visibility' : 'visibility_off'}</span>
                   </button>
                 </div>
+                {fieldErrors.confirmPassword && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.confirmPassword}</p>}
               </div>
 
-              {error && <div className="bg-error/10 text-error text-xs px-4 py-3 rounded-lg">{error}</div>}
+              {error && <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">{error}</div>}
 
               <button
                 type="submit"
