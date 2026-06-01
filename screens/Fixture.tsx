@@ -449,7 +449,7 @@ const Fixture: React.FC = () => {
  {availableGroups.map((g) => (
  <option key={g} value={g}>
  {formatGroupName(g)}
- {g === userGroup ? ' â˜…' : ''}
+ {g === userGroup ? ' ★' : ''}
  </option>
  ))}
  </select>
