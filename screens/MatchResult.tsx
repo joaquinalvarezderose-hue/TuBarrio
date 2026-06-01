@@ -526,6 +526,23 @@ const MatchResult: React.FC = () => {
  targetPartido = Array.isArray(bracketRows) ? bracketRows[0] : null;
  }
 
+ // For round-robin matches navigated directly via selectedPartidoId, enforce jornada ordering
+ if (targetPartido && selectedPartidoId && targetPartido.bracket_tipo !== 'eliminacion_directa') {
+ const { data: prevMatches } = await supabase
+ .from('partidos')
+ .select('id, jornada')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .neq('estado', 'finalizado')
+ .lt('jornada', Number(targetPartido.jornada || 1))
+ .limit(1);
+ if (prevMatches && prevMatches.length > 0) {
+ setBlockReason(`Debes completar la jornada ${prevMatches[0].jornada} antes de cargar este resultado.`);
+ return;
+ }
+ }
+
  if (!targetPartido) {
  setSubmitError(null);
  // Check if playoffs are active but user has no bracket match.
