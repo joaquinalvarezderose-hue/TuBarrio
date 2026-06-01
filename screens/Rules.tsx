@@ -155,19 +155,6 @@ const Rules: React.FC = () => {
  </div>
  </details>
 
- {/* Question 4 */}
- <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
- <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
- <div className="flex items-center gap-3">
- <span className="material-symbols-outlined text-[#4a9c40]">trending_up</span>
- <span className="font-semibold text-slate-800 ">Ascensos/Descensos</span>
- </div>
- <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
- </summary>
- <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Al finalizar cada temporada, los dos primeros puestos de cada zona ascienden de categoría automáticamente. Los dos últimos puestos descienden. Los terceros y antepenúltimos jugarán una promoción si el calendario lo permite.
- </div>
- </details>
  </div>
 
  {/* Special Section: Balls Responsibility */}
