@@ -661,11 +661,12 @@ const Standings: React.FC = () => {
  <tbody className="divide-y divide-slate-100 ">
  {calculatedStandings.map((p: any, idx: number) => {
  const isClassified = idx < clasificadosPorGrupo;
+ const isThirdPlace = incluirMejoresTerceros && idx === clasificadosPorGrupo;
  const setDiff = p.setsWon - p.setsLost;
  const setDiffLabel = setDiff > 0 ? `+${setDiff}` : String(setDiff);
  return (
- <tr key={p.id} className={isClassified ? 'bg-primary/10 ' : 'bg-white '}>
- <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${isClassified ? 'bg-emerald-50 text-emerald-700' : 'bg-white '}`}>
+ <tr key={p.id} className={isClassified ? 'bg-primary/10 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}>
+ <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${isClassified ? 'bg-emerald-50 text-emerald-700' : isThirdPlace ? 'bg-amber-50 text-amber-700' : 'bg-white '}`}>
  <div className="flex flex-col items-center gap-0.5">
  <span>{idx + 1}</span>
  {p.tiebreakerReason && (
@@ -675,7 +676,7 @@ const Standings: React.FC = () => {
  )}
  </div>
  </td>
- <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${isClassified ? 'bg-emerald-50 ' : 'bg-white '}`}>
+ <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${isClassified ? 'bg-emerald-50 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}`}>
  <div className="flex items-center gap-3">
  <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
  {String(p.name || 'Jugador')
