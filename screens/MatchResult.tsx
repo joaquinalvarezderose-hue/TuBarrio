@@ -302,16 +302,14 @@ const MatchResult: React.FC = () => {
  const authId = String(data.user.id).toLowerCase();
  const storedId = String(appUser?.id || '').toLowerCase();
 
- // Check for mismatch between stored and auth
+ // Sync localStorage to auth without reloading — reload destroys
+ // location.state (tournament + partidoId), causing the wrong match to load.
  if (storedId && storedId !== authId) {
  localStorage.removeItem('app_user');
- localStorage.removeItem('active_tournament');
  localStorage.setItem('app_user', JSON.stringify({
  id: data.user.id,
  email: data.user.email
  }));
- window.location.reload();
- return;
  }
 
  setCurrentUserId(String(data.user.id));
