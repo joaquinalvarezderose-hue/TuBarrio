@@ -502,7 +502,7 @@ const Fixture: React.FC = () => {
  {formatGroupName(userGroup)} · Jornada {displayNextMatch.jornada}
  </p>
  {displayNextMatch.rival_whatsapp
- ? <p className=”text-xs text-[#61896b]”>📱 {displayNextMatch.rival_whatsapp}</p>
+ ? <p className="text-xs text-[#61896b]">📱 {displayNextMatch.rival_whatsapp}</p>
  : <p className="text-xs text-[#61896b] opacity-60">Sin WhatsApp registrado</p>
  }
  </>
