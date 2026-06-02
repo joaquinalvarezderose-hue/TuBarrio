@@ -779,7 +779,7 @@ const TournamentPanel: React.FC = () => {
  </p>
  </div>
  <button
- onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id, currentUserId } })}
+ onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id, jornada: nextMatch?.jornada, currentUserId } })}
  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-md hover:bg-sky-600 active:scale-[0.98] transition-all"
  >
  <span className="material-symbols-outlined text-lg">check_circle</span>

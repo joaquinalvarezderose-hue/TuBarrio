@@ -97,6 +97,7 @@ const MatchResult: React.FC = () => {
 
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
+ const selectedJornada = location.state?.jornada ? Number(location.state.jornada) : null;
  // Use empty string initially - will be set from Supabase auth in useEffect
  const [currentUserId, setCurrentUserId] = useState<string>('');
 
@@ -119,6 +120,7 @@ const MatchResult: React.FC = () => {
  const [blockReason, setBlockReason] = useState<string | null>(null);
  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
  const [playoffsActiveNoMatch, setPlayoffsActiveNoMatch] = useState(false);
+ const [rivalJornadaWarning, setRivalJornadaWarning] = useState<number | null>(null);
  const [retryTick, setRetryTick] = useState(0);
 
  const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
@@ -351,6 +353,7 @@ const MatchResult: React.FC = () => {
  setSubmitError(null);
  setBlockReason(null);
  setPlayoffsActiveNoMatch(false);
+ setRivalJornadaWarning(null);
  setRivalProposalScores(null);
  setHasOwnProposal(false);
  setLastSubmittedBy(null);
@@ -557,6 +560,26 @@ const MatchResult: React.FC = () => {
 
  if (!targetPartido) {
  setSubmitError(null);
+
+ // When navigated with a specific partido + jornada but the query returned empty
+ // (e.g. RLS blocked because the Supabase session is anon/expired), run the
+ // jornada ordering check proactively so the user sees the right block message.
+ if (selectedPartidoId && selectedJornada) {
+ const { data: prevMatchesFallback } = await supabase
+ .from('partidos')
+ .select('id, jornada')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .neq('estado', 'finalizado')
+ .lt('jornada', selectedJornada)
+ .limit(1);
+ if (prevMatchesFallback && prevMatchesFallback.length > 0) {
+ setBlockReason(`Debes completar la jornada ${prevMatchesFallback[0].jornada} antes de cargar este resultado.`);
+ return;
+ }
+ }
+
  // Check if playoffs are active but user has no bracket match.
  // Must also verify the user isn't in any completed bracket match (e.g. won and waiting for next round).
  const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
@@ -597,6 +620,25 @@ const MatchResult: React.FC = () => {
  stage_name: targetPartido.stage_name || null,
  ronda: targetPartido.ronda != null ? Number(targetPartido.ronda) : null,
  });
+
+ // Check if the rival has unplayed previous jornadas (out-of-order match situation).
+ if (targetPartido.bracket_tipo !== 'eliminacion_directa' && Number(targetPartido.jornada) > 1) {
+ const rivalId = String(targetPartido.jugador1_id) === String(currentUserId)
+ ? String(targetPartido.jugador2_id)
+ : String(targetPartido.jugador1_id);
+ const { data: rivalPrevMatches } = await supabase
+ .from('partidos')
+ .select('jornada')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria)
+ .or(`jugador1_id.eq.${rivalId},jugador2_id.eq.${rivalId}`)
+ .neq('estado', 'finalizado')
+ .lt('jornada', Number(targetPartido.jornada))
+ .limit(1);
+ if (rivalPrevMatches && rivalPrevMatches.length > 0) {
+ setRivalJornadaWarning(Number(rivalPrevMatches[0].jornada));
+ }
+ }
 
  const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
  const [{ data: jugadoresScoped, error: jugadoresScopedError }, { data: perfiles, error: perfilesError }, { data: propuesta }] = await Promise.all([
@@ -1148,6 +1190,19 @@ const MatchResult: React.FC = () => {
  Cerrar sesión
  </button>
  </div>
+ </div>
+ </section>
+ )}
+
+ {/* Advertencia: rival tiene jornada anterior sin jugar (partido fuera de orden) */}
+ {!loadingMatch && !!partido && rivalJornadaWarning !== null && (
+ <section className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex gap-3 shadow-sm">
+ <span className="material-symbols-outlined text-amber-500 text-lg flex-shrink-0">warning</span>
+ <div>
+ <p className="text-sm font-bold text-amber-800">Partido fuera de orden</p>
+ <p className="text-[11px] text-amber-700 mt-0.5">
+ Tu rival todavia tiene un partido pendiente de la jornada {rivalJornadaWarning}. Este resultado podria no ser valido hasta que ese partido se complete.
+ </p>
  </div>
  </section>
  )}

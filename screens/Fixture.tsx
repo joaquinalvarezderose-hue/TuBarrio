@@ -53,7 +53,7 @@ const resolveWinnerId = (ganadorId: string | null | undefined, p1Id: string, p2I
  return null;
 };
 
-// Mapea cÃ³digo de grupo a etiqueta legible
+// Mapea código de grupo a etiqueta legible
 const formatGroupName = (groupCode: string): string => {
  if (!groupCode) return '';
  const match = groupCode.match(/_G(\d+)$/);
@@ -73,7 +73,7 @@ const Fixture: React.FC = () => {
  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
  const [selectedGroup, setSelectedGroup] = useState<string>('');
- // Grupo propio del usuario (para el prÃ³ximo partido)
+ // Grupo propio del usuario (para el próximo partido)
  const [userGroup, setUserGroup] = useState<string>('');
  const isLoadingRef = useRef(false);
  const refreshTimerRef = useRef<number | null>(null);
@@ -85,7 +85,7 @@ const Fixture: React.FC = () => {
  subtitle: 'Singles Caballeros',
  });
 
- // Hook de estado del jugador â€” usa el grupo propio del usuario
+ // Hook de estado del jugador – usa el grupo propio del usuario
  const { loading: nextMatchLoading, status: playerStatus } = usePlayerTournamentStatus(
  tournament.id,
  currentUserId || undefined
@@ -144,11 +144,11 @@ const Fixture: React.FC = () => {
  setAvailableGroups(groups);
 
  // Determinar grupo a mostrar:
- // - Si el usuario ya eligiÃ³ uno manualmente â†’ respetarlo
- // - Si no â†’ mostrar el grupo propio del usuario, o el primero disponible
+ // - Si el usuario ya eligió uno manualmente → respetarlo
+ // - Si no → mostrar el grupo propio del usuario, o el primero disponible
  const effectiveGroup = selectedGroup || userOwnGroup || groups[0] || '';
 
- // Inicializar selectedGroup si aÃºn no estÃ¡ seteado
+ // Inicializar selectedGroup si aún no está seteado
  if (!selectedGroup && effectiveGroup) {
  setSelectedGroup(effectiveGroup);
  }
@@ -486,30 +486,30 @@ const Fixture: React.FC = () => {
  <main className="flex-1 overflow-y-auto bg-background-light pb-8 no-scrollbar">
  <div className="px-4 py-4">
 
- {/* PrÃ³ximo partido â€” siempre muestra el del usuario (su grupo real) */}
+ {/* Próximo partido – siempre muestra el del usuario (su grupo real) */}
  {activeFecha === 0 && (
  <>
  <div className="rounded-xl bg-[#e8f6eb] p-4 shadow-sm border border-[#dbe6de] mb-4">
  <div className="flex items-start justify-between gap-3">
  <div>
- <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] ">Mi prÃ³ximo partido</h3>
+ <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] ">Mi próximo partido</h3>
  {nextMatchLoading && !myNextMatchInFixture ? (
- <p className="text-sm text-[#61896b] mt-1">Buscando tu prÃ³ximo cruce...</p>
+ <p className="text-sm text-[#61896b] mt-1">Buscando tu próximo cruce...</p>
  ) : displayNextMatch ? (
  <>
  <p className="text-sm font-semibold text-[#111813] mt-1">vs. {displayNextMatch.rival_nombre}</p>
  <p className="text-xs text-[#61896b] mt-0.5">
- {formatGroupName(userGroup)} Â· Jornada {displayNextMatch.jornada}
+ {formatGroupName(userGroup)} · Jornada {displayNextMatch.jornada}
  </p>
  {displayNextMatch.rival_whatsapp
- ? <p className="text-xs text-[#61896b]">ðŸ“± {displayNextMatch.rival_whatsapp}</p>
+ ? <p className=”text-xs text-[#61896b]”>📱 {displayNextMatch.rival_whatsapp}</p>
  : <p className="text-xs text-[#61896b] opacity-60">Sin WhatsApp registrado</p>
  }
  </>
  ) : isEliminated ? (
  <p className="text-sm text-[#61896b] mt-1">No avanzaste a la siguiente ronda.</p>
  ) : (
- <p className="text-sm text-[#61896b] mt-1">No tenÃ©s un prÃ³ximo partido pendiente por ahora.</p>
+ <p className="text-sm text-[#61896b] mt-1">No tenés un próximo partido pendiente por ahora.</p>
  )}
  </div>
  {displayNextMatch?.rival_whatsapp ? (
@@ -529,13 +529,13 @@ const Fixture: React.FC = () => {
  </div>
  </div>
 
- {/* Estado en vivo â€” posiciones del grupo seleccionado */}
+ {/* Estado en vivo – posiciones del grupo seleccionado */}
  <div className="rounded-xl bg-white p-4 shadow-sm border border-[#dbe6de] mb-4">
  <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] mb-3">
- Estado en vivo Â· {formatGroupName(selectedGroup)}
+ Estado en vivo · {formatGroupName(selectedGroup)}
  </h3>
  {playersStats.length === 0 ? (
- <p className="text-sm text-[#61896b]">TodavÃ­a no hay estadÃ­sticas cargadas para este grupo.</p>
+ <p className="text-sm text-[#61896b]">Todavía no hay estadísticas cargadas para este grupo.</p>
  ) : (
  <div className="space-y-2">
  {playersStats.slice(0, 4).map((p, idx) => (
@@ -590,12 +590,12 @@ const Fixture: React.FC = () => {
  {activeFecha !== -1 && (
  <>
  <h3 className="text-[#111813] text-base font-bold uppercase tracking-wider mb-3">
- Partidos Â· {formatGroupName(selectedGroup)}
+ Partidos · {formatGroupName(selectedGroup)}
  </h3>
  <div className="flex flex-col gap-4">
  {fixtureMatches.length === 0 ? (
  <div className="rounded-xl bg-white p-4 shadow-sm border border-[#dbe6de] ">
- <p className="text-sm text-[#61896b]">TodavÃ­a no hay partidos cargados para esta jornada.</p>
+ <p className="text-sm text-[#61896b]">Todavía no hay partidos cargados para esta jornada.</p>
  </div>
  ) : (
  sortedFixtureMatches.map((match) => {
@@ -619,13 +619,13 @@ const Fixture: React.FC = () => {
  <div className="flex flex-col gap-3 flex-1">
  <div className="flex items-center justify-between pr-4">
  <span className={`${p1Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>
- {match.p1.nombre}{match.p1.perfil_id === currentUserId ? ' â˜…' : ''}
+ {match.p1.nombre}
  </span>
  {isFinal && <span className={`text-lg ${p1Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p1Sets}</span>}
  </div>
  <div className="flex items-center justify-between pr-4">
  <span className={`${p2Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>
- {match.p2.nombre}{match.p2.perfil_id === currentUserId ? ' â˜…' : ''}
+ {match.p2.nombre}
  </span>
  {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
  </div>
