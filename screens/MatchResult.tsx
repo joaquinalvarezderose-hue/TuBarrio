@@ -167,8 +167,13 @@ const MatchResult: React.FC = () => {
  }, [set1Winner, set2Winner, scores.set3, isMatchFinishedByTwoSets, isDrawInSets]);
 
  const isParticipant = useMemo(() => {
- return currentUserId !== '' && [players[0]?.perfil_id, players[1]?.perfil_id].includes(currentUserId);
- }, [currentUserId, players]);
+ if (!currentUserId || !partido) return false;
+ const uid = currentUserId.toLowerCase();
+ return [partido.jugador1_id, partido.jugador2_id]
+ .filter(Boolean)
+ .map((id) => String(id).toLowerCase())
+ .includes(uid);
+ }, [currentUserId, partido]);
 
  // Helper to order players: current user first, then opponent
  // This ensures the current user is always on the left/top in UI
@@ -484,20 +489,26 @@ const MatchResult: React.FC = () => {
  return;
  }
 
- let partidoQuery: any = supabase
- .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
- .eq('torneo_id', tournament.id);
-
- if (!selectedPartidoId) {
- partidoQuery = partidoQuery.eq('categoria', categoria);
- }
-
- if (grupo && !selectedPartidoId) partidoQuery = partidoQuery.eq('grupo', grupo);
+ let partidoQuery: any;
 
  if (selectedPartidoId) {
- partidoQuery = partidoQuery.eq('id', selectedPartidoId);
+ // Buscar por ID directo — sin filtrar por torneo_id para evitar mismatches entre el
+ // tournament.id del estado de navegación y el torneo_id real del partido.
+ // La RLS garantiza que solo usuarios inscriptos en el torneo del partido pueden verlo.
+ partidoQuery = supabase
+ .from('partidos')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
+ .eq('id', selectedPartidoId)
+ .limit(1);
  } else {
+ partidoQuery = supabase
+ .from('partidos')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria);
+
+ if (grupo) partidoQuery = partidoQuery.eq('grupo', grupo);
+
  partidoQuery = partidoQuery
  .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
  .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
@@ -1113,7 +1124,7 @@ const MatchResult: React.FC = () => {
  )}
 
  {/* Error si el usuario no es participante del partido */}
- {!loadingMatch && !isParticipant && currentUserId && !playoffsActiveNoMatch && (
+ {!loadingMatch && !!partido && !isParticipant && currentUserId && !playoffsActiveNoMatch && (
  <section className="p-4 bg-red-50 rounded-xl border border-red-200 shadow-sm">
  <div className="flex items-start gap-3">
  <span className="material-symbols-outlined text-red-500 text-lg flex-shrink-0">error</span>
