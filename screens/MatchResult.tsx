@@ -97,7 +97,6 @@ const MatchResult: React.FC = () => {
 
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
- const selectedJornada = location.state?.jornada ? Number(location.state.jornada) : null;
  // Use empty string initially - will be set from Supabase auth in useEffect
  const [currentUserId, setCurrentUserId] = useState<string>('');
 
@@ -121,6 +120,7 @@ const MatchResult: React.FC = () => {
  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
  const [playoffsActiveNoMatch, setPlayoffsActiveNoMatch] = useState(false);
  const [rivalJornadaWarning, setRivalJornadaWarning] = useState<number | null>(null);
+ const [sessionExpired, setSessionExpired] = useState(false);
  const [retryTick, setRetryTick] = useState(0);
 
  const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
@@ -303,8 +303,19 @@ const MatchResult: React.FC = () => {
  useEffect(() => {
  const checkAuth = async () => {
  try {
- const { data } = await (supabase as any).auth.getUser();
- 
+ let { data } = await (supabase as any).auth.getUser();
+
+ // El access token pudo haber expirado (pestaña inactiva ~1h). getUser() no refresca
+ // por sí solo y, sin sesión válida, las lecturas RLS de `partidos` /
+ // `torneo_propuestas_partido` devuelven vacío en silencio. Intentamos recuperar la
+ // sesión con el refresh token antes de caer al fallback de localStorage.
+ if (!data?.user?.id) {
+ const { data: refreshed } = await (supabase as any).auth.refreshSession();
+ if (refreshed?.user?.id) {
+ data = { user: refreshed.user };
+ }
+ }
+
  if (data?.user?.id) {
  const authId = String(data.user.id).toLowerCase();
  const storedId = String(appUser?.id || '').toLowerCase();
@@ -319,15 +330,20 @@ const MatchResult: React.FC = () => {
  }));
  }
 
+ setSessionExpired(false);
  setCurrentUserId(String(data.user.id));
  } else if (appUser?.id) {
- // Session expired but local user exists — use it as fallback
+ // No hay sesión Supabase válida ni siquiera tras refrescar. Usamos la identidad
+ // local solo para contexto, pero marcamos la sesión como expirada: las lecturas RLS
+ // fallarán, así que la UI debe pedir re-login en vez de mostrar "no hay partido".
+ setSessionExpired(true);
  setCurrentUserId(String(appUser.id));
  }
  } catch (err) {
  console.error('Auth check error:', err);
  // Fallback to localStorage if auth throws
  if (appUser?.id) {
+ setSessionExpired(true);
  setCurrentUserId(String(appUser.id));
  }
  }
@@ -561,23 +577,11 @@ const MatchResult: React.FC = () => {
  if (!targetPartido) {
  setSubmitError(null);
 
- // When navigated with a specific partido + jornada but the query returned empty
- // (e.g. RLS blocked because the Supabase session is anon/expired), run the
- // jornada ordering check proactively so the user sees the right block message.
- if (selectedPartidoId && selectedJornada) {
- const { data: prevMatchesFallback } = await supabase
- .from('partidos')
- .select('id, jornada')
- .eq('torneo_id', tournament.id)
- .eq('categoria', categoria)
- .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
- .neq('estado', 'finalizado')
- .lt('jornada', selectedJornada)
- .limit(1);
- if (prevMatchesFallback && prevMatchesFallback.length > 0) {
- setBlockReason(`Debes completar la jornada ${prevMatchesFallback[0].jornada} antes de cargar este resultado.`);
+ // Si la sesión Supabase expiró, la lectura RLS de `partidos` devuelve vacío aunque
+ // el partido exista. No mostramos "no hay partido generado" (sería engañoso): la UI
+ // mostrará el cartel de "sesión expirada / re-login" basado en `sessionExpired`.
+ if (sessionExpired) {
  return;
- }
  }
 
  // Check if playoffs are active but user has no bracket match.
@@ -1128,7 +1132,29 @@ const MatchResult: React.FC = () => {
  </section>
  )}
 
- {blockReason && !loadingMatch && !tournamentStats && !playerStatusLoading && !playoffsActiveNoMatch && (
+ {/* Sesión expirada: las lecturas RLS fallan, hay que volver a iniciar sesión */}
+ {sessionExpired && !loadingMatch && (
+ <section className="rounded-xl border-2 border-red-200 bg-red-50 p-6 text-center space-y-3">
+ <div className="mx-auto size-14 rounded-full bg-red-100 flex items-center justify-center">
+ <span className="material-symbols-outlined text-red-500 text-3xl">lock_clock</span>
+ </div>
+ <div>
+ <h3 className="text-base font-black text-red-800 uppercase tracking-wide">Tu sesión expiró</h3>
+ <p className="text-sm text-red-700 leading-relaxed mt-1">
+ Por seguridad, volvé a iniciar sesión para cargar o confirmar resultados.
+ </p>
+ </div>
+ <button
+ onClick={() => { window.location.href = '/#/login'; }}
+ className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg px-4 py-2 active:scale-95 transition-all"
+ >
+ <span className="material-symbols-outlined text-base">login</span>
+ Iniciar sesión
+ </button>
+ </section>
+ )}
+
+ {blockReason && !loadingMatch && !tournamentStats && !playerStatusLoading && !playoffsActiveNoMatch && !sessionExpired && (
  <section
  className={`rounded-xl border shadow-sm ${
  !partido
@@ -1325,7 +1351,7 @@ const MatchResult: React.FC = () => {
  )}
 
  {/* Mostrar controles de score solo si no estamos esperando validacion y no hay resumen de torneo */}
- {!blockReason && !isWaitingValidation && !tournamentStats && !playoffsActiveNoMatch && (
+ {!blockReason && !isWaitingValidation && !tournamentStats && !playoffsActiveNoMatch && !sessionExpired && (
  <div className={`space-y-4 ${isScoreInputLocked ? 'opacity-70' : ''}`}>
  {(['set1', 'set2'] as const).map((setKey, idx) => {
  const isComplete = getSetWinner(scores[setKey].player1, scores[setKey].player2) !== null;
@@ -1401,21 +1427,21 @@ const MatchResult: React.FC = () => {
  </div>
  )}
 
- {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && !tournamentStats && !playoffsActiveNoMatch && (
+ {!canConfirm && !loadingMatch && !blockReason && !isWaitingValidation && !tournamentStats && !playoffsActiveNoMatch && !sessionExpired && (
  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3 shadow-sm animate-pulse">
  <span className="material-symbols-outlined text-amber-500 text-lg">info</span>
  <p className="text-[11px] text-amber-700 leading-relaxed font-medium">Por favor completa los sets con resultados validos para poder enviar el partido.</p>
  </div>
  )}
 
- {!hasDbPlayers && !loadingMatch && !blockReason && !playoffsActiveNoMatch && (
+ {!hasDbPlayers && !loadingMatch && !blockReason && !playoffsActiveNoMatch && !sessionExpired && (
  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3 shadow-sm">
  <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
  <p className="text-[11px] text-amber-700 leading-relaxed font-medium">No pudimos resolver los dos perfiles del partido. Reintenta en unos segundos.</p>
  </div>
  )}
 
- {!isParticipant && !loadingMatch && !submitError && !playoffsActiveNoMatch && (
+ {!isParticipant && !loadingMatch && !submitError && !playoffsActiveNoMatch && !sessionExpired && (
  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex gap-3 shadow-sm">
  <span className="material-symbols-outlined text-slate-500 text-lg">visibility</span>
  <p className="text-[11px] text-slate-700 leading-relaxed font-medium">Estas viendo el detalle de un partido, pero solo sus jugadores pueden enviar o confirmar el resultado.</p>
@@ -1465,7 +1491,7 @@ const MatchResult: React.FC = () => {
  )}
  </main>
 
- {!isWaitingValidation && !playoffsActiveNoMatch && (
+ {!isWaitingValidation && !playoffsActiveNoMatch && !sessionExpired && (
  <footer className="fixed bottom-0 left-0 right-0 md:static max-w-2xl mx-auto p-6 bg-gradient-to-t from-background-light to-transparent z-[60] md:bg-none">
  <button
  onClick={handleConfirm}

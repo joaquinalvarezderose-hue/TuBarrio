@@ -36,7 +36,19 @@ export function useCurrentUser(): CurrentUserState {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: authErr } = await supabase.auth.getUser();
+      let { data, error: authErr } = await supabase.auth.getUser();
+
+      // El access token pudo haber expirado (pestaña inactiva). getUser() no refresca
+      // por sí mismo: intentamos refreshSession() con el refresh token de larga duración
+      // antes de descartar la sesión. Así toda la app se auto-recupera de un token vencido.
+      if (authErr || !data?.user) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.user) {
+          data = { user: refreshed.user } as typeof data;
+          authErr = null;
+        }
+      }
+
       if (authErr) throw authErr;
 
       if (!data?.user) {
