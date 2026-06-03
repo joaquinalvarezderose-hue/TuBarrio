@@ -1,7 +1,6 @@
--- Extend enviar_resultado_seguro to also block submission when the rival has unfinished
--- matches in earlier jornadas. This prevents out-of-order round-robin submissions.
--- The rival check uses 'esperando_validacion' as "resolved enough" — if the rival already
--- submitted their result and it's pending confirmation, that counts as having completed the jornada.
+-- Fix regression introduced by 20260603_block_rival_jornada_order.sql:
+-- jugador1_id and jugador2_id were dropped from the INSERT column list,
+-- causing a NOT NULL constraint violation on torneo_propuestas_partido.
 create or replace function public.enviar_resultado_seguro(
   p_partido_id uuid,
   p_user_id uuid,
