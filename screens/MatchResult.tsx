@@ -368,7 +368,6 @@ const MatchResult: React.FC = () => {
  setSubmitError(null);
  setBlockReason(null);
  setPlayoffsActiveNoMatch(false);
- setRivalJornadaWarning(null);
  setRivalProposalScores(null);
  setHasOwnProposal(false);
  setLastSubmittedBy(null);
