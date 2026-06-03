@@ -999,8 +999,11 @@ const TournamentPanel: React.FC = () => {
  <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] ">{isGroupStageOngoing ? 'Fase de Grupos' : (isUserWaitingRivalConfirm || isUserMustConfirm) ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
 
  {isGroupStageOngoing ? (
- <div className="space-y-3">
- <div className="text-center bg-gradient-to-b from-sky-50 to-transparent p-6 rounded-2xl border border-sky-200">
+ <div className="bg-sky-50 p-6 rounded-2xl border border-sky-200 relative overflow-hidden">
+ <div className="absolute top-0 right-0 p-3 opacity-10">
+ <span className="material-symbols-outlined text-4xl">format_quote</span>
+ </div>
+ <div className="text-center mb-5">
  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 shadow-sm mb-3">
  <span className="material-symbols-outlined text-sky-500 text-4xl">hourglass_top</span>
  </div>
@@ -1011,26 +1014,22 @@ const TournamentPanel: React.FC = () => {
  Terminaste tus partidos de fase de grupos
  </p>
  </div>
- <div className="bg-sky-50 p-4 rounded-xl border border-sky-200 relative overflow-hidden">
- <div className="absolute top-0 right-0 p-3 opacity-10">
- <span className="material-symbols-outlined text-4xl">format_quote</span>
- </div>
+ <div className="border-t border-sky-200 pt-4">
  <h3 className="font-bold text-[#111813] tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
  <span className="material-symbols-outlined text-sky-500">info</span>
  Clasificación en curso
  </h3>
- <p className="text-sky-700 text-sm leading-relaxed">
+ <p className="text-sky-700 text-sm leading-relaxed mb-4">
  {playerStatus?.mensaje || 'La clasificación se definirá cuando se jueguen todos los partidos del grupo.'}
  </p>
  <button
  onClick={() => navigate('/standings', { state: { tournament } })}
- className="mt-3 text-xs font-bold text-sky-700 underline underline-offset-2 active:opacity-60"
+ className="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white text-sm font-bold rounded-xl transition-colors"
  >
- Ver la Tabla de Posiciones →
+ Ver la Tabla de Posiciones
  </button>
  </div>
- </div>
- ) : noPlayoffMatch ? (
+ </div>) : noPlayoffMatch ? (
  <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 ">
  <div className="flex items-start gap-3">
  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
