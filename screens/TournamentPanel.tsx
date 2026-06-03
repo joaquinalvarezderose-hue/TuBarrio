@@ -999,27 +999,25 @@ const TournamentPanel: React.FC = () => {
  <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] ">{isGroupStageOngoing ? 'Fase de Grupos' : (isUserWaitingRivalConfirm || isUserMustConfirm) ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
 
  {isGroupStageOngoing ? (
- <div className="rounded-xl p-5 border-2 border-blue-200 bg-blue-50 ">
+ <section className="p-5 bg-sky-50 rounded-2xl border border-sky-200 shadow-sm">
  <div className="flex items-start gap-3">
- <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
- <span className="material-symbols-outlined text-blue-500 text-xl">hourglass_top</span>
+ <div className="size-11 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
+ <span className="material-symbols-outlined text-sky-600 text-2xl">hourglass_top</span>
  </div>
  <div className="flex-1">
- <h4 className="font-bold text-blue-800 text-sm uppercase tracking-wide mb-1">
- Fase de grupos en curso
- </h4>
- <p className="text-sm text-blue-700 leading-relaxed">
+ <p className="text-sm font-black text-sky-900">Fase de grupos en curso</p>
+ <p className="mt-1 text-[11px] text-sky-700 leading-relaxed font-medium">
  {playerStatus?.mensaje || 'Terminaste tus partidos. La clasificación se definirá cuando se jueguen todos los partidos del grupo.'}
  </p>
  <button
  onClick={() => navigate('/standings', { state: { tournament } })}
- className="mt-3 text-xs font-bold text-blue-700 underline underline-offset-2 active:opacity-60"
+ className="mt-3 text-xs font-bold text-sky-700 underline underline-offset-2 active:opacity-60"
  >
  Ver la Tabla de Posiciones →
  </button>
  </div>
  </div>
- </div>
+ </section>
  ) : noPlayoffMatch ? (
  <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 ">
  <div className="flex items-start gap-3">
