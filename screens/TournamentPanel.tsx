@@ -88,6 +88,7 @@ const TournamentPanel: React.FC = () => {
  const [refreshKey, setRefreshKey] = useState(0);
  const [proposalMustConfirmBy, setProposalMustConfirmBy] = useState<string | null>(null);
  const [loadingProposal, setLoadingProposal] = useState(false);
+ const [pendingConfirmMatch, setPendingConfirmMatch] = useState<{ id: string; jornada: number } | null>(null);
  const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
  const [tournamentChampion, setTournamentChampion] = useState<string | null>(null);
@@ -121,10 +122,9 @@ const TournamentPanel: React.FC = () => {
  const isGroupStageOngoing = playerStatus?.estado === 'fase_grupos_en_curso' && nextMatch?.estado !== 'esperando_validacion';
 
  const matchIsWaitingValidation = nextMatch?.estado === 'esperando_validacion';
- const isUserMustConfirm =
- matchIsWaitingValidation &&
- !!proposalMustConfirmBy &&
- String(proposalMustConfirmBy).toLowerCase() === String(currentUserId).toLowerCase();
+ // pendingConfirmMatch is set by a separate effect that finds any esperando_validacion match
+ // where the current user is debe_confirmar_por — independent of nextMatch ordering.
+ const isUserMustConfirm = !!pendingConfirmMatch;
  const isUserWaitingRivalConfirm = matchIsWaitingValidation && !isUserMustConfirm;
 
  const noPlayoffMatch = !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isFinalista && !isWaiting && !loadingNextMatch;
@@ -185,6 +185,47 @@ const TournamentPanel: React.FC = () => {
  })();
  return () => { cancelled = true; };
  }, [nextMatch?.id, nextMatch?.estado]);
+
+ // Independent check: find any match where the current user must confirm, regardless of nextMatch ordering.
+ // This handles the case where nextMatch points to an earlier jornada (programado) but a later jornada
+ // is already in esperando_validacion waiting for this user's confirmation.
+ useEffect(() => {
+ if (!currentUserId || !tournament?.id) return;
+ let cancelled = false;
+ (async () => {
+ try {
+ const { data: waitingRows } = await supabase
+ .from('partidos')
+ .select('id, jornada')
+ .eq('torneo_id', tournament.id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .eq('estado', 'esperando_validacion')
+ .order('jornada', { ascending: true })
+ .limit(1);
+
+ const waiting = Array.isArray(waitingRows) ? waitingRows[0] : null;
+ if (!waiting || cancelled) { setPendingConfirmMatch(null); return; }
+
+ const { data: proposal } = await supabase
+ .from('torneo_propuestas_partido')
+ .select('debe_confirmar_por')
+ .eq('partido_id', waiting.id)
+ .maybeSingle();
+
+ if (!cancelled) {
+ if (proposal?.debe_confirmar_por &&
+ String(proposal.debe_confirmar_por).toLowerCase() === String(currentUserId).toLowerCase()) {
+ setPendingConfirmMatch({ id: String(waiting.id), jornada: Number(waiting.jornada) });
+ } else {
+ setPendingConfirmMatch(null);
+ }
+ }
+ } catch {
+ // swallow
+ }
+ })();
+ return () => { cancelled = true; };
+ }, [currentUserId, tournament?.id, refreshKey]);
 
  useEffect(() => {
  const loadPanelData = async () => {
@@ -780,7 +821,7 @@ const TournamentPanel: React.FC = () => {
  </p>
  </div>
  <button
- onClick={() => navigate('/match-result', { state: { tournament, partidoId: nextMatch?.id, jornada: nextMatch?.jornada, currentUserId } })}
+ onClick={() => navigate('/match-result', { state: { tournament, partidoId: pendingConfirmMatch?.id, jornada: pendingConfirmMatch?.jornada, currentUserId } })}
  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-md hover:bg-sky-600 active:scale-[0.98] transition-all"
  >
  <span className="material-symbols-outlined text-lg">check_circle</span>

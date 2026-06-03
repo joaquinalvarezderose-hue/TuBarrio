@@ -119,7 +119,6 @@ const MatchResult: React.FC = () => {
  const [blockReason, setBlockReason] = useState<string | null>(null);
  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
  const [playoffsActiveNoMatch, setPlayoffsActiveNoMatch] = useState(false);
- const [rivalJornadaWarning, setRivalJornadaWarning] = useState<number | null>(null);
  const [sessionExpired, setSessionExpired] = useState(false);
  const [retryTick, setRetryTick] = useState(0);
 
@@ -557,8 +556,11 @@ const MatchResult: React.FC = () => {
  targetPartido = Array.isArray(bracketRows) ? bracketRows[0] : null;
  }
 
- // For round-robin matches navigated directly via selectedPartidoId, enforce jornada ordering
- if (targetPartido && selectedPartidoId && targetPartido.bracket_tipo !== 'eliminacion_directa') {
+ // For round-robin matches navigated directly via selectedPartidoId, enforce jornada ordering.
+ // Skip the block when the match is already in esperando_validacion — the user may be the
+ // designated confirmer and should always be able to reach the confirmation screen.
+ if (targetPartido && selectedPartidoId && targetPartido.bracket_tipo !== 'eliminacion_directa'
+     && targetPartido.estado !== 'esperando_validacion') {
  const { data: prevMatches } = await supabase
  .from('partidos')
  .select('id, jornada')
@@ -626,6 +628,7 @@ const MatchResult: React.FC = () => {
  });
 
  // Check if the rival has unplayed previous jornadas (out-of-order match situation).
+ // Block submission — confirmation is not affected since its section ignores blockReason.
  if (targetPartido.bracket_tipo !== 'eliminacion_directa' && Number(targetPartido.jornada) > 1) {
  const rivalId = String(targetPartido.jugador1_id) === String(currentUserId)
  ? String(targetPartido.jugador2_id)
@@ -637,10 +640,14 @@ const MatchResult: React.FC = () => {
  .eq('categoria', categoria)
  .or(`jugador1_id.eq.${rivalId},jugador2_id.eq.${rivalId}`)
  .neq('estado', 'finalizado')
+ .neq('estado', 'esperando_validacion')
  .lt('jornada', Number(targetPartido.jornada))
  .limit(1);
  if (rivalPrevMatches && rivalPrevMatches.length > 0) {
- setRivalJornadaWarning(Number(rivalPrevMatches[0].jornada));
+ setBlockReason(
+ `Tu rival todavia no cerro la jornada ${rivalPrevMatches[0].jornada}. ` +
+ `Podras cargar este resultado cuando tu rival complete su partido pendiente.`
+ );
  }
  }
 
@@ -1220,18 +1227,6 @@ const MatchResult: React.FC = () => {
  </section>
  )}
 
- {/* Advertencia: rival tiene jornada anterior sin jugar (partido fuera de orden) */}
- {!loadingMatch && !!partido && rivalJornadaWarning !== null && (
- <section className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex gap-3 shadow-sm">
- <span className="material-symbols-outlined text-amber-500 text-lg flex-shrink-0">warning</span>
- <div>
- <p className="text-sm font-bold text-amber-800">Partido fuera de orden</p>
- <p className="text-[11px] text-amber-700 mt-0.5">
- Tu rival todavia tiene un partido pendiente de la jornada {rivalJornadaWarning}. Este resultado podria no ser valido hasta que ese partido se complete.
- </p>
- </div>
- </section>
- )}
 
  {/* Quien debe confirmar pero ya envió su propia propuesta - caso edge */}
  {isMustConfirm && isWaitingValidation && !loadingMatch && hasOwnProposal && lastSubmittedBy === currentUserId && !playoffsActiveNoMatch && (

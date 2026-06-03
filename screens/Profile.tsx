@@ -169,26 +169,6 @@ const Profile: React.FC = () => {
  <span className="material-symbols-outlined text-gray-400 text-[20px] group-hover:translate-x-1 transition-transform">chevron_right</span>
  </button>
  
- <button className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group border-b border-gray-100 last:border-0">
- <div className="flex items-center gap-3">
- <div className="bg-purple-50 text-purple-600 p-2 rounded-lg flex items-center justify-center">
- <span className="material-symbols-outlined text-[20px]">security</span>
- </div>
- <span className="font-medium text-slate-900 text-left text-sm tracking-tight">Configuración de Seguridad</span>
- </div>
- <span className="material-symbols-outlined text-gray-400 text-[20px] group-hover:translate-x-1 transition-transform">chevron_right</span>
- </button>
-
- <button className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group border-b border-gray-100 last:border-0">
- <div className="flex items-center gap-3">
- <div className="bg-orange-50 text-orange-600 p-2 rounded-lg flex items-center justify-center">
- <span className="material-symbols-outlined text-[20px]">notifications</span>
- </div>
- <span className="font-medium text-slate-900 text-left text-sm tracking-tight">Preferencias de Notificaciones</span>
- </div>
- <span className="material-symbols-outlined text-gray-400 text-[20px] group-hover:translate-x-1 transition-transform">chevron_right</span>
- </button>
-
  <button onClick={() => navigate('/ayuda')} className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group last:border-0">
  <div className="flex items-center gap-3">
  <div className="bg-teal-50 text-teal-600 p-2 rounded-lg flex items-center justify-center">
