@@ -7,6 +7,7 @@ export type PlayerTournamentEstado =
   | 'campeon'
   | 'finalista'
   | 'esperando_siguiente_ronda'
+  | 'fase_grupos_en_curso'
   | 'sin_participacion';
 
 export type PlayerTournamentStats = {

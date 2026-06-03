@@ -118,6 +118,7 @@ const TournamentPanel: React.FC = () => {
  const isCampeon = playerStatus?.estado === 'campeon';
  const isFinalista = playerStatus?.estado === 'finalista';
  const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
+ const isGroupStageOngoing = playerStatus?.estado === 'fase_grupos_en_curso';
 
  const matchIsWaitingValidation = nextMatch?.estado === 'esperando_validacion';
  const isUserMustConfirm =
@@ -995,9 +996,31 @@ const TournamentPanel: React.FC = () => {
  <>
  {/* Mi Próximo Partido */}
  <section className="space-y-4">
- <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] ">{(isUserWaitingRivalConfirm || isUserMustConfirm) ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
+ <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] ">{isGroupStageOngoing ? 'Fase de Grupos' : (isUserWaitingRivalConfirm || isUserMustConfirm) ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
 
- {noPlayoffMatch ? (
+ {isGroupStageOngoing ? (
+ <div className="rounded-xl p-5 border-2 border-blue-200 bg-blue-50 ">
+ <div className="flex items-start gap-3">
+ <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+ <span className="material-symbols-outlined text-blue-500 text-xl">hourglass_top</span>
+ </div>
+ <div className="flex-1">
+ <h4 className="font-bold text-blue-800 text-sm uppercase tracking-wide mb-1">
+ Fase de grupos en curso
+ </h4>
+ <p className="text-sm text-blue-700 leading-relaxed">
+ {playerStatus?.mensaje || 'Terminaste tus partidos. La clasificación se definirá cuando se jueguen todos los partidos del grupo.'}
+ </p>
+ <button
+ onClick={() => navigate('/standings', { state: { tournament } })}
+ className="mt-3 text-xs font-bold text-blue-700 underline underline-offset-2 active:opacity-60"
+ >
+ Ver la Tabla de Posiciones →
+ </button>
+ </div>
+ </div>
+ </div>
+ ) : noPlayoffMatch ? (
  <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 ">
  <div className="flex items-start gap-3">
  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
