@@ -118,7 +118,7 @@ const TournamentPanel: React.FC = () => {
  const isCampeon = playerStatus?.estado === 'campeon';
  const isFinalista = playerStatus?.estado === 'finalista';
  const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
- const isGroupStageOngoing = playerStatus?.estado === 'fase_grupos_en_curso';
+ const isGroupStageOngoing = playerStatus?.estado === 'fase_grupos_en_curso' && nextMatch?.estado !== 'esperando_validacion';
 
  const matchIsWaitingValidation = nextMatch?.estado === 'esperando_validacion';
  const isUserMustConfirm =
@@ -999,15 +999,28 @@ const TournamentPanel: React.FC = () => {
  <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] ">{isGroupStageOngoing ? 'Fase de Grupos' : (isUserWaitingRivalConfirm || isUserMustConfirm) ? 'Contacto del Rival' : 'Mi Próximo Partido'}</h3>
 
  {isGroupStageOngoing ? (
- <section className="p-5 bg-sky-50 rounded-2xl border border-sky-200 shadow-sm">
- <div className="flex items-start gap-3">
- <div className="size-11 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
- <span className="material-symbols-outlined text-sky-600 text-2xl">hourglass_top</span>
+ <div className="space-y-3">
+ <div className="text-center bg-gradient-to-b from-sky-50 to-transparent p-6 rounded-2xl border border-sky-200">
+ <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 shadow-sm mb-3">
+ <span className="material-symbols-outlined text-sky-500 text-4xl">hourglass_top</span>
  </div>
- <div className="flex-1">
- <p className="text-sm font-black text-sky-900">Fase de grupos en curso</p>
- <p className="mt-1 text-[11px] text-sky-700 leading-relaxed font-medium">
- {playerStatus?.mensaje || 'Terminaste tus partidos. La clasificación se definirá cuando se jueguen todos los partidos del grupo.'}
+ <h2 className="font-bold text-2xl tracking-tight text-[#111813] uppercase">
+ Fase de Grupos
+ </h2>
+ <p className="text-sky-600 text-sm font-medium mt-1">
+ Terminaste tus partidos de fase de grupos
+ </p>
+ </div>
+ <div className="bg-sky-50 p-4 rounded-xl border border-sky-200 relative overflow-hidden">
+ <div className="absolute top-0 right-0 p-3 opacity-10">
+ <span className="material-symbols-outlined text-4xl">format_quote</span>
+ </div>
+ <h3 className="font-bold text-[#111813] tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+ <span className="material-symbols-outlined text-sky-500">info</span>
+ Clasificación en curso
+ </h3>
+ <p className="text-sky-700 text-sm leading-relaxed">
+ {playerStatus?.mensaje || 'La clasificación se definirá cuando se jueguen todos los partidos del grupo.'}
  </p>
  <button
  onClick={() => navigate('/standings', { state: { tournament } })}
@@ -1017,7 +1030,6 @@ const TournamentPanel: React.FC = () => {
  </button>
  </div>
  </div>
- </section>
  ) : noPlayoffMatch ? (
  <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 ">
  <div className="flex items-start gap-3">
