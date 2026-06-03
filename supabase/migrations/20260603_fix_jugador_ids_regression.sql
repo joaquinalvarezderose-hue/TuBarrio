@@ -1,6 +1,6 @@
 -- Fix regression introduced by 20260603_block_rival_jornada_order.sql:
--- jugador1_id and jugador2_id were dropped from the INSERT column list,
--- causing a NOT NULL constraint violation on torneo_propuestas_partido.
+-- jugador1_id, jugador2_id, fecha_propuesta and propuesta_por were dropped
+-- from the INSERT column list, causing NOT NULL constraint violations.
 create or replace function public.enviar_resultado_seguro(
   p_partido_id uuid,
   p_user_id uuid,
@@ -68,8 +68,7 @@ begin
     end if;
   end if;
 
-  -- Enforce jornada ordering for the rival: they must have submitted (or finalized) all earlier jornadas.
-  -- esperando_validacion counts as "submitted enough" — the rival already loaded their result.
+  -- Enforce jornada ordering for the rival
   if coalesce(v_partido.bracket_tipo, '') != 'eliminacion_directa' then
     if p_user_id = v_partido.jugador1_id then
       v_rival_id := v_partido.jugador2_id;
@@ -131,6 +130,8 @@ begin
       jugador2_id,
       jugador1_perfil_id,
       jugador2_perfil_id,
+      fecha_propuesta,
+      propuesta_por,
       match_pair_key,
       partido_id,
       jornada,
@@ -149,6 +150,8 @@ begin
       v_partido.jugador2_id,
       v_partido.jugador1_id,
       v_partido.jugador2_id,
+      now(),
+      p_user_id,
       v_match_pair_key,
       v_partido.id,
       coalesce(v_partido.jornada, 1),
