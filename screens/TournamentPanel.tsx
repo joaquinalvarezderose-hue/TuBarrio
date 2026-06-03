@@ -1020,7 +1020,7 @@ const TournamentPanel: React.FC = () => {
  Clasificación en curso
  </h3>
  <p className="text-sky-700 text-sm leading-relaxed mb-4">
- {playerStatus?.mensaje || 'La clasificación se definirá cuando se jueguen todos los partidos del grupo.'}
+ {playerStatus?.mensaje || 'La clasificación se definirá cuando se jueguen todos los partidos de la fase de grupos.'}
  </p>
  <button
  onClick={() => navigate('/standings', { state: { tournament } })}

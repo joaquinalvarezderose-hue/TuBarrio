@@ -1496,7 +1496,7 @@ const MatchResult: React.FC = () => {
  <button
  onClick={handleConfirm}
  disabled={!canConfirm || !hasDbPlayers || isSubmitting || loadingMatch}
- className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+ className={`w-full font-bold py-4 md:py-6 text-base md:text-lg rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
  canConfirm && hasDbPlayers && !isSubmitting && !loadingMatch
  ? 'bg-primary text-gray-900 shadow-primary/30 active:scale-[0.98]'
  : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
