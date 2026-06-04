@@ -64,7 +64,11 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
               email: data.user.email,
               nombre_completo: userName,
               whatsapp: whatsappVal,
-              direccion: pending.direccion || null,
+              barrio: pending.barrio || null,
+              calle: pending.calle || null,
+              numero_altura: pending.numero_altura || null,
+              lote: pending.lote || null,
+              localidad: pending.localidad || null,
             })
             .select('*')
             .single();

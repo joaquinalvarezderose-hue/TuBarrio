@@ -45,39 +45,6 @@ export function normalizeWhatsApp(local: string): string {
   return digits ? `+549${digits}` : '';
 }
 
-export const LoginSchema = z.object({
-  email: EmailSchema,
-  password: z.string().min(1, 'Ingresa la contraseña'),
-});
-
-export const RegisterSchema = z
-  .object({
-    name: NombreCompletoSchema,
-    email: EmailSchema,
-    password: PasswordSchema,
-    confirmPassword: z.string(),
-    address: DireccionSchema,
-    whatsappLocal: z.union([WhatsAppLocalSchema, z.literal('')]),
-    terms: z.literal(true, { message: 'Debes aceptar los términos y condiciones' }),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  });
-
-export const PaymentReferenceSchema = z
-  .string()
-  .trim()
-  .min(3, 'Referencia muy corta')
-  .max(50, 'Máximo 50 caracteres')
-  .regex(/^[\w\-./ ]+$/, 'Solo letras, números, espacios, guiones, puntos y barras');
-
-export const ProfileUpdateSchema = z.object({
-  nombre_completo: NombreCompletoSchema.optional(),
-  whatsapp: z.union([WhatsAppE164Schema, z.literal(''), z.null()]).optional(),
-  direccion: DireccionSchema.optional(),
-});
-
 export const BARRIOS = [
   'El Cantón',
   'San Matías',
@@ -96,6 +63,42 @@ export type Localidad = typeof LOCALIDADES[number];
 
 export const BarrioSchema = z.enum(BARRIOS);
 export const LocalidadSchema = z.enum(LOCALIDADES);
+
+export const LoginSchema = z.object({
+  email: EmailSchema,
+  password: z.string().min(1, 'Ingresa la contraseña'),
+});
+
+export const RegisterSchema = z
+  .object({
+    name: NombreCompletoSchema,
+    email: EmailSchema,
+    password: PasswordSchema,
+    confirmPassword: z.string(),
+    barrio: BarrioSchema,
+    localidad: LocalidadSchema,
+    calle: z.string().trim().min(2, 'Mínimo 2 caracteres').max(100, 'Máximo 100 caracteres'),
+    numero_altura: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
+    lote: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
+    whatsappLocal: z.union([WhatsAppLocalSchema, z.literal('')]),
+    terms: z.literal(true, { message: 'Debes aceptar los términos y condiciones' }),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  });
+
+export const PaymentReferenceSchema = z
+  .string()
+  .trim()
+  .min(3, 'Referencia muy corta')
+  .max(50, 'Máximo 50 caracteres')
+  .regex(/^[\w\-./ ]+$/, 'Solo letras, números, espacios, guiones, puntos y barras');
+
+export const ProfileUpdateSchema = z.object({
+  nombre_completo: NombreCompletoSchema.optional(),
+  whatsapp: z.union([WhatsAppE164Schema, z.literal(''), z.null()]).optional(),
+});
 
 export const DomicilioUpdateSchema = z.object({
   barrio: BarrioSchema,

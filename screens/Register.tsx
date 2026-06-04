@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { verifyAddress } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
 import {
   RegisterSchema,
   flattenZodErrors,
   normalizeWhatsApp,
+  BARRIOS,
+  LOCALIDADES,
+  type Barrio,
+  type Localidad,
 } from '../lib/schemas';
 
 function traducirErrorSupabase(msg: string): string {
@@ -28,8 +31,11 @@ interface RegisterProps {
 
 const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
   const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [verifiedAddress, setVerifiedAddress] = useState('');
+  const [barrio, setBarrio] = useState<Barrio | ''>('');
+  const [calle, setCalle] = useState('');
+  const [numeroAltura, setNumeroAltura] = useState('');
+  const [lote, setLote] = useState('');
+  const [localidad, setLocalidad] = useState<Localidad | ''>('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [terms, setTerms] = useState(false);
   const [whatsappLocal, setWhatsappLocal] = useState('');
@@ -40,20 +46,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
   const [emailRegistered, setEmailRegistered] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
-  const handleVerify = async () => {
-    if (!address) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await verifyAddress(address);
-      setVerifiedAddress(result.text);
-    } catch (err) {
-      setError("No pudimos verificar la dirección. Intenta ser más específico.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRegister = async () => {
     setError(null);
     setFieldErrors({});
@@ -63,14 +55,17 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
       email,
       password,
       confirmPassword,
-      address,
+      barrio: barrio || undefined,
+      localidad: localidad || undefined,
+      calle,
+      numero_altura: numeroAltura || undefined,
+      lote: lote || undefined,
       whatsappLocal,
       terms,
     });
 
     if (!result.success) {
       const errors = flattenZodErrors(result);
-      // Mapeo de 'whatsappLocal' al key 'whatsapp' que usa el componente
       if (errors.whatsappLocal) {
         errors.whatsapp = errors.whatsappLocal;
         delete errors.whatsappLocal;
@@ -80,9 +75,9 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
       return;
     }
 
+    const validated = result.data;
     setLoading(true);
     try {
-      // Intentar registrar con Supabase; si falla (config), usar fallback local (MVP)
       const normalizedWA = normalizeWhatsApp(whatsappLocal);
       if (supabase && typeof supabase.auth?.signUp === 'function') {
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -91,7 +86,6 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
           options: { data: { nombre_completo: name, whatsapp: normalizedWA || null } },
         });
 
-        // Si el mail ya está registrado, mostramos mensaje y sugerimos iniciar sesión
         if (authError && /already registered/i.test(authError.message || '')) {
           setEmailRegistered(true);
           setError('Este correo ya está registrado.');
@@ -110,7 +104,11 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                 email: authData.user.email,
                 nombre_completo: name,
                 whatsapp: normalizedWA || null,
-                direccion: verifiedAddress || address,
+                barrio: validated.barrio,
+                calle: validated.calle,
+                numero_altura: validated.numero_altura ?? null,
+                lote: validated.lote ?? null,
+                localidad: validated.localidad,
               },
               { onConflict: 'id' }
             )
@@ -130,16 +128,21 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
             if (fetched) localStorage.setItem('app_user', JSON.stringify(fetched));
           }
         } else {
-          // Guardar datos temporalmente para cuando confirme el email
-          localStorage.setItem('pending_profile', JSON.stringify({ nombre_completo: name, whatsapp: normalizedWA || null, direccion: verifiedAddress || address }));
+          localStorage.setItem('pending_profile', JSON.stringify({
+            nombre_completo: name,
+            whatsapp: normalizedWA || null,
+            barrio: validated.barrio,
+            calle: validated.calle,
+            numero_altura: validated.numero_altura ?? null,
+            lote: validated.lote ?? null,
+            localidad: validated.localidad,
+          }));
         }
 
-        // Crear sesión activa inmediatamente para no depender del override temporal
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) console.warn('Auto sign-in tras registro falló:', signInError.message);
       } else {
-        // Fallback: persist minimal user locally
-        const localUser = { id: `local-${Date.now()}`, email, name, address: verifiedAddress || address };
+        const localUser = { id: `local-${Date.now()}`, email, name };
         localStorage.setItem('app_user', JSON.stringify(localUser));
       }
 
@@ -272,20 +275,80 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                 {fieldErrors.confirmPassword && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.confirmPassword}</p>}
               </div>
 
+              {/* Barrio */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Dirección (en el barrio)</label>
-                <div className="relative flex items-center gap-2">
+                <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Barrio / Country</label>
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm appearance-none"
+                    value={barrio}
+                    onChange={(e) => setBarrio(e.target.value as Barrio)}
+                  >
+                    <option value="">Seleccioná un barrio...</option>
+                    {BARRIOS.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl pointer-events-none">expand_more</span>
+                </div>
+                {fieldErrors.barrio && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.barrio}</p>}
+              </div>
+
+              {/* Calle */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Calle / Avenida</label>
+                <input
+                  type="text"
+                  className="w-full pl-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
+                  placeholder="Ej: Av. Principal"
+                  value={calle}
+                  onChange={(e) => setCalle(e.target.value)}
+                />
+                {fieldErrors.calle && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.calle}</p>}
+              </div>
+
+              {/* Número y Lote */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Número / Altura</label>
                   <input
                     type="text"
-                    className="flex-1 pl-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Calle y Nro..."
+                    className="w-full pl-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
+                    placeholder="Ej: 450"
+                    value={numeroAltura}
+                    onChange={(e) => setNumeroAltura(e.target.value)}
                   />
-                  <button type="button" onClick={handleVerify} disabled={loading} className="px-4 py-2 bg-gray-800 text-white rounded-xl text-sm">Verificar</button>
+                  {fieldErrors.numero_altura && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.numero_altura}</p>}
                 </div>
-                {verifiedAddress && <p className="mt-1 text-xs text-green-600">✓ {verifiedAddress}</p>}
-                {fieldErrors.address && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.address}</p>}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Lote (Opcional)</label>
+                  <input
+                    type="text"
+                    className="w-full pl-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
+                    placeholder="Ej: 12"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Localidad */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Localidad</label>
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm appearance-none"
+                    value={localidad}
+                    onChange={(e) => setLocalidad(e.target.value as Localidad)}
+                  >
+                    <option value="">Seleccioná una localidad...</option>
+                    {LOCALIDADES.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl pointer-events-none">expand_more</span>
+                </div>
+                {fieldErrors.localidad && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.localidad}</p>}
               </div>
             </div>
 

@@ -65,8 +65,6 @@ const Profile: React.FC = () => {
  name: perfil?.nombre_completo ?? 'Jugador',
  nombre_completo: perfil?.nombre_completo ?? null,
  whatsapp: perfil?.whatsapp ?? null,
- direccion: perfil?.direccion ?? null,
- address: perfil?.direccion ?? null,
  };
 
  return (

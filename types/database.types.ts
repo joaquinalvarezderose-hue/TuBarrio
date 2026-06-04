@@ -232,7 +232,6 @@ export type Database = {
           barrio: string | null
           calle: string | null
           created_at: string | null
-          direccion: string | null
           email: string | null
           id: string
           localidad: string | null

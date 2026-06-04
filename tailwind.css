@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+ /* === Colores del proyecto === */
  --color-primary: #13ec49;
  --color-primary-dark: #0eb538;
  --color-secondary: #111813;
@@ -17,6 +18,77 @@
  --color-text-light: #111813;
  --color-text-dark: #e0e6e2;
 
+ /* === Tokens M3 (pantalla Domicilio) === */
+ --color-surface-container-lowest: #ffffff;
+ --color-surface-container-low: #f3f4f5;
+ --color-surface-container: #edeeef;
+ --color-surface-container-high: #e7e8e9;
+ --color-surface-variant: #e1e3e4;
+ --color-on-surface: #191c1d;
+ --color-on-surface-variant: #3c4b39;
+ --color-outline-variant: #bacbb4;
+ --color-primary-container: #13ec49;
+ --color-primary-fixed: #70ff76;
+ --color-on-primary-container: #006519;
+ --color-error: #ba1a1a;
+
+ /* === Spacing nombrado === */
+ --spacing-margin-mobile: 1rem;
+ --spacing-margin-desktop: 2.5rem;
+ --spacing-xl: 2rem;
+ --spacing-lg: 1.5rem;
+ --spacing-md: 1rem;
+ --spacing-sm: 0.5rem;
+ --spacing-xs: 0.25rem;
+ --spacing-gutter: 1.5rem;
+
  --font-family-sans: 'Manrope', sans-serif;
  --font-family-display: 'Lexend', sans-serif;
+}
+
+/* Tipografía compuesta — equivale a las clases font-* + text-* del mockup */
+@layer utilities {
+ .type-headline-lg-mobile {
+  font-family: 'Lexend', sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+ }
+ .type-title-md {
+  font-family: 'Lexend', sans-serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
+ }
+ .type-body-md {
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+ }
+ .type-body-lg {
+  font-family: 'Manrope', sans-serif;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+ }
+ .type-label-lg {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+ }
+ .type-label-md {
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+ }
+ /* Focus glow igual al mockup */
+ .focus-glow:focus {
+  border-color: #13ec49 !important;
+  box-shadow: 0 0 0 4px rgba(19, 236, 73, 0.2);
+  outline: none;
+ }
 }
