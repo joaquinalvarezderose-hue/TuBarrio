@@ -61,10 +61,6 @@ const Domicilio: React.FC = () => {
     }
 
     const { barrio: b, calle: c, numero_altura: n, lote: l, localidad: loc } = parsed.data;
-    const parts = [`Barrio: ${b}`, `Calle: ${c}`];
-    if (n) parts.push(`Nro: ${n}`);
-    if (l) parts.push(`Lote: ${l}`);
-    parts.push(`Localidad: ${loc}`);
 
     setSaving(true);
     try {
@@ -79,7 +75,6 @@ const Domicilio: React.FC = () => {
           numero_altura: n ?? null,
           lote: l ?? null,
           localidad: loc,
-          direccion: parts.join(', '),
         })
         .eq('id', userId);
 
