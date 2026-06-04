@@ -61,6 +61,10 @@ const Domicilio: React.FC = () => {
     }
 
     const { barrio: b, calle: c, numero_altura: n, lote: l, localidad: loc } = parsed.data;
+    const parts = [`Barrio: ${b}`, `Calle: ${c}`];
+    if (n) parts.push(`Nro: ${n}`);
+    if (l) parts.push(`Lote: ${l}`);
+    parts.push(`Localidad: ${loc}`);
 
     setSaving(true);
     try {
@@ -75,6 +79,7 @@ const Domicilio: React.FC = () => {
           numero_altura: n ?? null,
           lote: l ?? null,
           localidad: loc,
+          direccion: parts.join(', '),
         })
         .eq('id', userId);
 
@@ -93,7 +98,7 @@ const Domicilio: React.FC = () => {
   const handleCancel = () => navigate(-1);
 
   const inputClass = (field: string) =>
-    `w-full h-14 bg-surface-container-low border rounded-xl px-md type-body-md focus-glow ${
+    `w-full h-14 bg-surface-container-low border rounded-xl px-4 type-body-md focus-glow ${
       fieldErrors[field] ? 'border-error' : 'border-outline-variant/40'
     }`;
 
@@ -101,7 +106,7 @@ const Domicilio: React.FC = () => {
     <div className="flex flex-col h-full bg-surface overflow-y-auto no-scrollbar pb-24">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-surface flex items-center justify-between px-margin-mobile h-16">
+      <header className="sticky top-0 z-50 bg-surface flex items-center justify-between px-4 h-16">
         <button
           aria-label="Volver"
           onClick={handleCancel}
@@ -113,14 +118,14 @@ const Domicilio: React.FC = () => {
         <div className="w-10" />
       </header>
 
-      <main className="pt-6 pb-6 px-margin-mobile max-w-lg mx-auto w-full">
+      <main className="pt-6 pb-6 px-4 max-w-lg mx-auto w-full">
 
         {/* Domicilio Actual — datos desde Supabase */}
-        <section className="mb-xl">
-          <h2 className="type-label-lg text-on-surface-variant uppercase tracking-wider mb-sm px-1">
+        <section className="mb-8">
+          <h2 className="type-label-lg text-on-surface-variant uppercase tracking-wider mb-2 px-1">
             Domicilio Actual
           </h2>
-          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-lg flex gap-md items-start">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-4 flex gap-4 items-start">
             <div className="bg-primary-container/20 p-3 rounded-xl shrink-0">
               <span
                 className="material-symbols-outlined text-on-primary-container"
@@ -162,15 +167,15 @@ const Domicilio: React.FC = () => {
         </section>
 
         {/* Formulario de edición */}
-        <section className="bg-surface-container-lowest rounded-xl p-lg border border-outline-variant/20 shadow-sm">
-          <h2 className="type-title-md text-on-surface mb-lg">Editar Ubicación</h2>
+        <section className="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
+          <h2 className="type-title-md text-on-surface mb-6">Editar Ubicación</h2>
 
           <form
-            className="space-y-lg"
+            className="space-y-6"
             onSubmit={(e) => { e.preventDefault(); handleSave(); }}
           >
             {/* Barrio */}
-            <div className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-1">
               <label className="type-label-lg text-on-surface px-1">Barrio / Country</label>
               <div className="relative">
                 <select
@@ -193,7 +198,7 @@ const Domicilio: React.FC = () => {
             </div>
 
             {/* Calle */}
-            <div className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-1">
               <label className="type-label-lg text-on-surface px-1">Calle / Avenida</label>
               <input
                 type="text"
@@ -208,8 +213,8 @@ const Domicilio: React.FC = () => {
             </div>
 
             {/* Número y Lote */}
-            <div className="grid grid-cols-2 gap-md">
-              <div className="flex flex-col gap-xs">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
                 <label className="type-label-lg text-on-surface px-1">Número / Altura</label>
                 <input
                   type="text"
@@ -222,7 +227,7 @@ const Domicilio: React.FC = () => {
                   <p className="type-label-md text-error px-1">{fieldErrors.numero_altura}</p>
                 )}
               </div>
-              <div className="flex flex-col gap-xs">
+              <div className="flex flex-col gap-1">
                 <label className="type-label-lg text-on-surface px-1">Lote (Opcional)</label>
                 <input
                   type="text"
@@ -235,7 +240,7 @@ const Domicilio: React.FC = () => {
             </div>
 
             {/* Localidad */}
-            <div className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-1">
               <label className="type-label-lg text-on-surface px-1">Localidad</label>
               <div className="relative">
                 <select
@@ -270,7 +275,7 @@ const Domicilio: React.FC = () => {
             )}
 
             {/* Botones */}
-            <div className="pt-md space-y-md">
+            <div className="pt-4 space-y-4">
               <button
                 type="submit"
                 disabled={saving}

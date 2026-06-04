@@ -18,7 +18,7 @@
  --color-text-light: #111813;
  --color-text-dark: #e0e6e2;
 
- /* === Tokens M3 (pantalla Domicilio) === */
+ /* === Tokens de color M3 (pantalla Domicilio) === */
  --color-surface-container-lowest: #ffffff;
  --color-surface-container-low: #f3f4f5;
  --color-surface-container: #edeeef;
@@ -26,21 +26,13 @@
  --color-surface-variant: #e1e3e4;
  --color-on-surface: #191c1d;
  --color-on-surface-variant: #3c4b39;
+ --color-outline: #79747e;
  --color-outline-variant: #bacbb4;
  --color-primary-container: #13ec49;
  --color-primary-fixed: #70ff76;
  --color-on-primary-container: #006519;
+ --color-on-primary-fixed: #002107;
  --color-error: #ba1a1a;
-
- /* === Spacing nombrado === */
- --spacing-margin-mobile: 1rem;
- --spacing-margin-desktop: 2.5rem;
- --spacing-xl: 2rem;
- --spacing-lg: 1.5rem;
- --spacing-md: 1rem;
- --spacing-sm: 0.5rem;
- --spacing-xs: 0.25rem;
- --spacing-gutter: 1.5rem;
 
  --font-family-sans: 'Manrope', sans-serif;
  --font-family-display: 'Lexend', sans-serif;
@@ -84,6 +76,14 @@
   font-size: 12px;
   line-height: 16px;
   font-weight: 500;
+ }
+ /* Ocultar scrollbar manteniendo scroll funcional */
+ .no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+ }
+ .no-scrollbar::-webkit-scrollbar {
+  display: none;
  }
  /* Focus glow igual al mockup */
  .focus-glow:focus {
