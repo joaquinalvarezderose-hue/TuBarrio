@@ -17,6 +17,7 @@ import MatchResult from './screens/MatchResult';
 import ResultDetail from './screens/ResultDetail';
 import Rules from './screens/Rules';
 import Profile from './screens/Profile';
+import Domicilio from './screens/Domicilio';
 import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import AdminPanel from './screens/AdminPanel';
@@ -61,6 +62,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery 
           <Route path="/result-detail" element={user ? <ResultDetail /> : <Navigate to="/login" replace />} />
           <Route path="/rules" element={user ? <Rules /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" replace />} />
+          <Route path="/domicilio" element={user ? <Domicilio /> : <Navigate to="/login" replace />} />
           <Route path="/payment" element={user ? <Payment /> : <Navigate to="/login" replace />} />
           <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" replace />} />

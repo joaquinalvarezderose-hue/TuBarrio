@@ -78,6 +78,33 @@ export const ProfileUpdateSchema = z.object({
   direccion: DireccionSchema.optional(),
 });
 
+export const BARRIOS = [
+  'El Cantón',
+  'San Matías',
+  'Puertos',
+  'Barrio Abierto Maschwitz',
+  'Escobar Centro',
+] as const;
+
+export const LOCALIDADES = [
+  'Ingeniero Maschwitz',
+  'Belén de Escobar',
+] as const;
+
+export type Barrio = typeof BARRIOS[number];
+export type Localidad = typeof LOCALIDADES[number];
+
+export const BarrioSchema = z.enum(BARRIOS);
+export const LocalidadSchema = z.enum(LOCALIDADES);
+
+export const DomicilioUpdateSchema = z.object({
+  barrio: BarrioSchema,
+  localidad: LocalidadSchema,
+  calle: z.string().trim().min(2, 'Mínimo 2 caracteres').max(100, 'Máximo 100 caracteres'),
+  numero_altura: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
+  lote: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
+});
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;

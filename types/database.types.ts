@@ -229,11 +229,16 @@ export type Database = {
       }
       perfiles: {
         Row: {
+          barrio: string | null
+          calle: string | null
           created_at: string | null
           direccion: string | null
           email: string | null
           id: string
+          localidad: string | null
+          lote: string | null
           nombre_completo: string | null
+          numero_altura: string | null
           rol: string | null
           updated_at: string | null
           whatsapp: string | null

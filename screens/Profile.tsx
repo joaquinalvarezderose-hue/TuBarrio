@@ -159,7 +159,7 @@ const Profile: React.FC = () => {
  {/* Settings Section */}
  <div className="px-4 pb-8 flex-1">
  <div className="bg-surface-light rounded-xl overflow-hidden border border-gray-100 shadow-sm">
- <button className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group border-b border-gray-100 last:border-0">
+ <button onClick={() => navigate('/domicilio')} className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors group border-b border-gray-100 last:border-0">
  <div className="flex items-center gap-3">
  <div className="bg-blue-50 text-blue-600 p-2 rounded-lg flex items-center justify-center">
  <span className="material-symbols-outlined text-[20px]">real_estate_agent</span>
