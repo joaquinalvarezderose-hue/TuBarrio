@@ -55,6 +55,7 @@ const Standings: React.FC = () => {
  const [activeTab, setActiveTab] = useState<'tabla' | 'llaves'>('tabla');
  const location = useLocation();
  const [dbRows, setDbRows] = useState<any[] | null>(null);
+ const [dbLoadError, setDbLoadError] = useState<string | null>(null);
  const [rawHistorial, setRawHistorial] = useState<TournamentHistoryRow[]>([]);
  const [scope, setScope] = useState<TournamentScope | null>(null);
  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
@@ -83,7 +84,7 @@ const Standings: React.FC = () => {
 
  let currentUserId = '';
  try {
- const { data } = await (supabase as any).auth.getUser();
+ const { data } = await supabase.auth.getUser();
  currentUserId = String(data?.user?.id || '');
  } catch {
  // ignore
@@ -457,9 +458,11 @@ const Standings: React.FC = () => {
  });
 
  setDbRows(withUniqueLabels);
+ setDbLoadError(null);
  } catch (err) {
  console.error('No se pudo cargar la tabla desde Supabase', err);
  setDbRows([]);
+ setDbLoadError('No se pudo cargar la tabla de posiciones. Intenta recargar la página.');
  }
  }, [selectedGroup, tournament.id, tournament.subtitle]);
 
@@ -484,7 +487,8 @@ const Standings: React.FC = () => {
  )
  .subscribe();
 
- // Fallback defensivo por si Realtime no está habilitado en Supabase.
+ // Polling ensures standings stay fresh even if the Supabase Realtime subscription
+ // above is disabled or drops (e.g. project on free tier with Realtime off).
  const intervalId = window.setInterval(() => {
  loadDbStandings();
  }, 45000);
@@ -645,6 +649,11 @@ const Standings: React.FC = () => {
  </div>
  ) : (
  <div>
+ {dbLoadError && (
+ <div className="mx-4 mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+ {dbLoadError}
+ </div>
+ )}
  <div className="overflow-x-auto no-scrollbar relative">
  <table className="w-full border-collapse min-w-[500px]">
  <thead className="bg-slate-50 ">

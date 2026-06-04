@@ -125,10 +125,11 @@ const AdminPanel: React.FC = () => {
 
   const loadDisputas = useCallback(async () => {
     setLoadingData(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('v_admin_disputas_activas' as 'partidos')
       .select('*')
       .order('horas_pendiente', { ascending: false });
+    if (error) console.error('[AdminPanel] loadDisputas error:', error);
     setDisputas((data ?? []) as unknown as DisputaRow[]);
     setLoadingData(false);
   }, []);
@@ -136,10 +137,11 @@ const AdminPanel: React.FC = () => {
   const loadGrupos = useCallback(async () => {
     if (!activeTorneo) return;
     setLoadingData(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('v_admin_grupos_posiciones' as 'partidos')
       .select('*')
       .eq('torneo_id', activeTorneo);
+    if (error) console.error('[AdminPanel] loadGrupos error:', error);
     setGrupos((data ?? []) as unknown as GrupoRow[]);
     setLoadingData(false);
   }, [activeTorneo]);

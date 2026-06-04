@@ -1,4 +1,5 @@
 import { supabase } from '../services/supabaseClient';
+import type { Database } from '../types/database.types';
 
 // ============================================================
 // TYPES AND INTERFACES
@@ -114,7 +115,7 @@ export class BracketEngine {
    * Save bracket to Supabase with upsert logic
    */
   static async saveBracketToDatabase(tournament: BracketTournament): Promise<void> {
-    const partidosToUpsert: any[] = [];
+    const partidosToUpsert: Database['public']['Tables']['partidos']['Insert'][] = [];
     
     // Flatten all matches from all rounds
     tournament.rondas.forEach(ronda => {
@@ -425,7 +426,7 @@ export class BracketEngine {
   private static async promotePlayerToNextMatch(
     siguientePartidoId: string,
     ganadorId: string,
-    partidoActual: any
+    partidoActual: Database['public']['Tables']['partidos']['Row']
   ): Promise<void> {
     // Get next match
     const { data: siguientePartido, error: siguienteError } = await supabase
@@ -439,10 +440,10 @@ export class BracketEngine {
     }
     
     // Determine which position to fill (player1 or player2)
-    const posicionActual = partidoActual.posicion_bracket;
+    const posicionActual = partidoActual.posicion_bracket ?? 0;
     const esPosicionImpar = posicionActual % 2 === 1;
     
-    const updateData: any = {
+    const updateData: Database['public']['Tables']['partidos']['Update'] = {
       updated_at: new Date().toISOString()
     };
     

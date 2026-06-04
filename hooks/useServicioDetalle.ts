@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { Database } from '../types/database.types';
+import type { ServicioConStats } from './useServicios';
 
-export type ServicioConStats =
-  Database['public']['Views']['v_servicios_con_stats']['Row'];
+export type { ServicioConStats };
 
 export type Valoracion =
   Database['public']['Tables']['valoraciones_servicios']['Row'] & {

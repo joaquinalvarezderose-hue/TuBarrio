@@ -4,6 +4,7 @@ import Logo from '../components/Logo';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import { useNextMatch } from '../hooks/useNextMatch';
+import { toWhatsAppLink } from '../utils/whatsapp';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const PANEL_READY_STATUSES = new Set([
@@ -145,7 +146,7 @@ const TournamentPanel: React.FC = () => {
  useEffect(() => {
  const loadCurrentUser = async () => {
  try {
- const { data } = await (supabase as any).auth.getUser();
+ const { data } = await supabase.auth.getUser();
  const authUserId = data?.user?.id;
  if (authUserId) {
  setCurrentUserId(String(authUserId));
@@ -588,13 +589,10 @@ const TournamentPanel: React.FC = () => {
 
  const estaFinalizado = tournamentStatus === 'FINALIZADO';
 
- const rivalWaLink = useMemo(() => {
- const whatsapp = nextMatch?.rival_whatsapp;
- if (!whatsapp) return null;
- const digits = String(whatsapp).replace(/[^\d]/g, '');
- if (!digits) return null;
- return `https://wa.me/${digits}`;
- }, [nextMatch?.rival_whatsapp]);
+ const rivalWaLink = useMemo(
+   () => toWhatsAppLink(nextMatch?.rival_whatsapp),
+   [nextMatch?.rival_whatsapp],
+ );
 
  const nextMatchDateLabel = useMemo(() => {
  if (!nextMatch?.fecha_programada) return null;

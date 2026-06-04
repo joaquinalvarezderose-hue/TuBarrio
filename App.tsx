@@ -69,7 +69,6 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery 
           <Route path="/ayuda" element={user ? <Ayuda /> : <Navigate to="/login" replace />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-          {/* Agregá acá el resto de tus rutas siguiendo el mismo formato */}
         </Routes>
       </main>
     </div>

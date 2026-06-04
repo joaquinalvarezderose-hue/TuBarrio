@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { toWhatsAppLink } from '../utils/whatsapp';
 
 type RivalProfile = {
   id: string;
@@ -48,7 +49,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
       let currentUserId = '';
 
       try {
-        const { data: authData } = await (supabase as any).auth.getUser();
+        const { data: authData } = await supabase.auth.getUser();
         currentUserId = authData?.user?.id ?? '';
       } catch {
         // Sin sesion auth, intenta fallback.
@@ -123,7 +124,8 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
       }
 
       if (matchError) {
-        // Fallback si el join alias no puede resolverse por metadata/fk en runtime.
+        // The joined query above can fail at runtime if the FK alias isn't resolved by
+        // Supabase metadata. Fall back to a flat query so the hook always returns a result.
         let plainQuery: any = supabase
           .from('partidos')
           .select('id, jornada, estado, fecha_programada, torneo_id, jugador1_id, jugador2_id')
@@ -195,8 +197,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
         whatsapp: rivalWhatsapp,
       };
 
-      const digits = String(rival.whatsapp ?? '').replace(/[^\d]/g, '');
-      const whatsappLink = digits ? `https://wa.me/${digits}` : null;
+      const whatsappLink = toWhatsAppLink(rival.whatsapp);
 
       setMatch({
         id: String(next.id),

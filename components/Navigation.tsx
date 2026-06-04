@@ -49,8 +49,7 @@ const Navigation: React.FC = () => {
  })}
  </div>
 
- {/* Premium card removed for MVP */}
- </nav>
+</nav>
  );
 };
 

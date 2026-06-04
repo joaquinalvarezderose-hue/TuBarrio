@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../services/supabaseClient';
+import type { Database } from '../types/database.types';
 
 interface BracketMatch {
  id: string;
@@ -90,12 +91,12 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
 
  // Create name lookup map
  const nameMap: Record<string, string> = {};
- profilesData?.forEach((p: any) => {
+ profilesData?.forEach((p: Database['public']['Tables']['perfiles']['Row']) => {
  nameMap[p.id] = p.nombre_completo || 'Jugador';
  });
 
  // Transform data to include player names
- const transformedMatches: BracketMatch[] = matchesData.map((match: any) => ({
+ const transformedMatches: BracketMatch[] = matchesData.map((match: Database['public']['Tables']['partidos']['Row']) => ({
  ...match,
  jugador1_nombre: nameMap[match.jugador1_id] || 'A definir',
  jugador2_nombre: nameMap[match.jugador2_id] || 'A definir',

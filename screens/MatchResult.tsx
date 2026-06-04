@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
+import type { Json } from '../types/database.types';
 
 type ScoreState = {
  set1: { player1: number; player2: number };
@@ -54,10 +55,10 @@ type ProposalRpcRow = {
 
 type ProposalData = {
  estado: 'pendiente' | 'confirmado' | 'discrepancia';
- sets_json_j1: any;
- sets_json_j2: any;
+ sets_json_j1: Json | null;
+ sets_json_j2: Json | null;
  ultimo_cargado_por: string | null;
- debe_confirmar_por: string | null; // NEW: who must confirm (source of truth)
+ debe_confirmar_por: string | null;
 };
 
 type TournamentStats = {
@@ -75,7 +76,7 @@ const emptyScores: ScoreState = {
  set3: { player1: 0, player2: 0 },
 };
 
-const parseProposalSets = (raw: any): ProposalSets | null => {
+const parseProposalSets = (raw: unknown): ProposalSets | null => {
  if (!Array.isArray(raw)) return null;
  return {
  set1: { player1: Number(raw[0]?.p1 || 0), player2: Number(raw[0]?.p2 || 0) },
@@ -114,7 +115,7 @@ const MatchResult: React.FC = () => {
  const [rivalProposalScores, setRivalProposalScores] = useState<ProposalSets | null>(null);
  const [hasOwnProposal, setHasOwnProposal] = useState(false);
  const [lastSubmittedBy, setLastSubmittedBy] = useState<string | null>(null);
- const [mustConfirmBy, setMustConfirmBy] = useState<string | null>(null); // NEW: who must confirm (from DB)
+ const [mustConfirmBy, setMustConfirmBy] = useState<string | null>(null);
  const [enrolledCount, setEnrolledCount] = useState(0);
  const [blockReason, setBlockReason] = useState<string | null>(null);
  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -210,8 +211,7 @@ const MatchResult: React.FC = () => {
  return matchWinner === 1 ? 1 : 0;
  }
  }, [matchWinner, isCurrentUserPlayer1]);
- // OLD: const isPlayer2 = useMemo(() => currentUserId !== '' && currentUserId === partido?.jugador2_id, [currentUserId, partido?.jugador2_id]);
- // NEW: Use mustConfirmBy from database - this is the single source of truth
+ // mustConfirmBy comes from the DB and is the canonical authority on who must confirm a result.
  const isMustConfirm = useMemo(() => {
  if (!mustConfirmBy || !currentUserId) return false;
  return String(mustConfirmBy).toLowerCase() === String(currentUserId).toLowerCase();
@@ -302,14 +302,14 @@ const MatchResult: React.FC = () => {
  useEffect(() => {
  const checkAuth = async () => {
  try {
- let { data } = await (supabase as any).auth.getUser();
+ let { data } = await supabase.auth.getUser();
 
  // El access token pudo haber expirado (pestaña inactiva ~1h). getUser() no refresca
  // por sí solo y, sin sesión válida, las lecturas RLS de `partidos` /
  // `torneo_propuestas_partido` devuelven vacío en silencio. Intentamos recuperar la
  // sesión con el refresh token antes de caer al fallback de localStorage.
  if (!data?.user?.id) {
- const { data: refreshed } = await (supabase as any).auth.refreshSession();
+ const { data: refreshed } = await supabase.auth.refreshSession();
  if (refreshed?.user?.id) {
  data = { user: refreshed.user };
  }
@@ -340,7 +340,9 @@ const MatchResult: React.FC = () => {
  }
  } catch (err) {
  console.error('Auth check error:', err);
- // Fallback to localStorage if auth throws
+ // If the Supabase auth call throws (e.g. network offline), keep the user
+ // in a degraded read-only state using the cached localStorage profile
+ // rather than logging them out entirely.
  if (appUser?.id) {
  setSessionExpired(true);
  setCurrentUserId(String(appUser.id));
@@ -350,7 +352,7 @@ const MatchResult: React.FC = () => {
  
  checkAuth();
 
- const { data: authListener } = (supabase as any).auth.onAuthStateChange(() => {});
+ const { data: authListener } = supabase.auth.onAuthStateChange(() => {});
 
  return () => {
  authListener?.subscription?.unsubscribe();
@@ -789,14 +791,14 @@ const MatchResult: React.FC = () => {
  navigate('/tournament-panel', { state: { tournament } });
  } catch (error) {
  console.error('Error enviando el resultado', error);
- const anyErr: any = error as any;
+ const anyErr = error as Record<string, unknown>;
  const message =
- (anyErr && typeof anyErr === 'object' && typeof anyErr.message === 'string' && anyErr.message.trim())
- ? anyErr.message
- : (anyErr && typeof anyErr === 'object' && typeof anyErr.error_description === 'string' && anyErr.error_description.trim())
- ? anyErr.error_description
- : (anyErr && typeof anyErr === 'object' && typeof anyErr.details === 'string' && anyErr.details.trim())
- ? anyErr.details
+ (anyErr && typeof anyErr === 'object' && typeof anyErr.message === 'string' && (anyErr.message as string).trim())
+ ? anyErr.message as string
+ : (anyErr && typeof anyErr === 'object' && typeof anyErr.error_description === 'string' && (anyErr.error_description as string).trim())
+ ? anyErr.error_description as string
+ : (anyErr && typeof anyErr === 'object' && typeof anyErr.details === 'string' && (anyErr.details as string).trim())
+ ? anyErr.details as string
  : (anyErr && typeof anyErr === 'object')
  ? (() => {
  try {

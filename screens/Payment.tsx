@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
+import { toWhatsAppLink } from '../utils/whatsapp';
 
 const TOURNAMENT_SEASON_LABEL = 'Mayo a Julio';
 
@@ -28,7 +29,7 @@ const Payment: React.FC = () => {
     try {
       const userStr = localStorage.getItem('app_user');
       const cachedUser = userStr ? JSON.parse(userStr) : null;
-      const { data: authData, error: authError } = await (supabase as any).auth.getUser();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
       const perfilId = authData?.user?.id || cachedUser?.id;
 
@@ -47,7 +48,7 @@ const Payment: React.FC = () => {
         
         if (!profileRow) {
           // Crear perfil automáticamente si no existe
-          const { data: authUser } = await (supabase as any).auth.getUser();
+          const { data: authUser } = await supabase.auth.getUser();
           const userEmail = authUser?.user?.email || '';
           const userName = authUser?.user?.user_metadata?.name || userEmail.split('@')[0] || 'Usuario';
           
@@ -223,7 +224,7 @@ const Payment: React.FC = () => {
                   <span className="text-sm font-black text-[#111813]">{whatsappDestino}</span>
                 </div>
                 <a
-                  href={`https://wa.me/${whatsappDestino.replace(/[^\d]/g, '')}`}
+                  href={toWhatsAppLink(whatsappDestino) ?? '#'}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1.5 bg-[#25D366] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm"

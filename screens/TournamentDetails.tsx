@@ -21,7 +21,7 @@ const TournamentDetails: React.FC = () => {
 
  useEffect(() => {
  const checkRegistration = async () => {
- const { data: authData } = await (supabase as any).auth.getUser();
+ const { data: authData } = await supabase.auth.getUser();
  const authUserId = authData?.user?.id;
 
  // Chequeo rápido en localStorage
@@ -58,7 +58,9 @@ const TournamentDetails: React.FC = () => {
  localStorage.setItem(cacheKey, JSON.stringify(merged));
  localStorage.setItem('registered_tournaments', JSON.stringify(merged));
  }
- } catch (_) {}
+ } catch (err) {
+    console.error('[TournamentDetails] Error checking registration status:', err);
+ }
  };
  checkRegistration();
  }, [tournament.id]);

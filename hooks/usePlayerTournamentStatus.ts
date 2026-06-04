@@ -70,7 +70,7 @@ export function usePlayerTournamentStatus(
 
       if (!currentUserId) {
         try {
-          const { data: authData } = await (supabase as any).auth.getUser();
+          const { data: authData } = await supabase.auth.getUser();
           currentUserId = authData?.user?.id ?? '';
         } catch {
           // no auth session
@@ -104,7 +104,7 @@ export function usePlayerTournamentStatus(
         return;
       }
 
-      const { data, error: rpcError } = await (supabase as any).rpc(
+      const { data, error: rpcError } = await supabase.rpc(
         'obtener_estado_jugador_torneo',
         { p_torneo_id: parsedTournamentId, p_perfil_id: currentUserId }
       );

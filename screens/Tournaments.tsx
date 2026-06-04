@@ -131,14 +131,13 @@ const Tournaments: React.FC = () => {
 
  useEffect(() => {
  const loadRegistrations = async () => {
- const { data: authData } = await (supabase as any).auth.getUser();
+ const { data: authData } = await supabase.auth.getUser();
  const authUserId = authData?.user?.id;
  const userId = String(authUserId || 'anon');
  const cacheKey = `registered_tournaments_${userId}`;
  const saved = localStorage.getItem(cacheKey);
  const localIds: number[] = saved ? JSON.parse(saved) : [];
  try {
- console.log('Mis Torneos authUserId', authUserId, 'saved localIds', localIds);
 
  if (!authUserId) {
  setRegisteredIds(localIds);
@@ -154,7 +153,6 @@ const Tournaments: React.FC = () => {
 
  if (inscripcionesError) {
  console.error('Supabase error inscripciones_torneo', {
- status: (inscripcionesError as any).status,
  message: inscripcionesError.message,
  details: inscripcionesError.details,
  hint: inscripcionesError.hint,
@@ -172,7 +170,6 @@ const Tournaments: React.FC = () => {
 
  if (error) {
  console.error('Supabase error torneo_jugadores', {
- status: (error as any).status,
  message: error.message,
  details: error.details,
  hint: error.hint,
@@ -185,13 +182,7 @@ const Tournaments: React.FC = () => {
  console.error('Unexpected error querying torneo_jugadores', error);
  }
 
- console.log('Mis Torneos debug:', {
- authUserId,
- jugadoresData,
- inscripcionesData,
- });
-
- const jugadorIds = (jugadoresData || [])
+const jugadorIds = (jugadoresData || [])
  .map((row: any) => Number(row.torneo_id || 0))
  .filter((id: number) => id > 0);
 
@@ -323,7 +314,7 @@ const Tournaments: React.FC = () => {
 
  useEffect(() => {
  const loadHistorial = async () => {
- const { data: authData } = await (supabase as any).auth.getUser();
+ const { data: authData } = await supabase.auth.getUser();
  const userId = authData?.user?.id;
  if (!userId) return;
 

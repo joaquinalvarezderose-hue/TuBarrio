@@ -114,9 +114,9 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
             )
             .select()
             .single();
-          const dbError = (insertResponse as any).error;
+          const dbError = insertResponse.error;
           if (dbError) throw dbError;
-          const insertedProfile = (insertResponse as any).data;
+          const insertedProfile = insertResponse.data;
           if (insertedProfile) {
             localStorage.setItem('app_user', JSON.stringify(insertedProfile));
           } else {

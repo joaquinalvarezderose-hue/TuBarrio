@@ -4,6 +4,7 @@ import Logo from '../components/Logo';
 import { supabase } from '../services/supabaseClient';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import BracketTab from '../components/BracketTab';
+import { toWhatsAppLink } from '../utils/whatsapp';
 
 type FixturePlayer = {
  perfil_id: string;
@@ -94,9 +95,11 @@ const Fixture: React.FC = () => {
  const isEliminated = playerStatus?.estado === 'eliminado';
 
  useEffect(() => {
- (supabase as any).auth.getUser().then(({ data }: any) => {
+ supabase.auth.getUser().then(({ data }) => {
  if (data?.user?.id) setCurrentUserId(String(data.user.id));
- }).catch(() => {});
+ }).catch((err: unknown) => {
+    console.error('[Fixture] Auth getUser failed:', err);
+ });
  }, []);
 
  const loadFixtureData = useCallback(async () => {
@@ -163,9 +166,8 @@ const Fixture: React.FC = () => {
  .find((r: any) => !effectiveGroup || String(r?.grupo || '') === effectiveGroup)?.estado || '';
  setTorneoFinalizado(String(estadoNorm).toUpperCase() === 'FINALIZADO');
 
- // â”€â”€ 4. Cargar partidos del grupo seleccionado (SIN filtrar por usuario) â”€
- // FIX PRINCIPAL: siempre mostramos TODOS los partidos del grupo, 
- // independientemente de si el usuario juega en ese grupo o no.
+ // Load all matches in the selected group — spectators and cross-group visitors
+ // must see the full fixture, not just their own matches.
  let partidosQuery: any = supabase
  .from('partidos')
  .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id')
@@ -340,7 +342,8 @@ const Fixture: React.FC = () => {
 
  const fechasForTabs = useMemo(() => [...fechas].sort((a, b) => b - a), [fechas]);
 
- // Fallback: find the user's next pending match directly from loaded data
+ // useNextMatch may not resolve if the RPC/join is unavailable; derive the next match
+ // from the already-loaded fixture data so the UI never shows an empty card.
  const myNextMatchInFixture = useMemo(() => {
  if (!currentUserId) return null;
  const pending = matches.find((m) =>
@@ -514,7 +517,7 @@ const Fixture: React.FC = () => {
  </div>
  {displayNextMatch?.rival_whatsapp ? (
  <a
- href={`https://wa.me/${String(displayNextMatch.rival_whatsapp).replace(/[^\d]/g, '')}`}
+ href={toWhatsAppLink(displayNextMatch.rival_whatsapp) ?? '#'}
  target="_blank"
  rel="noreferrer"
  className="w-11 h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-sm"
@@ -607,8 +610,7 @@ const Fixture: React.FC = () => {
  const isMyMatch = currentUserId && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId);
  const isClickable = isFinal || Boolean(isMyMatch);
  const rival = currentUserId === match.p1.perfil_id ? match.p2 : currentUserId === match.p2.perfil_id ? match.p1 : null;
- const rivalWaDigits = String(rival?.whatsapp || '').replace(/[^\d]/g, '');
- const rivalWaLink = rivalWaDigits ? `https://wa.me/${rivalWaDigits}` : null;
+ const rivalWaLink = toWhatsAppLink(rival?.whatsapp);
  const isNext = match.id === highlightedMatchId;
  const userWon = isMyMatch && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id === currentUserId;
  const userLost = isMyMatch && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id !== currentUserId;

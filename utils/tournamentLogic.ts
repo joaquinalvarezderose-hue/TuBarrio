@@ -134,7 +134,7 @@ export const calculateStandings = (players: PlayerStats[], results: MatchScore[]
   });
 };
 
-export const getBestSecondsAverage = (standings: any[]) => {
+export const getBestSecondsAverage = (standings: PlayerStats[]) => {
   return standings.map(player => ({
     ...player,
     average: player.pj > 0 ? (player.pts / player.pj).toFixed(2) : "0.00"
@@ -233,7 +233,7 @@ export const registerParticipant = async (params: {
       .insert([{ torneo_id: tournamentId, perfil_id: userId, categoria, grupo, puntos: 0, partidos_jugados: 0, sets_ganados: 0 }]);
 
     if (insert.error) {
-      const duplicateError = (insert.error as any).code === '23505';
+      const duplicateError = insert.error.code === '23505';
       if (!duplicateError) throw new Error(insert.error.message);
       alreadyRegistered = true;
     }
