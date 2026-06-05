@@ -17,6 +17,17 @@ export interface CurrentUserState {
   refresh: () => Promise<void>;
 }
 
+const PERFIL_CACHE_KEY = 'tubarrio_perfil_cache';
+
+function readPerfilCache(): Perfil | null {
+  try {
+    const raw = localStorage.getItem(PERFIL_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Perfil) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fuente única de verdad para el usuario autenticado actual.
  *
@@ -28,7 +39,7 @@ export interface CurrentUserState {
  */
 export function useCurrentUser(): CurrentUserState {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [perfil, setPerfil] = useState<Perfil | null>(readPerfilCache);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -54,6 +65,7 @@ export function useCurrentUser(): CurrentUserState {
       if (!data?.user) {
         setAuthUser(null);
         setPerfil(null);
+        localStorage.removeItem(PERFIL_CACHE_KEY);
         return;
       }
 
@@ -68,6 +80,11 @@ export function useCurrentUser(): CurrentUserState {
 
       if (profileErr) throw profileErr;
       setPerfil(profileData ?? null);
+      if (profileData) {
+        localStorage.setItem(PERFIL_CACHE_KEY, JSON.stringify(profileData));
+      } else {
+        localStorage.removeItem(PERFIL_CACHE_KEY);
+      }
     } catch (e) {
       setError(e as Error);
       setAuthUser(null);
