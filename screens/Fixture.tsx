@@ -2,6 +2,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { supabase } from '../services/supabaseClient';
+import { fixtureCache } from '../services/fixtureCache';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import BracketTab from '../components/BracketTab';
 import { toWhatsAppLink } from '../utils/whatsapp';
@@ -150,7 +151,9 @@ const Fixture: React.FC = () => {
  const [matches, setMatches] = useState<FixtureMatch[]>([]);
  const [torneoFinalizado, setTorneoFinalizado] = useState(false);
  const [loadError, setLoadError] = useState<string | null>(null);
- const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
+ const [isLoading, setIsLoading] = useState(true);
+ const userIdRef = useRef<string>(String(appUser?.id || ''));
+ const [currentUserId, setCurrentUserId] = useState<string>(userIdRef.current);
  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
  const [selectedGroup, setSelectedGroup] = useState<string>('');
  // Grupo propio del usuario (para el próximo partido)
@@ -175,7 +178,10 @@ const Fixture: React.FC = () => {
 
  useEffect(() => {
  supabase.auth.getUser().then(({ data }) => {
- if (data?.user?.id) setCurrentUserId(String(data.user.id));
+ if (data?.user?.id) {
+ userIdRef.current = String(data.user.id);
+ setCurrentUserId(String(data.user.id));
+ }
  }).catch((err: unknown) => {
     console.error('[Fixture] Auth getUser failed:', err);
  });
@@ -189,16 +195,28 @@ const Fixture: React.FC = () => {
  const parsedTournamentId = Number(tournament.id);
  if (!Number.isFinite(parsedTournamentId)) throw new Error('ID de torneo invalido.');
 
- // â”€â”€ 1. Resolver el grupo propio del usuario â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ // Mostrar datos del caché de inmediato si existen (sin flash)
+ const cacheKey = `fixture-${parsedTournamentId}-${selectedGroup}`;
+ const cached = fixtureCache.get<{ matches: FixtureMatch[]; playersStats: FixturePlayer[]; torneoFinalizado: boolean; availableGroups: string[] }>(cacheKey);
+ if (cached) {
+ setMatches(cached.matches);
+ setPlayersStats(cached.playersStats);
+ setTorneoFinalizado(cached.torneoFinalizado);
+ setAvailableGroups(cached.availableGroups);
+ setIsLoading(false);
+ }
+
+ // Resolver el grupo propio del usuario
+ const uid = userIdRef.current;
  let userOwnGroup = '';
  let resolvedCategory = String(tournament.subtitle || '').trim();
 
- if (currentUserId) {
+ if (uid) {
  const { data: playerScopeRows } = await supabase
  .from('torneo_jugadores')
  .select('categoria, grupo')
  .eq('torneo_id', parsedTournamentId)
- .eq('perfil_id', currentUserId)
+ .eq('perfil_id', uid)
  .limit(1);
 
  const ps = Array.isArray(playerScopeRows) ? playerScopeRows[0] : null;
@@ -383,13 +401,21 @@ const Fixture: React.FC = () => {
 
  setMatches(mappedMatches);
  setLoadError(null);
+ // Guardar en caché: usa la misma clave que la lectura para que el hit funcione al volver
+ fixtureCache.set(`fixture-${parsedTournamentId}-${selectedGroup}`, {
+ matches: mappedMatches,
+ playersStats: stats,
+ torneoFinalizado: String(estadoNorm).toUpperCase() === 'FINALIZADO',
+ availableGroups: groups,
+ });
  } catch (err) {
  console.error('No se pudo cargar el estado del fixture', err);
  setLoadError('Hubo un error al cargar el fixture. Intenta recargar la pagina en unos segundos.');
  } finally {
  isLoadingRef.current = false;
+ setIsLoading(false);
  }
- }, [currentUserId, selectedGroup, tournament.id, tournament.subtitle]);
+ }, [selectedGroup, tournament.id, tournament.subtitle]);
 
  const fechas = useMemo(() => {
  const unique = Array.from(new Set(matches.map((m) => m.jornada))).sort((a, b) => a - b);
@@ -582,7 +608,19 @@ const Fixture: React.FC = () => {
  <h3 className="text-sm font-bold uppercase tracking-wider text-[#111813] mb-3">
  Estado en vivo · {formatGroupName(selectedGroup)}
  </h3>
- {playersStats.length === 0 ? (
+ {isLoading ? (
+ <div className="space-y-2">
+ {Array.from({ length: 4 }).map((_, i) => (
+ <div key={i} className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2">
+ <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+ <div className="h-4 bg-gray-200 rounded animate-pulse" />
+ <div className="h-4 w-8 bg-gray-200 rounded animate-pulse mx-auto" />
+ <div className="h-4 w-8 bg-gray-200 rounded animate-pulse mx-auto" />
+ <div className="h-4 w-8 bg-gray-200 rounded animate-pulse mx-auto" />
+ </div>
+ ))}
+ </div>
+ ) : playersStats.length === 0 ? (
  <p className="text-sm text-[#61896b]">Todavía no hay estadísticas cargadas para este grupo.</p>
  ) : (
  <div className="space-y-2">
@@ -641,7 +679,15 @@ const Fixture: React.FC = () => {
  Partidos · {formatGroupName(selectedGroup)}
  </h3>
  <div className="flex flex-col gap-4">
- {fixtureMatches.length === 0 ? (
+ {isLoading ? (
+ Array.from({ length: 3 }).map((_, i) => (
+ <div key={i} className="rounded-xl bg-white p-4 shadow-sm border border-[#dbe6de] animate-pulse">
+ <div className="h-5 bg-gray-200 rounded w-2/3 mb-3" />
+ <div className="h-5 bg-gray-200 rounded w-1/2 mb-4" />
+ <div className="h-9 bg-gray-100 rounded-lg w-full" />
+ </div>
+ ))
+ ) : fixtureMatches.length === 0 ? (
  <div className="rounded-xl bg-white p-4 shadow-sm border border-[#dbe6de] ">
  <p className="text-sm text-[#61896b]">Todavía no hay partidos cargados para esta jornada.</p>
  </div>

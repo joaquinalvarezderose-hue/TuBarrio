@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { PlayerStats, TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
+import { fixtureCache } from '../services/fixtureCache';
 import BracketTab from '../components/BracketTab';
 
 type TournamentScope = {
@@ -100,6 +101,7 @@ const Standings: React.FC = () => {
  const [dbRows, setDbRows] = useState<any[] | null>(null);
  const [dbLoadError, setDbLoadError] = useState<string | null>(null);
  const [rawHistorial, setRawHistorial] = useState<TournamentHistoryRow[]>([]);
+ const [isLoading, setIsLoading] = useState(true);
  const [scope, setScope] = useState<TournamentScope | null>(null);
  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
  const [selectedGroup, setSelectedGroup] = useState<string>('');
@@ -123,6 +125,15 @@ const Standings: React.FC = () => {
  if (!Number.isFinite(parsedTournamentId)) {
  setDbRows([]);
  return;
+ }
+
+ // Mostrar datos del caché de inmediato si existen
+ const standingsCacheKey = `standings-${parsedTournamentId}-${selectedGroup}`;
+ const cachedStandings = fixtureCache.get<{ rows: any[]; historial: TournamentHistoryRow[] }>(standingsCacheKey);
+ if (cachedStandings) {
+ setDbRows(cachedStandings.rows);
+ setRawHistorial(cachedStandings.historial);
+ setIsLoading(false);
  }
 
  let currentUserId = '';
@@ -504,10 +515,17 @@ const Standings: React.FC = () => {
 
  setDbRows(withUniqueLabels);
  setDbLoadError(null);
+ // Guardar en caché para navegación instantánea al volver
+ fixtureCache.set(`standings-${parsedTournamentId}-${selectedGroup}`, {
+ rows: withUniqueLabels,
+ historial: (historyRows as TournamentHistoryRow[] | null) || [],
+ });
  } catch (err) {
  console.error('No se pudo cargar la tabla desde Supabase', err);
  setDbRows([]);
  setDbLoadError('No se pudo cargar la tabla de posiciones. Intenta recargar la página.');
+ } finally {
+ setIsLoading(false);
  }
  }, [selectedGroup, tournament.id, tournament.subtitle]);
 
@@ -713,6 +731,20 @@ const Standings: React.FC = () => {
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100 ">
+ {isLoading ? (
+ Array.from({ length: 5 }).map((_, i) => (
+ <tr key={i}>
+ <td className="px-4 py-4 sticky left-0 bg-white"><div className="h-4 w-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+ <td className="px-4 py-4 sticky left-12 bg-white shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)]"><div className="h-4 bg-slate-200 rounded animate-pulse w-32" /></td>
+ <td className="px-3 py-4"><div className="h-4 w-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+ <td className="px-3 py-4"><div className="h-4 w-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+ <td className="px-3 py-4"><div className="h-4 w-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+ <td className="px-3 py-4"><div className="h-4 w-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+ <td className="px-3 py-4"><div className="h-4 w-8 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+ </tr>
+ ))
+ ) : (
+ <>
  {calculatedStandings.map((p: any, idx: number) => (
  <StandingsRow
  key={p.id}
@@ -728,6 +760,8 @@ const Standings: React.FC = () => {
  Todavia no hay jugadores inscriptos o no se pudo leer la tabla del torneo en Supabase.
  </td>
  </tr>
+ )}
+ </>
  )}
  </tbody>
  </table>
