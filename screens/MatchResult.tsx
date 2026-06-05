@@ -1117,7 +1117,7 @@ const MatchResult: React.FC = () => {
  )}
 
  {/* Playoff elimination notice */}
- {playoffsActiveNoMatch && !loadingMatch && !tournamentStats && (
+ {playoffsActiveNoMatch && !loadingMatch && (
  <section className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6 text-center space-y-3">
  <div className="mx-auto size-14 rounded-full bg-amber-100 flex items-center justify-center">
  <span className="material-symbols-outlined text-amber-500 text-3xl">info</span>

@@ -851,19 +851,19 @@ const TournamentPanel: React.FC = () => {
  <span className="text-sm font-semibold text-center text-[#111813] ">Tabla de Posiciones</span>
  </button>
  
- <button 
+ <button
  onClick={() => navigate('/match-result', { state: { tournament } })}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
  >
  <div className={`size-12 rounded-full flex items-center justify-center transition-colors shadow-md ${
- estaFinalizado
+ (estaFinalizado && !noPlayoffMatch)
  ? 'bg-gray-400 text-white'
  : 'bg-[#4a9c40] text-white group-hover:bg-[#3d8b33]'
  }`}>
- <span className="material-symbols-outlined text-3xl">{estaFinalizado ? 'history' : 'sports_tennis'}</span>
+ <span className="material-symbols-outlined text-3xl">{(estaFinalizado && !noPlayoffMatch) ? 'history' : 'sports_tennis'}</span>
  </div>
  <span className="text-sm font-semibold text-center text-[#111813] ">
- {estaFinalizado ? 'Ver Historial' : 'Cargar Resultado'}
+ {(estaFinalizado && !noPlayoffMatch) ? 'Ver Historial' : 'Cargar Resultado'}
  </span>
  </button>
  
@@ -1069,25 +1069,35 @@ const TournamentPanel: React.FC = () => {
  </button>
  </div>
  </div>) : noPlayoffMatch ? (
- <div className="rounded-xl p-5 border-2 border-amber-200 bg-amber-50 ">
- <div className="flex items-start gap-3">
- <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
- <span className="material-symbols-outlined text-amber-500 text-xl">info</span>
+ <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200 relative overflow-hidden">
+ <div className="absolute top-0 right-0 p-3 opacity-10">
+ <span className="material-symbols-outlined text-4xl">format_quote</span>
  </div>
- <div className="flex-1">
- <h4 className="font-bold text-amber-800 text-sm uppercase tracking-wide mb-1">
- No clasificaste a los playoffs
- </h4>
- <p className="text-sm text-amber-700 leading-relaxed">
+ <div className="text-center mb-5">
+ <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 shadow-sm mb-3">
+ <span className="material-symbols-outlined text-amber-500 text-4xl">sentiment_dissatisfied</span>
+ </div>
+ <h2 className="font-bold text-2xl tracking-tight text-[#111813] uppercase">
+ No Clasificaste
+ </h2>
+ <p className="text-amber-600 text-sm font-medium mt-1">
+ No estás entre los clasificados de tu grupo
+ </p>
+ </div>
+ <div className="border-t border-amber-200 pt-4">
+ <h3 className="font-bold text-[#111813] tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
+ <span className="material-symbols-outlined text-amber-500">info</span>
+ El torneo continúa
+ </h3>
+ <p className="text-amber-700 text-sm leading-relaxed mb-4">
  El torneo continúa en la fase de eliminación directa, pero no estás entre los clasificados de tu grupo.
  </p>
  <button
  onClick={() => navigate('/standings', { state: { tournament } })}
- className="mt-3 text-xs font-bold text-amber-700 underline underline-offset-2 active:opacity-60"
+ className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-bold rounded-xl transition-colors"
  >
- Ver las Llaves →
+ Ver la Tabla de Posiciones
  </button>
- </div>
  </div>
  </div>
  ) : (
