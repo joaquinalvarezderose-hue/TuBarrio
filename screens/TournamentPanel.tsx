@@ -877,7 +877,7 @@ const TournamentPanel: React.FC = () => {
  <div className="h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
  <div className="h-28 bg-gray-100 rounded-xl animate-pulse"></div>
  </section>
- ) : (isEliminated || isCampeon || isFinalista || (isWaiting && !matchIsWaitingValidation)) ? (
+ ) : (isEliminated || noPlayoffMatch || isCampeon || isFinalista || (isWaiting && !matchIsWaitingValidation)) ? (
  /* ── Resumen del torneo (eliminado / campeón / finalista / esperando ronda) ── */
  <section className="space-y-4">
  {/* Banner de campeón visible para todos excepto el propio campeón */}
@@ -1062,39 +1062,7 @@ const TournamentPanel: React.FC = () => {
  Ver la Tabla de Posiciones
  </button>
  </div>
- </div>) : noPlayoffMatch ? (
- <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200 relative overflow-hidden">
- <div className="absolute top-0 right-0 p-3 opacity-10">
- <span className="material-symbols-outlined text-4xl">format_quote</span>
- </div>
- <div className="text-center mb-5">
- <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 shadow-sm mb-3">
- <span className="material-symbols-outlined text-amber-500 text-4xl">sentiment_dissatisfied</span>
- </div>
- <h2 className="font-bold text-2xl tracking-tight text-[#111813] uppercase">
- No Clasificaste
- </h2>
- <p className="text-amber-600 text-sm font-medium mt-1">
- No estás entre los clasificados de tu grupo
- </p>
- </div>
- <div className="border-t border-amber-200 pt-4">
- <h3 className="font-bold text-[#111813] tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
- <span className="material-symbols-outlined text-amber-500">info</span>
- El torneo continúa
- </h3>
- <p className="text-amber-700 text-sm leading-relaxed mb-4">
- El torneo continúa en la fase de eliminación directa, pero no estás entre los clasificados de tu grupo.
- </p>
- <button
- onClick={() => navigate('/standings', { state: { tournament } })}
- className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-bold rounded-xl transition-colors"
- >
- Ver la Tabla de Posiciones
- </button>
- </div>
- </div>
- ) : (
+ </div>) : (
  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
  <div className="absolute top-0 left-0 w-1.5 h-full bg-[#4a9c40]"></div>
  <div className="flex justify-between items-start mb-4">
