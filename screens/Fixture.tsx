@@ -62,6 +62,85 @@ const formatGroupName = (groupCode: string): string => {
  return 'Grupo 1';
 };
 
+const getStatusLabel = (match: FixtureMatch) => {
+ if (match.estado === 'finalizado' || match.finalScore) return 'FINAL';
+ if (match.proposalState === 'discrepancia') return 'EN DISPUTA';
+ if (match.proposalState === 'pendiente' || match.estado === 'en_curso') return 'PENDIENTE RIVAL';
+ if (match.estado === 'esperando_validacion') return 'ESPERANDO CONFIRM.';
+ return 'PROGRAMADO';
+};
+
+type MatchCardProps = {
+ match: FixtureMatch;
+ currentUserId: string;
+ highlightedMatchId: string | null;
+ torneoFinalizado: boolean;
+ tournament: { id: number | string; title: string; subtitle: string };
+};
+
+const MatchCard = React.memo<MatchCardProps>(({ match, currentUserId, highlightedMatchId, torneoFinalizado, tournament }) => {
+ const navigate = useNavigate();
+ const isFinal = Boolean(match.finalScore) || match.estado === 'finalizado';
+ const p1Sets = match.finalScore?.sets_jugador1 ?? 0;
+ const p2Sets = match.finalScore?.sets_jugador2 ?? 0;
+ const p1Won = match.finalScore?.ganador_perfil_id === match.p1.perfil_id;
+ const p2Won = match.finalScore?.ganador_perfil_id === match.p2.perfil_id;
+ const isMyMatch = Boolean(currentUserId && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId));
+ const isClickable = isFinal || isMyMatch;
+ const rival = currentUserId === match.p1.perfil_id ? match.p2 : currentUserId === match.p2.perfil_id ? match.p1 : null;
+ const rivalWaLink = toWhatsAppLink(rival?.whatsapp);
+ const isNext = match.id === highlightedMatchId;
+ const userWon = isMyMatch && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id === currentUserId;
+ const userLost = isMyMatch && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id !== currentUserId;
+ const canReport = !torneoFinalizado && currentUserId !== '' && match.estado !== 'finalizado' && isMyMatch && (!highlightedMatchId || match.id === highlightedMatchId);
+
+ return (
+ <div className={`flex flex-col gap-4 rounded-xl bg-white p-4 shadow-sm border transition-shadow hover:shadow-md ${isMyMatch && !isFinal ? 'border-primary/40 bg-primary/5' : 'border-[#dbe6de] '}`}>
+  <div className="flex justify-between items-start">
+   <div className="flex flex-col gap-3 flex-1">
+    <div className="flex items-center justify-between pr-4">
+     <span className={`${p1Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>{match.p1.nombre}</span>
+     {isFinal && <span className={`text-lg ${p1Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p1Sets}</span>}
+    </div>
+    <div className="flex items-center justify-between pr-4">
+     <span className={`${p2Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>{match.p2.nombre}</span>
+     {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
+    </div>
+   </div>
+   <div className="flex flex-col items-end gap-1">
+    {isNext && !isFinal && <span className="bg-primary/20 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">MI PARTIDO</span>}
+    <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">{getStatusLabel(match)}</span>
+    {userWon && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">GANASTE</span>}
+    {userLost && <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">PERDISTE</span>}
+    <div className="flex items-center gap-1 text-[#61896b] text-sm font-medium">
+     <span className="material-symbols-outlined text-sm">event</span>
+     <span>Jornada {match.jornada}</span>
+    </div>
+   </div>
+  </div>
+  <div className="flex gap-2">
+   <button
+    onClick={isClickable ? () => navigate(isFinal ? '/result-detail' : '/match-result', { state: { tournament, partidoId: match.id, currentUserId } }) : undefined}
+    disabled={!isClickable}
+    className={`flex-1 h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-transform ${isClickable ? 'bg-background-light text-[#111813] active:scale-95 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+   >
+    <span className="material-symbols-outlined text-lg">sports_tennis</span>
+    {isFinal ? 'Ver Resultado' : canReport ? 'Cargar Resultado' : torneoFinalizado ? 'Solo historial' : 'Ver Detalle'}
+   </button>
+   {rivalWaLink ? (
+    <a href={rivalWaLink} target="_blank" rel="noreferrer" className="w-12 h-10 rounded-lg bg-[#25D366] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm">
+     <span className="material-symbols-outlined font-bold">mail</span>
+    </a>
+   ) : isMyMatch ? (
+    <button disabled className="w-12 h-10 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed">
+     <span className="material-symbols-outlined font-bold">mail</span>
+    </button>
+   ) : null}
+  </div>
+ </div>
+ );
+});
+
 const Fixture: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
@@ -157,64 +236,47 @@ const Fixture: React.FC = () => {
  }
 
  // â”€â”€ 3. Ver estado del torneo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- const { data: estadoRows } = await supabase
- .from('torneo_estado')
- .select('estado, categoria, grupo')
- .eq('torneo_id', parsedTournamentId);
-
- const estadoNorm = ((estadoRows || []) as any[])
- .find((r: any) => !effectiveGroup || String(r?.grupo || '') === effectiveGroup)?.estado || '';
- setTorneoFinalizado(String(estadoNorm).toUpperCase() === 'FINALIZADO');
-
- // Load all matches in the selected group — spectators and cross-group visitors
- // must see the full fixture, not just their own matches.
- let partidosQuery: any = supabase
+ // Cargar estado, partidos, jugadores, historial y propuestas en paralelo
+ let partidosQ: any = supabase
  .from('partidos')
  .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id')
  .eq('torneo_id', parsedTournamentId)
  .is('bracket_tipo', null)
  .order('jornada', { ascending: true });
+ if (resolvedCategory) partidosQ = partidosQ.eq('categoria', resolvedCategory);
+ if (effectiveGroup) partidosQ = partidosQ.eq('grupo', effectiveGroup);
 
- if (resolvedCategory) partidosQuery = partidosQuery.eq('categoria', resolvedCategory);
- if (effectiveGroup) partidosQuery = partidosQuery.eq('grupo', effectiveGroup);
-
- const { data: partidosRows, error: partidosError } = await partidosQuery;
- if (partidosError) throw partidosError;
-
- const partidos = Array.isArray(partidosRows) ? partidosRows : [];
-
- // â”€â”€ 5. Cargar jugadores del grupo seleccionado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- let jugadoresQuery: any = supabase
+ let jugadoresQ: any = supabase
  .from('torneo_jugadores')
  .select('perfil_id, puntos, partidos_jugados, sets_ganados')
  .eq('torneo_id', parsedTournamentId);
+ if (resolvedCategory) jugadoresQ = jugadoresQ.eq('categoria', resolvedCategory);
+ if (effectiveGroup) jugadoresQ = jugadoresQ.eq('grupo', effectiveGroup);
 
- if (resolvedCategory) jugadoresQuery = jugadoresQuery.eq('categoria', resolvedCategory);
- if (effectiveGroup) jugadoresQuery = jugadoresQuery.eq('grupo', effectiveGroup);
-
- const { data: jugadoresRows, error: jugadoresError } = await jugadoresQuery;
- if (jugadoresError) throw jugadoresError;
-
- const jugadores = Array.isArray(jugadoresRows) ? jugadoresRows : [];
-
- // â”€â”€ 6. Historial del grupo seleccionado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- let historialQuery: any = supabase
+ let historialQ: any = supabase
  .from('torneo_partidos_historial')
  .select('partido_id, sets_jugador1, sets_jugador2, ganador_perfil_id, sets_json')
  .eq('torneo_id', parsedTournamentId);
+ if (resolvedCategory) historialQ = historialQ.eq('categoria', resolvedCategory);
+ if (effectiveGroup) historialQ = historialQ.eq('grupo', effectiveGroup);
 
- if (resolvedCategory) historialQuery = historialQuery.eq('categoria', resolvedCategory);
- if (effectiveGroup) historialQuery = historialQuery.eq('grupo', effectiveGroup);
+ const [estadoResp, partidosResp, jugadoresResp, historialResp, propuestasResp] = await Promise.all([
+ supabase.from('torneo_estado').select('estado, categoria, grupo').eq('torneo_id', parsedTournamentId),
+ partidosQ,
+ jugadoresQ,
+ historialQ,
+ supabase.from('torneo_propuestas_partido').select('partido_id, estado').eq('torneo_id', parsedTournamentId),
+ ]);
 
- // â”€â”€ 7. Propuestas del grupo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- let propuestasQuery: any = supabase
- .from('torneo_propuestas_partido')
- .select('partido_id, estado')
- .eq('torneo_id', parsedTournamentId);
+ const estadoNorm = ((estadoResp.data || []) as any[])
+ .find((r: any) => !effectiveGroup || String(r?.grupo || '') === effectiveGroup)?.estado || '';
+ setTorneoFinalizado(String(estadoNorm).toUpperCase() === 'FINALIZADO');
 
+ if (partidosResp.error) throw partidosResp.error;
+ if (jugadoresResp.error) throw jugadoresResp.error;
 
- const [historialResp, propuestasResp] = await Promise.all([historialQuery, propuestasQuery]);
-
+ const partidos = Array.isArray(partidosResp.data) ? partidosResp.data : [];
+ const jugadores = Array.isArray(jugadoresResp.data) ? jugadoresResp.data : [];
  const historial = Array.isArray(historialResp.data) ? historialResp.data : [];
  const propuestas = Array.isArray(propuestasResp.data) ? propuestasResp.data : [];
 
@@ -407,23 +469,6 @@ const Fixture: React.FC = () => {
  };
  }, [loadFixtureData, tournament.id]);
 
- const getStatusLabel = (match: FixtureMatch) => {
- if (match.estado === 'finalizado' || match.finalScore) return 'FINAL';
- if (match.proposalState === 'discrepancia') return 'EN DISPUTA';
- if (match.proposalState === 'pendiente' || match.estado === 'en_curso') return 'PENDIENTE RIVAL';
- if (match.estado === 'esperando_validacion') return 'ESPERANDO CONFIRM.';
- return 'PROGRAMADO';
- };
-
- const canReportMatch = (match: FixtureMatch) => {
- if (torneoFinalizado) return false;
- if (currentUserId === '' || match.estado === 'finalizado') return false;
- if (![match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId)) return false;
- // Only allow reporting for the player's next pending match (lowest jornada first)
- if (highlightedMatchId && match.id !== highlightedMatchId) return false;
- return true;
- };
-
  return (
  <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white font-display text-[#111813] transition-colors duration-200 pb-24">
 
@@ -601,70 +646,16 @@ const Fixture: React.FC = () => {
  <p className="text-sm text-[#61896b]">Todavía no hay partidos cargados para esta jornada.</p>
  </div>
  ) : (
- sortedFixtureMatches.map((match) => {
- const isFinal = Boolean(match.finalScore) || match.estado === 'finalizado';
- const p1Sets = match.finalScore?.sets_jugador1 ?? 0;
- const p2Sets = match.finalScore?.sets_jugador2 ?? 0;
- const p1Won = match.finalScore?.ganador_perfil_id === match.p1.perfil_id;
- const p2Won = match.finalScore?.ganador_perfil_id === match.p2.perfil_id;
- const isMyMatch = currentUserId && [match.p1.perfil_id, match.p2.perfil_id].includes(currentUserId);
- const isClickable = isFinal || Boolean(isMyMatch);
- const rival = currentUserId === match.p1.perfil_id ? match.p2 : currentUserId === match.p2.perfil_id ? match.p1 : null;
- const rivalWaLink = toWhatsAppLink(rival?.whatsapp);
- const isNext = match.id === highlightedMatchId;
- const userWon = isMyMatch && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id === currentUserId;
- const userLost = isMyMatch && Boolean(match.finalScore?.ganador_perfil_id) && match.finalScore?.ganador_perfil_id !== currentUserId;
-
- return (
- <div key={match.id} className={`flex flex-col gap-4 rounded-xl bg-white p-4 shadow-sm border transition-shadow hover:shadow-md ${isMyMatch && !isFinal ? 'border-primary/40 bg-primary/5' : 'border-[#dbe6de] '}`}>
- <div className="flex justify-between items-start">
- <div className="flex flex-col gap-3 flex-1">
- <div className="flex items-center justify-between pr-4">
- <span className={`${p1Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>
- {match.p1.nombre}
- </span>
- {isFinal && <span className={`text-lg ${p1Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p1Sets}</span>}
- </div>
- <div className="flex items-center justify-between pr-4">
- <span className={`${p2Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>
- {match.p2.nombre}
- </span>
- {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
- </div>
- </div>
- <div className="flex flex-col items-end gap-1">
- {isNext && !isFinal && <span className="bg-primary/20 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">MI PARTIDO</span>}
- <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">{getStatusLabel(match)}</span>
- {userWon && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">GANASTE</span>}
- {userLost && <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">PERDISTE</span>}
- <div className="flex items-center gap-1 text-[#61896b] text-sm font-medium">
- <span className="material-symbols-outlined text-sm">event</span>
- <span>Jornada {match.jornada}</span>
- </div>
- </div>
- </div>
- <div className="flex gap-2">
- <button
- onClick={isClickable ? () => navigate(isFinal ? '/result-detail' : '/match-result', { state: { tournament, partidoId: match.id, currentUserId } }) : undefined}
- disabled={!isClickable}
- className={`flex-1 h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-transform ${isClickable ? 'bg-background-light text-[#111813] active:scale-95 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
- >
- <span className="material-symbols-outlined text-lg">sports_tennis</span>
- {isFinal ? 'Ver Resultado' : canReportMatch(match) ? 'Cargar Resultado' : torneoFinalizado ? 'Solo historial' : 'Ver Detalle'}
- </button>
- {rivalWaLink ? (
- <a href={rivalWaLink} target="_blank" rel="noreferrer" className="w-12 h-10 rounded-lg bg-[#25D366] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm">
- <span className="material-symbols-outlined font-bold">mail</span>
- </a>
- ) : isMyMatch ? (
- <button disabled className="w-12 h-10 rounded-lg bg-gray-200 text-gray-400 flex items-center justify-center cursor-not-allowed">
- <span className="material-symbols-outlined font-bold">mail</span>
- </button>
- ) : null}
- </div>
- </div>
- );
- })
+ sortedFixtureMatches.map((match) => (
+ <MatchCard
+ key={match.id}
+ match={match}
+ currentUserId={currentUserId}
+ highlightedMatchId={highlightedMatchId}
+ torneoFinalizado={torneoFinalizado}
+ tournament={tournament}
+ />
+ ))
  )}
  </div>
  </>

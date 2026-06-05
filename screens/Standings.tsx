@@ -39,6 +39,49 @@ type TournamentHistoryRow = {
  sets_jugador2: number | null;
 };
 
+type StandingsRowProps = {
+ p: any;
+ idx: number;
+ clasificadosPorGrupo: number;
+ incluirMejoresTerceros: boolean;
+};
+
+const StandingsRow = React.memo<StandingsRowProps>(({ p, idx, clasificadosPorGrupo, incluirMejoresTerceros }) => {
+ const isClassified = idx < clasificadosPorGrupo;
+ const isThirdPlace = incluirMejoresTerceros && idx === clasificadosPorGrupo;
+ const setDiff = p.setsWon - p.setsLost;
+ const setDiffLabel = setDiff > 0 ? `+${setDiff}` : String(setDiff);
+ return (
+ <tr className={isClassified ? 'bg-primary/10 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}>
+  <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${isClassified ? 'bg-emerald-50 text-emerald-700' : isThirdPlace ? 'bg-amber-50 text-amber-700' : 'bg-white '}`}>
+   <div className="flex flex-col items-center gap-0.5">
+    <span>{idx + 1}</span>
+    {p.tiebreakerReason && (
+     <span className="text-[9px] font-bold px-1 py-px rounded bg-amber-100 text-amber-700 leading-none whitespace-nowrap">
+      {p.tiebreakerReason}
+     </span>
+    )}
+   </div>
+  </td>
+  <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${isClassified ? 'bg-emerald-50 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}`}>
+   <div className="flex items-center gap-3">
+    <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
+     {String(p.name || 'Jugador').split(' ').filter(Boolean).slice(0, 2).map((chunk: string) => chunk[0]).join('') || 'J'}
+    </div>
+    <span className="text-sm font-semibold">{p.name}</span>
+   </div>
+  </td>
+  <td className="px-3 py-4 text-center text-sm">{p.pj}</td>
+  <td className="px-3 py-4 text-center text-sm font-bold">{p.pts}</td>
+  <td className={`px-3 py-4 text-center text-sm font-semibold ${setDiff > 0 ? 'text-emerald-600 ' : setDiff < 0 ? 'text-red-500 ' : 'text-slate-400'}`}>
+   {setDiffLabel}
+  </td>
+  <td className="px-3 py-4 text-center text-sm">{p.setsWon}</td>
+  <td className="px-3 py-4 text-center text-sm font-bold text-primary">{p.average}</td>
+ </tr>
+ );
+});
+
 const getGroupOrder = (groupCode: string): number => {
  const value = String(groupCode || '').trim();
  if (!value) return Number.MAX_SAFE_INTEGER;
@@ -207,19 +250,21 @@ const Standings: React.FC = () => {
  standingsQuery = standingsQuery.eq('grupo', resolvedScope.grupo);
  }
 
- const { data, error } = await standingsQuery;
+ const [{ data, error }, configResp] = await Promise.all([
+ standingsQuery,
+ supabase
+ .from('torneo_configuracion')
+ .select('clasificados_por_grupo, incluir_mejores_terceros, cantidad_mejores_terceros')
+ .eq('torneo_id', parsedTournamentId)
+ .limit(1),
+ ]);
 
  if (error || !data) {
  setDbRows([]);
  return;
  }
 
- // Load qualifying spots per group from tournament config
- const { data: configRows } = await supabase
- .from('torneo_configuracion')
- .select('clasificados_por_grupo, incluir_mejores_terceros, cantidad_mejores_terceros')
- .eq('torneo_id', parsedTournamentId)
- .limit(1);
+ const configRows = configResp.data as any[] | null;
  if (configRows?.[0]?.clasificados_por_grupo) {
  setClasificadosPorGrupo(Number(configRows[0].clasificados_por_grupo));
  }
@@ -668,45 +713,15 @@ const Standings: React.FC = () => {
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100 ">
- {calculatedStandings.map((p: any, idx: number) => {
- const isClassified = idx < clasificadosPorGrupo;
- const isThirdPlace = incluirMejoresTerceros && idx === clasificadosPorGrupo;
- const setDiff = p.setsWon - p.setsLost;
- const setDiffLabel = setDiff > 0 ? `+${setDiff}` : String(setDiff);
- return (
- <tr key={p.id} className={isClassified ? 'bg-primary/10 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}>
- <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${isClassified ? 'bg-emerald-50 text-emerald-700' : isThirdPlace ? 'bg-amber-50 text-amber-700' : 'bg-white '}`}>
- <div className="flex flex-col items-center gap-0.5">
- <span>{idx + 1}</span>
- {p.tiebreakerReason && (
- <span className="text-[9px] font-bold px-1 py-px rounded bg-amber-100 text-amber-700 leading-none whitespace-nowrap">
- {p.tiebreakerReason}
- </span>
- )}
- </div>
- </td>
- <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${isClassified ? 'bg-emerald-50 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}`}>
- <div className="flex items-center gap-3">
- <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
- {String(p.name || 'Jugador')
- .split(' ')
- .filter(Boolean)
- .slice(0, 2)
- .map((chunk: string) => chunk[0])
- .join('') || 'J'}
- </div>
- <span className="text-sm font-semibold">{p.name}</span>
- </div>
- </td>
- <td className="px-3 py-4 text-center text-sm">{p.pj}</td>
- <td className="px-3 py-4 text-center text-sm font-bold">{p.pts}</td>
- <td className={`px-3 py-4 text-center text-sm font-semibold ${setDiff > 0 ? 'text-emerald-600 ' : setDiff < 0 ? 'text-red-500 ' : 'text-slate-400'}`}>
- {setDiffLabel}
- </td>
- <td className="px-3 py-4 text-center text-sm">{p.setsWon}</td>
- <td className="px-3 py-4 text-center text-sm font-bold text-primary">{p.average}</td>
- </tr>
- );})}
+ {calculatedStandings.map((p: any, idx: number) => (
+ <StandingsRow
+ key={p.id}
+ p={p}
+ idx={idx}
+ clasificadosPorGrupo={clasificadosPorGrupo}
+ incluirMejoresTerceros={incluirMejoresTerceros}
+ />
+ ))}
  {calculatedStandings.length === 0 && (
  <tr>
  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
