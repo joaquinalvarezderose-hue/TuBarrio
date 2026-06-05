@@ -436,9 +436,27 @@ const MatchResult: React.FC = () => {
  setTournamentStatus(normalizedStatus);
 
  if (normalizedStatus === 'FINALIZADO') {
+ // Before blocking, check if playoffs are still in progress for this tournament.
+ // The group-stage grupo is FINALIZADO but the _PLAYOFFS grupo might still be active.
+ const { data: playoffsStatusRows } = await supabase
+ .from('torneo_estado')
+ .select('estado, grupo')
+ .eq('torneo_id', tournament.id)
+ .neq('estado', 'FINALIZADO')
+ .like('grupo', '%_PLAYOFFS')
+ .limit(1);
+
+ const playoffsActive = playoffsStatusRows && playoffsStatusRows.length > 0;
+
+ if (!playoffsActive) {
  setPartido(null);
  setBlockReason('Este torneo ya finalizo. La carga de resultados esta cerrada y disponible solo para consulta.');
  return;
+ }
+
+ // Playoffs still active — use their status so the rest of the load continues correctly.
+ const playoffsStatus = String(playoffsStatusRows![0].estado || 'LOCKED').trim().toUpperCase();
+ setTournamentStatus(playoffsStatus);
  }
 
  // Primero validamos si el torneo tiene suficientes inscriptos reales para habilitar la carga.
@@ -1437,7 +1455,7 @@ const MatchResult: React.FC = () => {
  </div>
  )}
 
- {!isParticipant && !loadingMatch && !submitError && !playoffsActiveNoMatch && !sessionExpired && (
+ {!isParticipant && !!partido && !loadingMatch && !submitError && !playoffsActiveNoMatch && !sessionExpired && (
  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex gap-3 shadow-sm">
  <span className="material-symbols-outlined text-slate-500 text-lg">visibility</span>
  <p className="text-[11px] text-slate-700 leading-relaxed font-medium">Estas viendo el detalle de un partido, pero solo sus jugadores pueden enviar o confirmar el resultado.</p>
