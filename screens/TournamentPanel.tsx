@@ -855,16 +855,10 @@ const TournamentPanel: React.FC = () => {
  onClick={() => navigate('/match-result', { state: { tournament } })}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
  >
- <div className={`size-12 rounded-full flex items-center justify-center transition-colors shadow-md ${
- (estaFinalizado && !noPlayoffMatch)
- ? 'bg-gray-400 text-white'
- : 'bg-[#4a9c40] text-white group-hover:bg-[#3d8b33]'
- }`}>
- <span className="material-symbols-outlined text-3xl">{(estaFinalizado && !noPlayoffMatch) ? 'history' : 'sports_tennis'}</span>
+ <div className="size-12 rounded-full flex items-center justify-center transition-colors shadow-md bg-[#4a9c40] text-white group-hover:bg-[#3d8b33]">
+ <span className="material-symbols-outlined text-3xl">sports_tennis</span>
  </div>
- <span className="text-sm font-semibold text-center text-[#111813] ">
- {(estaFinalizado && !noPlayoffMatch) ? 'Ver Historial' : 'Cargar Resultado'}
- </span>
+ <span className="text-sm font-semibold text-center text-[#111813] ">Cargar Resultado</span>
  </button>
  
  <button 
