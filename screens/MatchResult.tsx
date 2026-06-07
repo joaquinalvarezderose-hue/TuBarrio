@@ -1123,10 +1123,12 @@ const MatchResult: React.FC = () => {
  </div>
  <h3 className="font-bold text-[#111813] tracking-tight uppercase mb-2 flex items-center gap-2 text-sm">
  <span className="material-symbols-outlined text-[#61896b]">info</span>
- Eliminado de la competencia
+ {tournamentStatus === 'FINALIZADO' ? 'Torneo finalizado' : 'Eliminado de la competencia'}
  </h3>
  <p className="text-[#61896b] text-sm leading-relaxed">
- No avanzaste a la siguiente ronda de esta competencia. El torneo continúa en curso, podés seguir viendo el fixture y los resultados en la pestaña Llaves.
+ {tournamentStatus === 'FINALIZADO'
+ ? 'Quedaste eliminado de esta competencia. Podés seguir viendo el fixture y los resultados en la pestaña Llaves.'
+ : 'No avanzaste a la siguiente ronda de esta competencia, pero podés seguir viendo los resultados del torneo y las llaves en la pestaña correspondiente.'}
  </p>
  </div>
  </div>
