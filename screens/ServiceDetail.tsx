@@ -459,7 +459,7 @@ const ServiceDetail: React.FC = () => {
       </main>
 
       {/* WhatsApp CTA sticky */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 pb-8 bg-gradient-to-t from-white via-white to-transparent z-40">
+      <div className="fixed bottom-0 left-0 right-0 p-5 pb-20 bg-gradient-to-t from-white via-white to-transparent z-40">
         <button
           disabled={!tieneWhatsApp}
           onClick={() =>
