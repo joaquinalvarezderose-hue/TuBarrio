@@ -149,7 +149,9 @@ const TournamentDetails: React.FC = () => {
  <span className="material-symbols-outlined text-[20px]">payments</span>
  <span className="text-sm font-medium">Inscripción</span>
  </div>
- <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$50.000</p>
+ <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$45.000</p>
+ <p className="relative z-10 text-gray-500 text-xs font-medium">+ $5.000 por expensas</p>
+ <p className="relative z-10 text-gray-400 text-[10px] font-medium mt-0.5">Total: $50.000</p>
  </div>
  <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
  <div className="absolute -right-4 -top-4 size-20 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>

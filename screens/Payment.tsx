@@ -175,10 +175,14 @@ const Payment: React.FC = () => {
               <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Costo de Inscripción</span>
               <span className="text-[#111813] font-black">$50.000</span>
             </div>
-            <div className="h-px bg-gray-50 my-2"></div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Expensas del barrio</span>
+              <span className="text-[#111813] font-black">$5.000</span>
+            </div>
+            <div className="h-px bg-gray-100 my-1"></div>
             <div className="flex justify-between items-center">
-              <span className="text-[#111813] font-black text-lg tracking-tight">Total</span>
-              <span className="text-[#111813] font-black text-2xl tracking-tighter">$50.000</span>
+              <span className="text-[#111813] font-black text-lg tracking-tight">Total a transferir</span>
+              <span className="text-[#111813] font-black text-2xl tracking-tighter">$45.000</span>
             </div>
           </div>
         </section>
@@ -234,6 +238,12 @@ const Payment: React.FC = () => {
                   </svg>
                   WhatsApp
                 </a>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 items-start">
+                <span className="material-symbols-outlined text-amber-500 text-xl mt-0.5">warning</span>
+                <p className="text-sm text-[#111813] font-bold leading-snug">
+                  El costo total es $50.000, pero <span className="text-amber-700">transferí solo $45.000</span>. Los $5.000 restantes se cobran por expensas del barrio.
+                </p>
               </div>
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex gap-2 items-start">
                 <span className="material-symbols-outlined text-primary text-xl mt-0.5">info</span>
