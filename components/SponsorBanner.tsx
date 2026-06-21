@@ -99,12 +99,14 @@ const SponsorBanner: React.FC = () => {
 
     let userNombre: string | null = null;
     if (userId) {
-      const { data: perfil } = await supabase
+      const { data: perfil, error: perfilError } = await supabase
         .from('perfiles')
         .select('nombre_completo')
         .eq('id', userId)
         .single();
+      if (perfilError) console.error('[SponsorBanner] Error al obtener perfil:', perfilError);
       userNombre = perfil?.nombre_completo ?? null;
+      console.log('[SponsorBanner] perfil obtenido:', perfil, 'userNombre:', userNombre);
     }
 
     const { error } = await supabase.from('sponsor_clicks').insert({
