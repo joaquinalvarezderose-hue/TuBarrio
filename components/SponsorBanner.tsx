@@ -44,6 +44,7 @@ const SponsorBanner: React.FC = () => {
   const isDragging = useRef(false);
 
   const startInterval = () => {
+    if (sponsors.length <= 1) return;
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       setCurrent((prev) => (prev + 1) % sponsors.length);
@@ -173,35 +174,41 @@ const SponsorBanner: React.FC = () => {
           )}
         </div>
 
-        {/* Flechas de navegación (visibles al hover en desktop) */}
-        <button
-          onClick={() => goTo((current - 1 + sponsors.length) % sponsors.length)}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-lg leading-none"
-          aria-label="Anterior"
-        >
-          ‹
-        </button>
-        <button
-          onClick={() => goTo((current + 1) % sponsors.length)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-lg leading-none"
-          aria-label="Siguiente"
-        >
-          ›
-        </button>
+        {/* Flechas de navegación (visibles al hover en desktop, solo si hay más de 1 sponsor) */}
+        {sponsors.length > 1 && (
+          <>
+            <button
+              onClick={() => goTo((current - 1 + sponsors.length) % sponsors.length)}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-lg leading-none"
+              aria-label="Anterior"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => goTo((current + 1) % sponsors.length)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-lg leading-none"
+              aria-label="Siguiente"
+            >
+              ›
+            </button>
+          </>
+        )}
       </div>
 
-      <div className="flex justify-center gap-1.5">
-        {sponsors.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => goTo(i)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === current ? 'w-4 bg-primary' : 'w-1.5 bg-gray-300'
-            }`}
-            aria-label={`Sponsor ${i + 1}`}
-          />
-        ))}
-      </div>
+      {sponsors.length > 1 && (
+        <div className="flex justify-center gap-1.5">
+          {sponsors.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === current ? 'w-4 bg-primary' : 'w-1.5 bg-gray-300'
+              }`}
+              aria-label={`Sponsor ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
