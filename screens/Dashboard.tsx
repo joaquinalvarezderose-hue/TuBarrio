@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import SponsorBanner from '../components/SponsorBanner';
 
 const Dashboard: React.FC = () => {
  const navigate = useNavigate();
@@ -66,6 +67,8 @@ const Dashboard: React.FC = () => {
  <span className="material-symbols-outlined text-2xl font-bold">arrow_forward</span>
  </div>
  </div>
+
+         <SponsorBanner />
  </main>
  </div>
  );
