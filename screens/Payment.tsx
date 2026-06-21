@@ -20,7 +20,7 @@ const Payment: React.FC = () => {
   };
 
   const aliasDestino = tournament.alias_pago ?? 'torneo.canton';
-  const whatsappDestino = tournament.whatsapp_pago ?? '+54 9 11 6421-9155';
+  const whatsappDestino = '+54 9 11 6421-9155';
 
   const handleManualPaymentSubmit = async () => {
     setError(null);

@@ -434,6 +434,7 @@ const jugadorIds = (jugadoresData || [])
  subtitle: t.subtitulo,
  image: t.imagen_url || DEFAULT_TOURNAMENT_IMAGE,
  date: TOURNAMENT_SEASON_LABEL,
+ alias_pago: t.alias_pago,
  });
 
  // Combinar torneos propios: primero los cargados directamente desde inscripciones,
