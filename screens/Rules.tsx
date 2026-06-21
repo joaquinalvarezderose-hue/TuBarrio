@@ -54,7 +54,7 @@ const Rules: React.FC = () => {
  <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Los partidos se disputan al mejor de 3 sets. Se utiliza el sistema de tie-break en todos los sets si se llega a 6-6. El ganador del partido suma 3 puntos para la tabla general, mientras que el perdedor suma 1 punto por haber completado el encuentro. El W.O. otorga 0 puntos.
+ Los partidos se disputan al mejor de 3 sets. Se utiliza el sistema de tie-break en todos los sets si se llega a 6-6. En caso de empate 1 a 1 en sets, se disputará un Super Tie-Break a 10 puntos para definir al ganador del partido. El ganador del partido suma 3 puntos para la tabla general, mientras que el perdedor suma 1 punto por haber completado el encuentro. El W.O. otorga 0 puntos.
  </div>
  </details>
 

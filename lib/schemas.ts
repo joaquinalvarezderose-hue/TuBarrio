@@ -86,7 +86,11 @@ export const RegisterSchema = z
   .refine((d) => d.password === d.confirmPassword, {
     message: 'Las contraseñas no coinciden',
     path: ['confirmPassword'],
-  });
+  })
+  .refine(
+    (d) => d.barrio !== 'El Cantón' || (!!d.lote && d.lote.trim().length > 0),
+    { message: 'El Lote es obligatorio para El Cantón', path: ['lote'] },
+  );
 
 export const PaymentReferenceSchema = z
   .string()
@@ -100,13 +104,18 @@ export const ProfileUpdateSchema = z.object({
   whatsapp: z.union([WhatsAppE164Schema, z.literal(''), z.null()]).optional(),
 });
 
-export const DomicilioUpdateSchema = z.object({
-  barrio: BarrioSchema,
-  localidad: LocalidadSchema,
-  calle: z.string().trim().min(2, 'Mínimo 2 caracteres').max(100, 'Máximo 100 caracteres'),
-  numero_altura: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
-  lote: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
-});
+export const DomicilioUpdateSchema = z
+  .object({
+    barrio: BarrioSchema,
+    localidad: LocalidadSchema,
+    calle: z.string().trim().min(2, 'Mínimo 2 caracteres').max(100, 'Máximo 100 caracteres'),
+    numero_altura: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
+    lote: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
+  })
+  .refine(
+    (d) => d.barrio !== 'El Cantón' || (!!d.lote && d.lote.trim().length > 0),
+    { message: 'El Lote es obligatorio para El Cantón', path: ['lote'] },
+  );
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;

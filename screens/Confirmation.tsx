@@ -16,7 +16,7 @@ const Confirmation: React.FC = () => {
 
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
-  const seasonLabel = "Mayo a Julio";
+  const seasonLabel = "Julio a Septiembre";
 
   const handleShareWhatsapp = () => {
     const message = `Hola! Me inscribi en ${tournament.title} (${tournament.subtitle}) - temporada ${seasonLabel}. Sumate en TuBarrio.`;

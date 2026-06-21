@@ -282,7 +282,14 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                   <select
                     className="w-full pl-4 pr-10 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm appearance-none"
                     value={barrio}
-                    onChange={(e) => setBarrio(e.target.value as Barrio)}
+                    onChange={(e) => {
+                      const v = e.target.value as Barrio;
+                      setBarrio(v);
+                      if (v === 'El Cantón') {
+                        setCalle('Libertad');
+                        setNumeroAltura('310');
+                      }
+                    }}
                   >
                     <option value="">Seleccioná un barrio...</option>
                     {BARRIOS.map((b) => (
@@ -321,7 +328,9 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                   {fieldErrors.numero_altura && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.numero_altura}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Lote (Opcional)</label>
+                  <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">
+                    {barrio === 'El Cantón' ? 'Lote' : 'Lote (Opcional)'}
+                  </label>
                   <input
                     type="text"
                     className="w-full pl-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
@@ -329,6 +338,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                     value={lote}
                     onChange={(e) => setLote(e.target.value)}
                   />
+                  {fieldErrors.lote && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.lote}</p>}
                 </div>
               </div>
 

@@ -176,7 +176,14 @@ const Domicilio: React.FC = () => {
                 <select
                   className={inputClass('barrio') + ' appearance-none pr-10'}
                   value={barrio}
-                  onChange={(e) => setBarrio(e.target.value as Barrio)}
+                  onChange={(e) => {
+                    const v = e.target.value as Barrio;
+                    setBarrio(v);
+                    if (v === 'El Cantón') {
+                      setCalle('Libertad');
+                      setNumeroAltura('310');
+                    }
+                  }}
                 >
                   <option value="">Seleccioná un barrio…</option>
                   {BARRIOS.map((b) => (
@@ -223,7 +230,9 @@ const Domicilio: React.FC = () => {
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <label className="type-label-lg text-on-surface px-1">Lote (Opcional)</label>
+                <label className="type-label-lg text-on-surface px-1">
+                  {barrio === 'El Cantón' ? 'Lote' : 'Lote (Opcional)'}
+                </label>
                 <input
                   type="text"
                   className={inputClass('lote')}
@@ -231,6 +240,9 @@ const Domicilio: React.FC = () => {
                   value={lote}
                   onChange={(e) => setLote(e.target.value)}
                 />
+                {fieldErrors.lote && (
+                  <p className="type-label-md text-error px-1">{fieldErrors.lote}</p>
+                )}
               </div>
             </div>
 

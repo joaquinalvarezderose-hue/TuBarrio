@@ -16,7 +16,7 @@ const TournamentDetails: React.FC = () => {
  id: 1,
  title: "Abierto de Tenis TuBarrio",
  subtitle: "Singles Damas y Caballeros",
- date: "Mayo a Julio"
+ date: "Julio a Septiembre"
  };
 
  useEffect(() => {
@@ -113,7 +113,7 @@ const TournamentDetails: React.FC = () => {
  </div>
  <div className="flex flex-1 flex-col py-2 pb-6">
  <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">FECHAS DEL TORNEO</p>
- <p className="text-gray-900 text-lg font-medium leading-normal">Mayo a Julio</p>
+ <p className="text-gray-900 text-lg font-medium leading-normal">Julio a Septiembre</p>
  </div>
 
  <div className="flex flex-col items-center gap-1">

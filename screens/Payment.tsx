@@ -5,7 +5,7 @@ import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 import { toWhatsAppLink } from '../utils/whatsapp';
 
-const TOURNAMENT_SEASON_LABEL = 'Mayo a Julio';
+const TOURNAMENT_SEASON_LABEL = 'Julio a Septiembre';
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();

@@ -28,7 +28,7 @@ const STATUS_PRIORITY: Record<string, number> = {
 };
 
 const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
-const TOURNAMENT_SEASON_LABEL = 'Mayo a Julio';
+const TOURNAMENT_SEASON_LABEL = 'Julio a Septiembre';
 
 const isTournamentOpenForSignup = (status?: string) => OPEN_SIGNUP_STATUSES.has(normalizeStatus(status));
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
