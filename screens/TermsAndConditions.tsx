@@ -60,8 +60,9 @@ const TermsAndConditions: React.FC = () => {
         </Section>
 
         <Section title="3. Marketplace de servicios — Descargo de responsabilidad">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 leading-relaxed space-y-2">
-            <p className="font-bold">Descargo de responsabilidad — Leer con atención</p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 leading-relaxed space-y-3">
+            <p className="font-bold text-sm">Descargo de responsabilidad — Leer con atención</p>
+
             <p>
               TuBarrio actúa exclusivamente como <strong>plataforma intermediaria</strong> que conecta a vecinos
               interesados en contratar un servicio con prestadores que ofrecen sus servicios dentro de la comunidad
@@ -69,12 +70,14 @@ const TermsAndConditions: React.FC = () => {
               y prestadores, ni actúa en carácter de empleador, agente, mandatario ni representante de ninguna de
               las partes.
             </p>
+
             <p>
               <strong>TuBarrio no certifica, avala, verifica ni garantiza</strong>, bajo ninguna forma, (i) la
               identidad, habilitación profesional o idoneidad de los prestadores de servicios; (ii) la calidad,
               exactitud, seguridad o legalidad de los servicios ofrecidos; (iii) el cumplimiento efectivo de los
               servicios contratados; ni (iv) la satisfacción del usuario con el resultado obtenido.
             </p>
+
             <p>
               Toda contratación de servicios a través del Marketplace se realiza <strong>bajo la exclusiva
               responsabilidad del usuario interesado y del prestador</strong>. Cualquier disputa, reclamo,
@@ -82,12 +85,59 @@ const TermsAndConditions: React.FC = () => {
               directamente entre las partes involucradas, sin que TuBarrio tenga obligación de intervenir ni
               pueda ser considerado responsable solidario o subsidiario.
             </p>
+
+            <p className="font-semibold">Calificaciones y reseñas</p>
+            <p>
+              Las opiniones, puntuaciones y reseñas publicadas en el Marketplace son expresiones de terceros usuarios
+              y <strong>no reflejan la opinión de TuBarrio ni han sido verificadas por la Plataforma</strong>.
+              TuBarrio no garantiza la veracidad, exactitud ni imparcialidad de dichas calificaciones y no asume
+              responsabilidad alguna por los perjuicios que pudieran ocasionar a prestadores o usuarios.
+            </p>
+
+            <p className="font-semibold">Precios y condiciones de pago</p>
+            <p>
+              TuBarrio no interviene en la fijación de precios ni en las condiciones económicas pactadas entre
+              usuarios y prestadores. <strong>El manejo, transferencia y recepción de dinero es responsabilidad
+              exclusiva de las partes contratantes.</strong> TuBarrio no procesa pagos, no retiene fondos ni actúa
+              como intermediario financiero, por lo que no asume responsabilidad ante incumplimientos de pago,
+              fraudes económicos o controversias sobre honorarios.
+            </p>
+
+            <p className="font-semibold">Seguridad personal</p>
+            <p>
+              Al contratar servicios que impliquen el ingreso de un prestador al domicilio u otros espacios privados,
+              el usuario actúa <strong>bajo su exclusivo riesgo y responsabilidad</strong>. TuBarrio <strong>no
+              realiza verificaciones de antecedentes penales, policiales ni de ninguna otra índole</strong> sobre
+              los prestadores registrados en la Plataforma. Se recomienda encarecidamente verificar la identidad
+              del prestador, solicitar referencias a otros vecinos y tomar las precauciones de seguridad que
+              el usuario considere pertinentes antes de permitir el acceso a su hogar o propiedad.
+            </p>
+
+            <p className="font-semibold">Datos de contacto compartidos</p>
+            <p>
+              Al iniciar contacto con un prestador a través del Marketplace, el usuario <strong>consiente
+              expresamente</strong> que sus datos de contacto (número de WhatsApp u otros que haya proporcionado)
+              sean visibles para dicho prestador. TuBarrio no controla el uso que el prestador realice de esa
+              información con posterioridad a la comunicación iniciada, y no asume responsabilidad por el
+              tratamiento de datos que terceros realicen fuera del ámbito de la Plataforma.
+            </p>
+
+            <p className="font-semibold">Disponibilidad y cancelaciones</p>
+            <p>
+              TuBarrio no garantiza la disponibilidad de ningún prestador ni el cumplimiento de los horarios,
+              plazos o condiciones acordados entre las partes. Ante cancelaciones, demoras o incumplimientos por
+              parte del prestador, <strong>TuBarrio no tiene obligación de mediar, compensar ni resolver la
+              disputa</strong>. El usuario deberá gestionar directamente con el prestador cualquier reclamo
+              derivado de estas situaciones.
+            </p>
+
             <p>
               En consecuencia, <strong>TuBarrio queda eximida de toda responsabilidad</strong> por daños directos,
               indirectos, incidentales o consecuentes que pudieran derivarse de las relaciones entre usuarios y
               prestadores, conforme a los <strong>artículos 1719, 1720 y concordantes del Código Civil y Comercial
               de la Nación</strong>.
             </p>
+
             <p>
               Se recomienda a los usuarios verificar las referencias, antecedentes e idoneidad del prestador antes
               de contratar cualquier servicio.
@@ -107,7 +157,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="4. Uso permitido y prohibiciones">
+        <Section title="5. Uso permitido y prohibiciones">
           <p>Queda expresamente prohibido:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Utilizar la Plataforma para fines ilícitos o contrarios a estos T&C.</li>
@@ -118,7 +168,7 @@ const TermsAndConditions: React.FC = () => {
           </ul>
         </Section>
 
-        <Section title="5. Propiedad intelectual">
+        <Section title="6. Propiedad intelectual">
           <p>
             Todos los contenidos de la Plataforma (diseño, código, marca, logotipos, textos) son propiedad de
             TuBarrio y están protegidos por las leyes de propiedad intelectual vigentes en la República Argentina.
@@ -126,7 +176,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="6. Modificaciones a los T&C">
+        <Section title="7. Modificaciones a los T&C">
           <p>
             TuBarrio podrá modificar estos T&C en cualquier momento. Los cambios serán notificados mediante un
             aviso visible en la Plataforma con al menos 7 (siete) días de anticipación. El uso continuado de la
@@ -134,14 +184,14 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="7. Rescisión">
+        <Section title="8. Rescisión">
           <p>
             TuBarrio podrá suspender o cancelar la cuenta de un usuario que incumpla estos T&C, sin necesidad de
             interpelación previa, conforme al <strong>art. 1084 CCyCN</strong>.
           </p>
         </Section>
 
-        <Section title="8. Ley aplicable y jurisdicción">
+        <Section title="9. Ley aplicable y jurisdicción">
           <p>
             Estos T&C se rigen por las leyes de la República Argentina. Para cualquier controversia, las partes
             se someten a la jurisdicción de los Tribunales Ordinarios de la Ciudad Autónoma de Buenos Aires,
@@ -161,7 +211,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </div>
 
-        <Section id="responsable" title="9. Responsable del tratamiento de datos">
+        <Section id="responsable" title="10. Responsable del tratamiento de datos">
           <p>
             El responsable del tratamiento es el operador de la Plataforma TuBarrio. Para contactos relacionados
             con el tratamiento de datos personales, dirigirse a:{' '}
@@ -173,7 +223,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="10. Datos personales recolectados">
+        <Section title="11. Datos personales recolectados">
           <p>Al registrarte, TuBarrio recolecta los siguientes datos:</p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs border border-outline-variant rounded-lg overflow-hidden">
@@ -199,7 +249,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="11. Medidas de seguridad y limitación de responsabilidad ante incidentes">
+        <Section title="12. Medidas de seguridad y limitación de responsabilidad ante incidentes">
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-900 leading-relaxed">
             <p className="font-bold mb-2">Cláusula de limitación de responsabilidad — Leer con atención</p>
             <p className="mb-2">
@@ -231,7 +281,7 @@ const TermsAndConditions: React.FC = () => {
           </div>
         </Section>
 
-        <Section title="12. Notificación de brechas de seguridad">
+        <Section title="13. Notificación de brechas de seguridad">
           <p>
             En caso de detectarse una brecha de seguridad que comprometa datos personales de los usuarios,
             TuBarrio notificará a los titulares afectados y a la Agencia de Acceso a la Información Pública (AAIP)
@@ -244,7 +294,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="13. Transferencia y compartición de datos">
+        <Section title="14. Transferencia y compartición de datos">
           <p>
             TuBarrio no vende ni cede datos personales a terceros con fines comerciales. Los datos podrán ser
             compartidos únicamente con:
@@ -256,7 +306,7 @@ const TermsAndConditions: React.FC = () => {
           </ul>
         </Section>
 
-        <Section title="14. Derechos del titular (Habeas Data — Art. 43 CN)">
+        <Section title="15. Derechos del titular (Habeas Data — Art. 43 CN)">
           <p>
             Conforme a los artículos 14 al 19 de la Ley 25.326, los titulares de datos personales tienen derecho
             a acceder, rectificar, actualizar, suprimir y a solicitar la confidencialidad de sus datos
@@ -273,7 +323,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="15. Retención de datos">
+        <Section title="16. Retención de datos">
           <p>
             Los datos personales se conservarán mientras la cuenta del usuario permanezca activa. Una vez
             solicitada la eliminación de la cuenta, los datos serán suprimidos en un plazo máximo de 30 días,
@@ -281,7 +331,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="16. Menores de edad">
+        <Section title="17. Menores de edad">
           <p>
             La Plataforma no está dirigida a personas menores de 18 años. Si un menor proporcionara datos sin
             consentimiento de sus responsables legales, TuBarrio procederá a eliminar dicha cuenta e información
@@ -289,7 +339,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="17. Contacto">
+        <Section title="18. Contacto">
           <p>Para consultas, reclamos o ejercicio de derechos:</p>
           <div className="bg-surface-variant rounded-lg px-4 py-3 space-y-1 text-sm">
             <p><strong>Plataforma:</strong> TuBarrio</p>
