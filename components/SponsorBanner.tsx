@@ -7,9 +7,9 @@ interface Sponsor {
 }
 
 const sponsors: Sponsor[] = [
-  { src: '/images/sponsors/sponsor-1.jpeg', alt: 'Sponsor 1' },
-  { src: '/images/sponsors/sponsor-2.jpeg', alt: 'Sponsor 2' },
-  { src: '/images/sponsors/sponsor-3.jpeg', alt: 'Sponsor 3' },
+  { src: '/images/sponsors/sponsor-1.jpg', alt: 'Sponsor 1' },
+  { src: '/images/sponsors/sponsor-2.jpg', alt: 'Sponsor 2' },
+  { src: '/images/sponsors/sponsor-3.jpg', alt: 'Sponsor 3' },
 ];
 
 const SponsorBanner: React.FC = () => {
