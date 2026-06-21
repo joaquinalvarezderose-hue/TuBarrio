@@ -40,7 +40,7 @@ const SponsorBanner: React.FC = () => {
       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
         Nuestros Sponsors
       </span>
-      <div className="relative overflow-hidden rounded-2xl shadow-sm border border-gray-100 bg-white h-24">
+      <div className="relative overflow-hidden rounded-2xl shadow-sm border border-gray-100 bg-black h-24">
         <div
           className="flex h-full transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${current * 100}%)` }}
@@ -54,7 +54,7 @@ const SponsorBanner: React.FC = () => {
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             );
@@ -69,7 +69,7 @@ const SponsorBanner: React.FC = () => {
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </a>
             ) : content;
