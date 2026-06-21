@@ -214,8 +214,8 @@ const TermsAndConditions: React.FC = () => {
         <Section id="responsable" title="10. Responsable del tratamiento de datos">
           <p>
             El responsable del tratamiento es el operador de la Plataforma TuBarrio. Para contactos relacionados
-            con el tratamiento de datos personales, dirigirse a:{' '}
-            <strong>joaquinalvarezderose@gmail.com</strong>.
+            con el tratamiento de datos personales, dirigirse a través del{' '}
+            <a href="https://wa.me/5491164219155?text=Consulta%20sobre%20datos%20personales%20-%20TuBarrio" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">canal de soporte de TuBarrio</a>.
           </p>
           <p className="text-xs text-on-surface-variant">
             Base de datos inscripta ante la Agencia de Acceso a la Información Pública (AAIP) conforme al
@@ -314,7 +314,7 @@ const TermsAndConditions: React.FC = () => {
           </p>
           <p>Para ejercer estos derechos, el titular debe enviar una solicitud a:</p>
           <div className="bg-surface-variant rounded-lg px-4 py-3 text-sm font-medium">
-            joaquinalvarezderose@gmail.com
+            <a href="https://wa.me/5491164219155?text=Solicitud%20de%20derechos%20ARCO%20-%20TuBarrio" target="_blank" rel="noopener noreferrer" className="text-primary underline">Contactar soporte de TuBarrio</a>
           </div>
           <p className="text-xs text-on-surface-variant">
             TuBarrio responderá dentro de los 5 (cinco) días hábiles de recibida la solicitud, conforme al
@@ -343,7 +343,7 @@ const TermsAndConditions: React.FC = () => {
           <p>Para consultas, reclamos o ejercicio de derechos:</p>
           <div className="bg-surface-variant rounded-lg px-4 py-3 space-y-1 text-sm">
             <p><strong>Plataforma:</strong> TuBarrio</p>
-            <p><strong>Correo:</strong> joaquinalvarezderose@gmail.com</p>
+            <p><strong>Contacto:</strong> <a href="https://wa.me/5491164219155?text=Consulta%20-%20TuBarrio" target="_blank" rel="noopener noreferrer" className="text-primary underline">Soporte vía WhatsApp</a></p>
             <p><strong>Jurisdicción:</strong> Ciudad Autónoma de Buenos Aires, Argentina</p>
           </div>
         </Section>
