@@ -93,24 +93,21 @@ const SponsorBanner: React.FC = () => {
     }
   };
 
-  const logClick = (sponsor: Sponsor) => {
-    supabase.auth.getUser().then(({ data }) => {
-      supabase.from('sponsor_clicks').insert({
-        sponsor_id: sponsor.id,
-        sponsor_name: sponsor.name,
-        user_id: data.user?.id ?? null,
-      });
+  const logClick = async (sponsor: Sponsor) => {
+    const { data } = await supabase.auth.getUser();
+    const { error } = await supabase.from('sponsor_clicks').insert({
+      sponsor_id: sponsor.id,
+      sponsor_name: sponsor.name,
+      user_id: data.user?.id ?? null,
     });
+    if (error) console.error('[SponsorBanner] Error al registrar click:', error);
   };
 
   const handleLinkClick = (e: React.MouseEvent, sponsor: Sponsor) => {
-    if (isDragging.current) {
-      e.preventDefault();
-      return;
-    }
+    e.preventDefault();
+    if (isDragging.current) return;
     logClick(sponsor);
     window.open(sponsor.href, '_blank', 'noopener,noreferrer');
-    e.preventDefault();
   };
 
   return (
