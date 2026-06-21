@@ -94,11 +94,24 @@ const SponsorBanner: React.FC = () => {
   };
 
   const logClick = async (sponsor: Sponsor) => {
-    const { data } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id ?? null;
+
+    let userNombre: string | null = null;
+    if (userId) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('nombre_completo')
+        .eq('id', userId)
+        .single();
+      userNombre = perfil?.nombre_completo ?? null;
+    }
+
     const { error } = await supabase.from('sponsor_clicks').insert({
       sponsor_id: sponsor.id,
       sponsor_name: sponsor.name,
-      user_id: data.user?.id ?? null,
+      user_id: userId,
+      user_nombre: userNombre,
     });
     if (error) console.error('[SponsorBanner] Error al registrar click:', error);
   };
