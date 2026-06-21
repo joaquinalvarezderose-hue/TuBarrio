@@ -159,7 +159,7 @@ const TournamentDetails: React.FC = () => {
  <span className="material-symbols-outlined text-[20px]">emoji_events</span>
  <span className="text-sm font-medium">Premios</span>
  </div>
- <p className="relative z-10 text-gray-900 text-lg font-bold leading-snug">Premios desde 4to puesto (semifinalistas y finalistas)</p>
+ <p className="relative z-10 text-gray-900 text-lg font-bold leading-snug">Del 1° al 4°</p>
  </div>
  </div>
 

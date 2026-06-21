@@ -34,6 +34,15 @@ interface AppContentProps {
   pendingRecovery: boolean;
 }
 
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+  React.useEffect(() => {
+    const mainEl = document.querySelector('main.flex-1');
+    if (mainEl) mainEl.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
 const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery }) => {
   const location = useLocation();
   const hideNavigation = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/reset-password' || location.pathname === '/welcome' || location.pathname === '/terms';
@@ -41,8 +50,9 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery 
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
+      <ScrollToTop />
       {!hideNavigation && <Navigation />}
-      
+
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
         <Routes>
           <Route path="/" element={pendingRecovery ? <Navigate to="/reset-password" replace /> : (user ? <Dashboard /> : <Navigate to="/welcome" replace />)} />
