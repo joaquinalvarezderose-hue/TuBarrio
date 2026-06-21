@@ -49,12 +49,12 @@ const SponsorBanner: React.FC = () => {
             const content = (
               <div
                 key={i}
-                className="min-w-full h-full flex items-center justify-center px-6"
+                className="min-w-full h-full"
               >
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="max-h-16 max-w-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </div>
             );
@@ -64,12 +64,12 @@ const SponsorBanner: React.FC = () => {
                 href={sponsor.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="min-w-full h-full flex items-center justify-center px-6"
+                className="min-w-full h-full block"
               >
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="max-h-16 max-w-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </a>
             ) : content;
