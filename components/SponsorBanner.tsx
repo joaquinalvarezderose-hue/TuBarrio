@@ -1,15 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 interface Sponsor {
+  id: string;
+  name: string;
   src: string;
   alt: string;
   href?: string;
 }
 
 const sponsors: Sponsor[] = [
-  { src: '/images/sponsors/sponsor-1.jpg', alt: 'Sponsor 1', href: 'https://api.whatsapp.com/send?phone=5491122945685&text=Quisiera%20contactarme%20con%20ustedes%20los%20vi%20en%20TuBarrio' },
-  { src: '/images/sponsors/sponsor-2.jpg', alt: 'Sponsor 2', href: 'https://...' },
-  { src: '/images/sponsors/sponsor-3.jpg', alt: 'Sponsor 3', href: 'https://...' },
+  {
+    id: 'sponsor-1',
+    name: 'Sponsor 1',
+    src: '/images/sponsors/sponsor-1.jpg',
+    alt: 'Sponsor 1',
+    href: 'https://api.whatsapp.com/send?phone=5491122945685&text=Quisiera%20contactarme%20con%20ustedes%20los%20vi%20en%20TuBarrio',
+  },
+  {
+    id: 'sponsor-2',
+    name: 'Sponsor 2',
+    src: '/images/sponsors/sponsor-2.jpg',
+    alt: 'Sponsor 2',
+    href: 'https://...',
+  },
+  {
+    id: 'sponsor-3',
+    name: 'Sponsor 3',
+    src: '/images/sponsors/sponsor-3.jpg',
+    alt: 'Sponsor 3',
+    href: 'https://...',
+  },
 ];
 
 const SWIPE_THRESHOLD = 50;
@@ -72,12 +93,23 @@ const SponsorBanner: React.FC = () => {
     }
   };
 
-  const handleLinkClick = (e: React.MouseEvent, href: string) => {
+  const logClick = (sponsor: Sponsor) => {
+    supabase.auth.getUser().then(({ data }) => {
+      supabase.from('sponsor_clicks').insert({
+        sponsor_id: sponsor.id,
+        sponsor_name: sponsor.name,
+        user_id: data.user?.id ?? null,
+      });
+    });
+  };
+
+  const handleLinkClick = (e: React.MouseEvent, sponsor: Sponsor) => {
     if (isDragging.current) {
       e.preventDefault();
       return;
     }
-    window.open(href, '_blank', 'noopener,noreferrer');
+    logClick(sponsor);
+    window.open(sponsor.href, '_blank', 'noopener,noreferrer');
     e.preventDefault();
   };
 
@@ -106,7 +138,7 @@ const SponsorBanner: React.FC = () => {
                 key={i}
                 href={sponsor.href}
                 className="min-w-full h-full block cursor-pointer"
-                onClick={(e) => handleLinkClick(e, sponsor.href!)}
+                onClick={(e) => handleLinkClick(e, sponsor)}
                 draggable={false}
               >
                 <img

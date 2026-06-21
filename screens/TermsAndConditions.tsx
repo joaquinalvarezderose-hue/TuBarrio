@@ -25,7 +25,7 @@ const TermsAndConditions: React.FC = () => {
         <div className="mb-8 text-center">
           <span className="material-symbols-outlined text-4xl text-primary">gavel</span>
           <h1 className="mt-3 text-2xl font-black tracking-tight text-secondary">Términos y Condiciones</h1>
-          <p className="mt-1 text-xs text-on-surface-variant">Última actualización: mayo de 2026 · Plataforma TuBarrio</p>
+          <p className="mt-1 text-xs text-on-surface-variant">Última actualización: junio de 2026 · Plataforma TuBarrio</p>
         </div>
 
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 text-xs text-amber-800 leading-relaxed">
@@ -59,7 +59,43 @@ const TermsAndConditions: React.FC = () => {
           </p>
         </Section>
 
-        <Section title="3. Registro de usuario">
+        <Section title="3. Marketplace de servicios — Descargo de responsabilidad">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 leading-relaxed space-y-2">
+            <p className="font-bold">Descargo de responsabilidad — Leer con atención</p>
+            <p>
+              TuBarrio actúa exclusivamente como <strong>plataforma intermediaria</strong> que conecta a vecinos
+              interesados en contratar un servicio con prestadores que ofrecen sus servicios dentro de la comunidad
+              (en adelante "el Marketplace"). TuBarrio no es parte de ningún contrato que se celebre entre usuarios
+              y prestadores, ni actúa en carácter de empleador, agente, mandatario ni representante de ninguna de
+              las partes.
+            </p>
+            <p>
+              <strong>TuBarrio no certifica, avala, verifica ni garantiza</strong>, bajo ninguna forma, (i) la
+              identidad, habilitación profesional o idoneidad de los prestadores de servicios; (ii) la calidad,
+              exactitud, seguridad o legalidad de los servicios ofrecidos; (iii) el cumplimiento efectivo de los
+              servicios contratados; ni (iv) la satisfacción del usuario con el resultado obtenido.
+            </p>
+            <p>
+              Toda contratación de servicios a través del Marketplace se realiza <strong>bajo la exclusiva
+              responsabilidad del usuario interesado y del prestador</strong>. Cualquier disputa, reclamo,
+              daño o perjuicio derivado de la prestación —o falta de prestación— de un servicio deberá resolverse
+              directamente entre las partes involucradas, sin que TuBarrio tenga obligación de intervenir ni
+              pueda ser considerado responsable solidario o subsidiario.
+            </p>
+            <p>
+              En consecuencia, <strong>TuBarrio queda eximida de toda responsabilidad</strong> por daños directos,
+              indirectos, incidentales o consecuentes que pudieran derivarse de las relaciones entre usuarios y
+              prestadores, conforme a los <strong>artículos 1719, 1720 y concordantes del Código Civil y Comercial
+              de la Nación</strong>.
+            </p>
+            <p>
+              Se recomienda a los usuarios verificar las referencias, antecedentes e idoneidad del prestador antes
+              de contratar cualquier servicio.
+            </p>
+          </div>
+        </Section>
+
+        <Section title="4. Registro de usuario">
           <p>
             Para acceder a las funcionalidades de la Plataforma es necesario crear una cuenta. El usuario se
             compromete a proporcionar datos verdaderos, exactos, completos y actualizados. Cualquier información
