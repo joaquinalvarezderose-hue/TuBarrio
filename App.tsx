@@ -36,9 +36,14 @@ interface AppContentProps {
 
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => {
-    const mainEl = document.querySelector('main.flex-1');
-    if (mainEl) mainEl.scrollTo(0, 0);
+  React.useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    // Reset the main scroll container and any nested scrollable wrappers
+    document.querySelectorAll('main').forEach((el) => {
+      (el as HTMLElement).scrollTop = 0;
+    });
   }, [pathname]);
   return null;
 };
