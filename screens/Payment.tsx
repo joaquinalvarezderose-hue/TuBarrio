@@ -19,8 +19,8 @@ const Payment: React.FC = () => {
     date: "Sáb, 24 Oct • 9:00 AM"
   };
 
-  const aliasDestino = 'torneo.canton';
-  const whatsappDestino = '+54 9 11 6421-9155';
+  const aliasDestino = tournament.alias_pago ?? 'torneo.canton';
+  const whatsappDestino = tournament.whatsapp_pago ?? '+54 9 11 6421-9155';
 
   const handleManualPaymentSubmit = async () => {
     setError(null);

@@ -41,6 +41,8 @@ type Torneo = {
  fecha_fin: string | null;
  imagen_url: string | null;
  activo: boolean;
+ alias_pago: string | null;
+ whatsapp_pago: string | null;
 };
 
 type TorneoHistorialItem = {
@@ -286,7 +288,7 @@ const jugadorIds = (jugadoresData || [])
  try {
  const { data, error } = await supabase
  .from('torneos')
- .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo')
+ .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago')
  .order('id', { ascending: true });
  if (error) throw error;
  const activos = ((data || []) as Torneo[]).filter((t) => t.activo !== false);
