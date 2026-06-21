@@ -61,8 +61,8 @@ export const LOCALIDADES = [
 export type Barrio = typeof BARRIOS[number];
 export type Localidad = typeof LOCALIDADES[number];
 
-export const BarrioSchema = z.enum(BARRIOS);
-export const LocalidadSchema = z.enum(LOCALIDADES);
+export const BarrioSchema = z.enum(BARRIOS, { errorMap: () => ({ message: 'Seleccioná un barrio' }) });
+export const LocalidadSchema = z.enum(LOCALIDADES, { errorMap: () => ({ message: 'Seleccioná una localidad' }) });
 
 export const LoginSchema = z.object({
   email: EmailSchema,

@@ -22,20 +22,6 @@ const Rules: React.FC = () => {
  </div>
 
  <main className="max-w-md mx-auto p-0">
- {/* Search Bar Section */}
- <div className="px-4 py-6">
- <div className="relative">
- <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
- <span className="material-symbols-outlined text-xl">search</span>
- </div>
- <input
- type="text"
- className="block w-full p-3 pl-10 text-sm text-slate-900 border border-slate-200 rounded-xl bg-white focus:ring-[#4a9c40] focus:border-[#4a9c40] shadow-sm transition-all"
- placeholder="Buscar regla, logística o dudas..."
- />
- </div>
- </div>
-
  {/* Section Title */}
  <div className="px-4 mb-4">
  <h2 className="text-2xl font-bold ">Guía del Jugador</h2>
@@ -93,20 +79,6 @@ const Rules: React.FC = () => {
  </div>
  </details>
 
- {/* Question 2 - Reglas de Clasificación */}
- <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
- <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
- <div className="flex items-center gap-3">
- <span className="material-symbols-outlined text-[#4a9c40]">leaderboard</span>
- <span className="font-semibold text-slate-800 ">Reglas de Clasificación</span>
- </div>
- <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
- </summary>
- <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Para clasificar a los Playoffs, se consideran: 1) Puntos totales. 2) Resultado directo entre los involucrados. 3) Diferencia de sets. 4) Diferencia de games. Es obligatorio haber disputado al menos el 80% de los partidos de la fase regular.
- </div>
- </details>
-
  {/* Playoffs */}
  <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
@@ -152,6 +124,104 @@ const Rules: React.FC = () => {
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
  Ambos jugadores son responsables de coordinar el turno. El costo de la cancha se divide en partes iguales. En caso de jugar con luz artificial, el costo extra también deberá ser abonado por ambos jugadores, salvo acuerdo previo en contrario.
+ </div>
+ </details>
+
+ {/* ¿Cuándo juego? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">calendar_month</span>
+ <span className="font-semibold text-slate-800">¿Cuándo juego?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Los participantes coordinarán por privado y por WhatsApp el día y horario de la semana que les resulte conveniente para jugar. Se programa un partido por semana.
+ </div>
+ </details>
+
+ {/* ¿Qué ocurre si el partido no se disputa dentro de la semana correspondiente? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">event_busy</span>
+ <span className="font-semibold text-slate-800">¿Qué ocurre si el partido no se disputa dentro de la semana correspondiente?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Si cumplido el plazo de la fecha uno de los jugadores no puede presentarse el día domingo, tendrá W.O. (partido perdido por no presentarse). Aplicará para ambos si ninguno puede presentarse, incluso si llueve o se cancelan canchas por SS.
+ </div>
+ </details>
+
+ {/* ¿Qué pasa si pactan horario y uno cancela? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">cancel</span>
+ <span className="font-semibold text-slate-800">¿Qué pasa si pactan horario y uno cancela?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Si los jugadores confirman por mensaje de WhatsApp día y horario, y uno finalmente cancela, tendrá W.O. (partido perdido por no presentarse), a menos que ambos accedan a reprogramar. En caso de lluvia o cancelación de cancha por SS, deben reprogramar nuevo día y horario.
+ </div>
+ </details>
+
+ {/* ¿Qué ocurre si el rival no responde por WhatsApp? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">chat_bubble</span>
+ <span className="font-semibold text-slate-800">¿Qué ocurre si el rival no responde por WhatsApp?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Si hasta el día jueves inclusive no hubo respuesta a los mensajes de WhatsApp, el jugador que no respondió perderá el partido por W.O.
+ </div>
+ </details>
+
+ {/* ¿Puedo adelantar partidos? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">fast_forward</span>
+ <span className="font-semibold text-slate-800">¿Puedo adelantar partidos?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Se pueden anticipar partidos siempre y cuando los jugadores puedan coordinarlo. Los resultados de partidos jugados anticipadamente recién se cargarán según el calendario de cada fecha.
+ </div>
+ </details>
+
+ {/* ¿Cómo informo un resultado? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">upload</span>
+ <span className="font-semibold text-slate-800">¿Cómo informo un resultado?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ Para cargar un resultado ingresá a la pantalla <strong className="text-slate-800">Fixture</strong>, buscá tu partido y tocá <strong className="text-slate-800">"Cargar Resultado"</strong>. Allí ingresás el marcador set por set con los botones <strong className="text-slate-800">+</strong> y <strong className="text-slate-800">−</strong>; si el partido quedó 1 a 1, aparecerá automáticamente la sección del Super Tie-Break. Una vez que el marcador sea válido, tocá <strong className="text-slate-800">"Enviar Resultado"</strong>. Tu rival recibirá la propuesta y deberá confirmarla desde la app. Si fue tu rival quien cargó primero, te aparecerá la opción de <strong className="text-slate-800">Confirmar</strong> o <strong className="text-slate-800">Rechazar</strong> el marcador propuesto. El resultado queda finalizado cuando ambos están de acuerdo.
+ </div>
+ </details>
+
+ {/* ¿Cuál es el plazo para informar un partido y corregir errores? */}
+ <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+ <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+ <div className="flex items-center gap-3">
+ <span className="material-symbols-outlined text-[#4a9c40]">timer</span>
+ <span className="font-semibold text-slate-800">¿Cuál es el plazo para informar un partido y corregir errores de resultados cargados?</span>
+ </div>
+ <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+ </summary>
+ <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+ El resultado del partido debe informarse dentro de las <strong className="text-slate-800">24 horas</strong> de finalizado el encuentro. En caso de haber cargado un resultado con errores, la corrección puede solicitarse hasta <strong className="text-slate-800">48 horas</strong> después de disputado el partido.
  </div>
  </details>
 
