@@ -93,6 +93,7 @@ const TournamentPanel: React.FC = () => {
  const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
  const [tournamentChampion, setTournamentChampion] = useState<string | null>(null);
+ const [inscripcionPendiente, setInscripcionPendiente] = useState(false);
  // Single authoritative backend hook for player status
  const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
  // Direct query fallback for when the RPC doesn't return proximo_partido
@@ -231,6 +232,7 @@ const TournamentPanel: React.FC = () => {
  useEffect(() => {
  const loadPanelData = async () => {
  setLoadingData(true);
+ setInscripcionPendiente(false);
  try {
  setAdminError(null);
  let resolvedScope: TournamentScope | null = null;
@@ -275,7 +277,7 @@ const TournamentPanel: React.FC = () => {
  if (!resolvedScope && currentUserId) {
  const { data: inscripcionScopeRows } = await supabase
  .from('inscripciones_torneo')
- .select('categoria, grupo')
+ .select('categoria, grupo, estado')
  .eq('torneo_id', tournament.id)
  .eq('perfil_id', currentUserId)
  .in('estado', ['pagado_aprobado', 'pendiente_revision'])
@@ -287,6 +289,9 @@ const TournamentPanel: React.FC = () => {
  categoria: String(inscripcionScope.categoria),
  grupo: String(inscripcionScope.grupo),
  };
+ if (inscripcionScope.estado === 'pendiente_revision') {
+ setInscripcionPendiente(true);
+ }
  }
  }
 
@@ -611,6 +616,38 @@ const TournamentPanel: React.FC = () => {
  const progress = ((groupSize - groupPosition + 1) / groupSize) * 100;
  return Math.max(8, Math.min(100, Math.round(progress)));
  }, [groupPosition, groupSize]);
+
+ if (!isLoading && inscripcionPendiente && !isAdmin) {
+ return (
+ <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light font-display">
+ <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200 ">
+ <button
+ onClick={() => navigate(-1)}
+ className="flex items-center text-[#111813] hover:bg-black/5 p-1 rounded-full transition-colors"
+ >
+ <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
+ </button>
+ <Logo variant="tournament" className="h-[120px] w-auto" />
+ <div className="w-8"></div>
+ </header>
+
+ <main className="flex-1 p-4 flex items-center">
+ <div className="w-full rounded-2xl bg-amber-50 border border-amber-200 p-6 text-center">
+ <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 shadow-sm mb-3">
+ <span className="material-symbols-outlined text-amber-500 text-4xl">schedule</span>
+ </div>
+ <h2 className="mt-2 text-xl font-bold text-amber-800">Pago en revisión</h2>
+ <p className="mt-2 text-sm text-amber-700 font-medium leading-relaxed">
+ Ya recibimos tu comprobante. Tu inscripción estará confirmada en cuanto validemos la transferencia.
+ </p>
+ <p className="mt-3 text-xs text-amber-600 font-semibold">
+ Vas a poder acceder al panel del torneo una vez que tu pago sea aprobado.
+ </p>
+ </div>
+ </main>
+ </div>
+ );
+ }
 
  if (!isLoading && !isReady && !isAdmin) {
  return (

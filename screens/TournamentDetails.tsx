@@ -9,6 +9,7 @@ const TournamentDetails: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
  const [isRegistered, setIsRegistered] = useState(false);
+ const [inscripcionPendiente, setInscripcionPendiente] = useState(false);
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const isAdmin = String(appUser?.rol || '').trim().toLowerCase() === 'admin';
 
@@ -23,43 +24,41 @@ const TournamentDetails: React.FC = () => {
  const checkRegistration = async () => {
  const { data: authData } = await supabase.auth.getUser();
  const authUserId = authData?.user?.id;
-
- // Chequeo rápido en localStorage
  const userStr = localStorage.getItem('app_user');
  const user = userStr ? JSON.parse(userStr) : null;
- const cacheKey = `registered_tournaments_${String(authUserId || user?.id || 'anon')}`;
- const savedScoped = localStorage.getItem(cacheKey);
- const savedLegacy = localStorage.getItem('registered_tournaments');
- const localIds: number[] = Array.from(
- new Set([
- ...(savedScoped ? JSON.parse(savedScoped) : []),
- ...(savedLegacy ? JSON.parse(savedLegacy) : []),
- ]),
- );
- if (localIds.includes(Number(tournament.id))) {
- setIsRegistered(true);
- return;
- }
-
- // Si no está en local, verificar en Supabase
  const perfilId = authUserId || user?.id;
  if (!perfilId) return;
+
  try {
- const { data, error } = await supabase
+ // Verificar si el usuario está en torneo_jugadores (pago aprobado y sorteado)
+ const { data: jugadorData } = await supabase
  .from('torneo_jugadores')
  .select('torneo_id')
  .eq('perfil_id', perfilId)
  .eq('torneo_id', Number(tournament.id))
  .maybeSingle();
- if (!error && data) {
+
+ if (jugadorData) {
  setIsRegistered(true);
- // Sincronizar localStorage
- const merged = Array.from(new Set([...localIds, Number(tournament.id)]));
- localStorage.setItem(cacheKey, JSON.stringify(merged));
- localStorage.setItem('registered_tournaments', JSON.stringify(merged));
+ return;
+ }
+
+ // Si no está en torneo_jugadores, verificar inscripcion_torneo para saber el estado exacto
+ const { data: inscripcionData } = await supabase
+ .from('inscripciones_torneo')
+ .select('estado')
+ .eq('perfil_id', perfilId)
+ .eq('torneo_id', Number(tournament.id))
+ .in('estado', ['pagado_aprobado', 'pendiente_revision'])
+ .maybeSingle();
+
+ if (inscripcionData?.estado === 'pagado_aprobado') {
+ setIsRegistered(true);
+ } else if (inscripcionData?.estado === 'pendiente_revision') {
+ setInscripcionPendiente(true);
  }
  } catch (err) {
-    console.error('[TournamentDetails] Error checking registration status:', err);
+ console.error('[TournamentDetails] Error checking registration status:', err);
  }
  };
  checkRegistration();
@@ -204,7 +203,17 @@ const TournamentDetails: React.FC = () => {
 
  const footer = (
  <>
- {isRegistered ? (
+ {inscripcionPendiente ? (
+ <div className="flex flex-col gap-3 md:w-[420px]">
+ <div className="w-full flex items-center justify-center gap-3 bg-amber-50 border-2 border-amber-200 rounded-xl py-4 px-5">
+ <span className="material-symbols-outlined text-amber-500 text-[24px] font-black">schedule</span>
+ <div className="flex flex-col">
+ <span className="text-amber-800 font-black text-base leading-tight">Pago en revisión</span>
+ <span className="text-amber-600 text-xs font-bold">Te avisamos cuando tu inscripción sea aprobada</span>
+ </div>
+ </div>
+ </div>
+ ) : isRegistered ? (
  <div className="flex flex-col gap-3 md:w-[420px]">
  <div className="w-full flex items-center justify-center gap-3 bg-primary/10 border-2 border-primary/30 rounded-xl py-4 px-5">
  <span className="material-symbols-outlined text-primary text-[24px] font-black">check_circle</span>
