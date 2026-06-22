@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
  </div>
  </div>
 
-         <SponsorBanner />
+         {/* <SponsorBanner /> */}
  </main>
  </div>
  );

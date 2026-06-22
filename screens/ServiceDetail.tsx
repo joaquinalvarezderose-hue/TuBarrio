@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useServicioDetalle, Valoracion } from '../hooks/useServicioDetalle';
+import { logServicioClick } from '../hooks/useServicioClicks';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -249,6 +250,12 @@ const ServiceDetail: React.FC = () => {
     setEditando(true);
   }, [miValoracion]);
 
+  useEffect(() => {
+    if (servicio) {
+      logServicioClick({ id: servicio.id, titulo: servicio.titulo }, 'profile_view');
+    }
+  }, [servicio?.id]);
+
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -462,9 +469,11 @@ const ServiceDetail: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 p-5 pb-20 bg-gradient-to-t from-white via-white to-transparent z-40">
         <button
           disabled={!tieneWhatsApp}
-          onClick={() =>
-            tieneWhatsApp && abrirWhatsApp(servicio.contacto_whatsapp!, nombreMostrado)
-          }
+          onClick={() => {
+            if (!tieneWhatsApp) return;
+            logServicioClick({ id: servicio.id, titulo: servicio.titulo }, 'whatsapp_click');
+            abrirWhatsApp(servicio.contacto_whatsapp!, nombreMostrado);
+          }}
           className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl shadow-xl transition-all ${
             tieneWhatsApp
               ? 'bg-[#25D366] text-white hover:bg-[#1da851] active:scale-95 cursor-pointer'

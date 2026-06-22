@@ -44,6 +44,16 @@ type GrupoRow = {
 
 type SetPair = { p1: number; p2: number };
 
+type ServicioClickRow = {
+  id: string;
+  servicio_id: string;
+  servicio_titulo: string;
+  user_id: string | null;
+  user_nombre: string | null;
+  tipo_evento: 'profile_view' | 'whatsapp_click';
+  clicked_at: string;
+};
+
 type ForceForm = {
   ganador_id: string;
   sets: SetPair[];
@@ -52,7 +62,7 @@ type ForceForm = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const TABS = ['Disputas', 'Grupos', 'Llaves', 'Acciones'] as const;
+const TABS = ['Disputas', 'Grupos', 'Llaves', 'Acciones', 'Servicios'] as const;
 type Tab = typeof TABS[number];
 
 function setsLabel(json: unknown): string {
@@ -74,6 +84,7 @@ const AdminPanel: React.FC = () => {
 
   const [disputas, setDisputas] = useState<DisputaRow[]>([]);
   const [grupos, setGrupos] = useState<GrupoRow[]>([]);
+  const [servicioClicks, setServicioClicks] = useState<ServicioClickRow[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   // Force result form state per propuesta_id
