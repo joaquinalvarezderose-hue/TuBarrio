@@ -142,7 +142,7 @@ const TournamentDetails: React.FC = () => {
  </div>
  </div>
 
- <div className="flex flex-wrap gap-4 px-5 py-6">
+ <div className="flex gap-4 px-5 py-6">
  <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
  <div className="absolute -right-4 -top-4 size-20 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
  <div className="relative z-10 flex items-center gap-2 text-gray-500 mb-1">
@@ -153,13 +153,29 @@ const TournamentDetails: React.FC = () => {
  <p className="relative z-10 text-gray-500 text-xs font-medium">+ $5.000 por expensas</p>
  <p className="relative z-10 text-gray-400 text-[10px] font-medium mt-0.5">Total: $50.000</p>
  </div>
- <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
- <div className="absolute -right-4 -top-4 size-20 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
- <div className="relative z-10 flex items-center gap-2 text-gray-500 mb-1">
- <span className="material-symbols-outlined text-[20px]">emoji_events</span>
+ <div className="flex flex-col gap-4 flex-1 min-w-[140px]">
+ <div className="flex flex-col gap-1 rounded-2xl p-3 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
+ <div className="absolute -right-4 -top-4 size-16 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
+ <div className="relative z-10 flex items-center gap-2 text-gray-500 mb-0.5">
+ <span className="material-symbols-outlined text-[18px]">emoji_events</span>
  <span className="text-sm font-medium">Premios</span>
  </div>
- <p className="relative z-10 text-gray-900 text-lg font-bold leading-snug">Del 1° al 4°</p>
+ <p className="relative z-10 text-gray-900 text-base font-bold leading-snug">Del 1° al 4°</p>
+ </div>
+ <button
+ onClick={() => navigate('/rules')}
+ className="flex items-center justify-between gap-2 rounded-2xl p-3 bg-white border border-gray-100 shadow-sm relative overflow-hidden group text-left w-full active:scale-[0.98] transition-transform"
+ >
+ <div className="absolute -right-4 -top-4 size-16 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
+ <div className="relative z-10 flex flex-col gap-0.5">
+ <div className="flex items-center gap-2 text-gray-500 mb-0.5">
+ <span className="material-symbols-outlined text-[18px]">gavel</span>
+ <span className="text-sm font-medium">Reglamento</span>
+ </div>
+ <p className="text-gray-900 text-base font-bold leading-snug">Ver reglas</p>
+ </div>
+ <span className="material-symbols-outlined text-gray-400 relative z-10">chevron_right</span>
+ </button>
  </div>
  </div>
 
