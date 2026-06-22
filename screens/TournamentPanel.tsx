@@ -94,6 +94,7 @@ const TournamentPanel: React.FC = () => {
  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
  const [tournamentChampion, setTournamentChampion] = useState<string | null>(null);
  const [inscripcionPendiente, setInscripcionPendiente] = useState(false);
+ const [checkingInscripcion, setCheckingInscripcion] = useState(true);
  // Single authoritative backend hook for player status
  const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
  // Direct query fallback for when the RPC doesn't return proximo_partido
@@ -143,6 +144,44 @@ const TournamentPanel: React.FC = () => {
  useEffect(() => {
  localStorage.setItem('active_tournament', JSON.stringify(tournament));
  }, [tournament]);
+
+ // Chequeo rápido y paralelo: solo determina si el pago está pendiente,
+ // sin esperar al resto de la carga del panel.
+ useEffect(() => {
+ const perfilId = String(appUser?.id || '');
+ if (!perfilId || !tournament?.id) {
+ setCheckingInscripcion(false);
+ return;
+ }
+ let cancelled = false;
+ (async () => {
+ try {
+ const [{ data: jugador }, { data: inscripcion }] = await Promise.all([
+ supabase
+ .from('torneo_jugadores')
+ .select('perfil_id')
+ .eq('torneo_id', tournament.id)
+ .eq('perfil_id', perfilId)
+ .maybeSingle(),
+ supabase
+ .from('inscripciones_torneo')
+ .select('estado')
+ .eq('torneo_id', tournament.id)
+ .eq('perfil_id', perfilId)
+ .in('estado', ['pagado_aprobado', 'pendiente_revision'])
+ .maybeSingle(),
+ ]);
+ if (!cancelled && !jugador && inscripcion?.estado === 'pendiente_revision') {
+ setInscripcionPendiente(true);
+ }
+ } catch {
+ // swallow
+ } finally {
+ if (!cancelled) setCheckingInscripcion(false);
+ }
+ })();
+ return () => { cancelled = true; };
+ }, [tournament.id]);
 
  useEffect(() => {
  const loadCurrentUser = async () => {
@@ -232,7 +271,6 @@ const TournamentPanel: React.FC = () => {
  useEffect(() => {
  const loadPanelData = async () => {
  setLoadingData(true);
- setInscripcionPendiente(false);
  try {
  setAdminError(null);
  let resolvedScope: TournamentScope | null = null;
@@ -617,7 +655,7 @@ const TournamentPanel: React.FC = () => {
  return Math.max(8, Math.min(100, Math.round(progress)));
  }, [groupPosition, groupSize]);
 
- if (!isLoading && inscripcionPendiente && !isAdmin) {
+ if (!checkingInscripcion && inscripcionPendiente && !isAdmin) {
  return (
  <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light font-display">
  <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200 ">
@@ -638,7 +676,7 @@ const TournamentPanel: React.FC = () => {
  </div>
  <h2 className="mt-2 text-xl font-bold text-amber-800">Pago en revisión</h2>
  <p className="mt-2 text-sm text-amber-700 font-medium leading-relaxed">
- Ya recibimos tu comprobante. Tu inscripción estará confirmada en cuanto validemos la transferencia.
+ Tu inscripción estará confirmada en cuanto validemos la transferencia.
  </p>
  <p className="mt-3 text-xs text-amber-600 font-semibold">
  Vas a poder acceder al panel del torneo una vez que tu pago sea aprobado.
