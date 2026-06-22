@@ -239,6 +239,7 @@ export type Database = {
           nombre_completo: string | null
           numero_altura: string | null
           rol: string | null
+          sector: string | null
           updated_at: string | null
           whatsapp: string | null
         }

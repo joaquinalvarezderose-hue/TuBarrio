@@ -8,8 +8,10 @@ import {
   normalizeWhatsApp,
   BARRIOS,
   LOCALIDADES,
+  SECTORES_CANTON,
   type Barrio,
   type Localidad,
+  type SectorCanton,
 } from '../lib/schemas';
 
 function traducirErrorSupabase(msg: string): string {
@@ -32,6 +34,7 @@ interface RegisterProps {
 const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
   const [name, setName] = useState('');
   const [barrio, setBarrio] = useState<Barrio | ''>('');
+  const [sector, setSector] = useState<SectorCanton | ''>('');
   const [calle, setCalle] = useState('');
   const [numeroAltura, setNumeroAltura] = useState('');
   const [lote, setLote] = useState('');
@@ -58,6 +61,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
       password,
       confirmPassword,
       barrio: barrio || undefined,
+      sector: sector || undefined,
       localidad: localidad || undefined,
       calle,
       numero_altura: numeroAltura || undefined,
@@ -107,6 +111,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                 nombre_completo: name,
                 whatsapp: normalizedWA || null,
                 barrio: validated.barrio,
+                sector: validated.sector ?? null,
                 calle: validated.calle,
                 numero_altura: validated.numero_altura ?? null,
                 lote: validated.lote ?? null,
@@ -134,6 +139,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
             nombre_completo: name,
             whatsapp: normalizedWA || null,
             barrio: validated.barrio,
+            sector: validated.sector ?? null,
             calle: validated.calle,
             numero_altura: validated.numero_altura ?? null,
             lote: validated.lote ?? null,
@@ -283,9 +289,9 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                 {fieldErrors.confirmPassword && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.confirmPassword}</p>}
               </div>
 
-              {/* Barrio */}
+              {/* Country */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Barrio / Country</label>
+                <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Country</label>
                 <div className="relative">
                   <select
                     className="w-full pl-4 pr-10 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm appearance-none"
@@ -293,13 +299,14 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                     onChange={(e) => {
                       const v = e.target.value as Barrio;
                       setBarrio(v);
+                      setSector('');
                       if (v === 'El Cantón') {
                         setCalle('Libertad');
                         setNumeroAltura('310');
                       }
                     }}
                   >
-                    <option value="">Seleccioná un barrio...</option>
+                    <option value="">Seleccioná un country...</option>
                     {BARRIOS.map((b) => (
                       <option key={b} value={b}>{b}</option>
                     ))}
@@ -308,6 +315,27 @@ const Register: React.FC<RegisterProps> = ({ onComplete: _onComplete }) => {
                 </div>
                 {fieldErrors.barrio && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.barrio}</p>}
               </div>
+
+              {/* Barrio (solo para El Cantón) */}
+              {barrio === 'El Cantón' && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Barrio</label>
+                  <div className="relative">
+                    <select
+                      className="w-full pl-4 pr-10 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm appearance-none"
+                      value={sector}
+                      onChange={(e) => setSector(e.target.value as SectorCanton)}
+                    >
+                      <option value="">Seleccioná un barrio...</option>
+                      {SECTORES_CANTON.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl pointer-events-none">expand_more</span>
+                  </div>
+                  {fieldErrors.sector && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.sector}</p>}
+                </div>
+              )}
 
               {/* Calle */}
               <div className="space-y-1.5">

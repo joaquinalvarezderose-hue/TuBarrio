@@ -6,8 +6,10 @@ import {
   DomicilioUpdateSchema,
   BARRIOS,
   LOCALIDADES,
+  SECTORES_CANTON,
   type Barrio,
   type Localidad,
+  type SectorCanton,
 } from '../lib/schemas';
 
 const Domicilio: React.FC = () => {
@@ -15,6 +17,7 @@ const Domicilio: React.FC = () => {
   const { authUser, perfil, refresh } = useCurrentUser();
 
   const [barrio, setBarrio] = useState<Barrio | ''>('');
+  const [sector, setSector] = useState<SectorCanton | ''>('');
   const [calle, setCalle] = useState('');
   const [numeroAltura, setNumeroAltura] = useState('');
   const [lote, setLote] = useState('');
@@ -28,6 +31,7 @@ const Domicilio: React.FC = () => {
   useEffect(() => {
     if (!perfil) return;
     setBarrio((perfil.barrio as Barrio) || '');
+    setSector((perfil.sector as SectorCanton) || '');
     setCalle(perfil.calle || '');
     setNumeroAltura(perfil.numero_altura || '');
     setLote(perfil.lote || '');
@@ -43,6 +47,7 @@ const Domicilio: React.FC = () => {
 
     const parsed = DomicilioUpdateSchema.safeParse({
       barrio: barrio || undefined,
+      sector: sector || undefined,
       calle,
       numero_altura: numeroAltura || undefined,
       lote: lote || undefined,
@@ -60,7 +65,7 @@ const Domicilio: React.FC = () => {
       return;
     }
 
-    const { barrio: b, calle: c, numero_altura: n, lote: l, localidad: loc } = parsed.data;
+    const { barrio: b, sector: s, calle: c, numero_altura: n, lote: l, localidad: loc } = parsed.data;
 
     setSaving(true);
     try {
@@ -71,6 +76,7 @@ const Domicilio: React.FC = () => {
         .from('perfiles')
         .update({
           barrio: b,
+          sector: s ?? null,
           calle: c,
           numero_altura: n ?? null,
           lote: l ?? null,
@@ -134,7 +140,8 @@ const Domicilio: React.FC = () => {
                 <>
                   {perfil!.barrio && (
                     <p className="type-title-md text-on-surface mb-1">
-                      Barrio: {perfil!.barrio}
+                      Country: {perfil!.barrio}
+                      {perfil!.sector && ` · Barrio: ${perfil!.sector}`}
                     </p>
                   )}
                   <p className="type-body-md text-on-surface-variant leading-relaxed">
@@ -169,9 +176,9 @@ const Domicilio: React.FC = () => {
             className="space-y-6"
             onSubmit={(e) => { e.preventDefault(); handleSave(); }}
           >
-            {/* Barrio */}
+            {/* Country */}
             <div className="flex flex-col gap-1">
-              <label className="type-label-lg text-on-surface px-1">Barrio / Country</label>
+              <label className="type-label-lg text-on-surface px-1">Country</label>
               <div className="relative">
                 <select
                   className={inputClass('barrio') + ' appearance-none pr-10'}
@@ -179,13 +186,14 @@ const Domicilio: React.FC = () => {
                   onChange={(e) => {
                     const v = e.target.value as Barrio;
                     setBarrio(v);
+                    setSector('');
                     if (v === 'El Cantón') {
                       setCalle('Libertad');
                       setNumeroAltura('310');
                     }
                   }}
                 >
-                  <option value="">Seleccioná un barrio…</option>
+                  <option value="">Seleccioná un country…</option>
                   {BARRIOS.map((b) => (
                     <option key={b} value={b}>{b}</option>
                   ))}
@@ -198,6 +206,31 @@ const Domicilio: React.FC = () => {
                 <p className="type-label-md text-error px-1">{fieldErrors.barrio}</p>
               )}
             </div>
+
+            {/* Barrio (solo para El Cantón) */}
+            {barrio === 'El Cantón' && (
+              <div className="flex flex-col gap-1">
+                <label className="type-label-lg text-on-surface px-1">Barrio</label>
+                <div className="relative">
+                  <select
+                    className={inputClass('sector') + ' appearance-none pr-10'}
+                    value={sector}
+                    onChange={(e) => setSector(e.target.value as SectorCanton)}
+                  >
+                    <option value="">Seleccioná un barrio…</option>
+                    {SECTORES_CANTON.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
+                {fieldErrors.sector && (
+                  <p className="type-label-md text-error px-1">{fieldErrors.sector}</p>
+                )}
+              </div>
+            )}
 
             {/* Calle */}
             <div className="flex flex-col gap-1">

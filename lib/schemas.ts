@@ -58,11 +58,15 @@ export const LOCALIDADES = [
   'Belén de Escobar',
 ] as const;
 
+export const SECTORES_CANTON = ['Norte', 'Islas', 'Puerto', 'Golf'] as const;
+
 export type Barrio = typeof BARRIOS[number];
 export type Localidad = typeof LOCALIDADES[number];
+export type SectorCanton = typeof SECTORES_CANTON[number];
 
-export const BarrioSchema = z.enum(BARRIOS, { errorMap: () => ({ message: 'Seleccioná un barrio' }) });
+export const BarrioSchema = z.enum(BARRIOS, { errorMap: () => ({ message: 'Seleccioná un country' }) });
 export const LocalidadSchema = z.enum(LOCALIDADES, { errorMap: () => ({ message: 'Seleccioná una localidad' }) });
+export const SectorCantonSchema = z.enum(SECTORES_CANTON, { errorMap: () => ({ message: 'Seleccioná un barrio' }) });
 
 export const LoginSchema = z.object({
   email: EmailSchema,
@@ -76,6 +80,7 @@ export const RegisterSchema = z
     password: PasswordSchema,
     confirmPassword: z.string(),
     barrio: BarrioSchema,
+    sector: z.string().optional(),
     localidad: LocalidadSchema,
     calle: z.string().trim().min(2, 'Mínimo 2 caracteres').max(100, 'Máximo 100 caracteres'),
     numero_altura: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
@@ -90,6 +95,10 @@ export const RegisterSchema = z
   .refine(
     (d) => d.barrio !== 'El Cantón' || (!!d.lote && d.lote.trim().length > 0),
     { message: 'El Lote es obligatorio para El Cantón', path: ['lote'] },
+  )
+  .refine(
+    (d) => d.barrio !== 'El Cantón' || (!!d.sector && SECTORES_CANTON.includes(d.sector as SectorCanton)),
+    { message: 'El Barrio es obligatorio para El Cantón', path: ['sector'] },
   );
 
 export const PaymentReferenceSchema = z
@@ -107,6 +116,7 @@ export const ProfileUpdateSchema = z.object({
 export const DomicilioUpdateSchema = z
   .object({
     barrio: BarrioSchema,
+    sector: z.string().optional(),
     localidad: LocalidadSchema,
     calle: z.string().trim().min(2, 'Mínimo 2 caracteres').max(100, 'Máximo 100 caracteres'),
     numero_altura: z.string().trim().max(20, 'Máximo 20 caracteres').optional(),
@@ -115,11 +125,16 @@ export const DomicilioUpdateSchema = z
   .refine(
     (d) => d.barrio !== 'El Cantón' || (!!d.lote && d.lote.trim().length > 0),
     { message: 'El Lote es obligatorio para El Cantón', path: ['lote'] },
+  )
+  .refine(
+    (d) => d.barrio !== 'El Cantón' || (!!d.sector && SECTORES_CANTON.includes(d.sector as SectorCanton)),
+    { message: 'El Barrio es obligatorio para El Cantón', path: ['sector'] },
   );
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
+export type DomicilioUpdateInput = z.infer<typeof DomicilioUpdateSchema>;
 
 export function flattenZodErrors<T>(
   result: z.ZodSafeParseResult<T>,
