@@ -157,11 +157,24 @@ const AdminPanel: React.FC = () => {
     setLoadingData(false);
   }, [activeTorneo]);
 
+  const loadServicioClicks = useCallback(async () => {
+    setLoadingData(true);
+    const { data, error } = await supabase
+      .from('servicio_clicks' as 'marketplace_servicios')
+      .select('*')
+      .order('clicked_at', { ascending: false })
+      .limit(200);
+    if (error) console.error('[AdminPanel] loadServicioClicks error:', error);
+    setServicioClicks((data ?? []) as unknown as ServicioClickRow[]);
+    setLoadingData(false);
+  }, []);
+
   useEffect(() => {
     if (perfil?.rol !== 'admin') return;
     if (tab === 'Disputas') loadDisputas();
     if (tab === 'Grupos') loadGrupos();
-  }, [tab, perfil, loadDisputas, loadGrupos]);
+    if (tab === 'Servicios') loadServicioClicks();
+  }, [tab, perfil, loadDisputas, loadGrupos, loadServicioClicks]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -412,6 +425,99 @@ const AdminPanel: React.FC = () => {
     );
   };
 
+  const renderServicios = () => {
+    const resumen: Record<string, { titulo: string; vistas: number; whatsapp: number }> = {};
+    for (const c of servicioClicks) {
+      if (!resumen[c.servicio_id]) {
+        resumen[c.servicio_id] = { titulo: c.servicio_titulo, vistas: 0, whatsapp: 0 };
+      }
+      if (c.tipo_evento === 'profile_view') resumen[c.servicio_id].vistas++;
+      else resumen[c.servicio_id].whatsapp++;
+    }
+    const resumenList = Object.entries(resumen).sort((a, b) => (b[1].vistas + b[1].whatsapp) - (a[1].vistas + a[1].whatsapp));
+
+    return (
+      <div className="space-y-4">
+        {loadingData && <p className="text-sm text-slate-500 text-center py-6">Cargando...</p>}
+
+        {/* Resumen por prestador */}
+        {resumenList.length > 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100">
+              <span className="font-bold text-slate-700 text-sm">Resumen por prestador</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                    <th className="text-left px-3 py-2">Prestador</th>
+                    <th className="text-center px-3 py-2">Vistas</th>
+                    <th className="text-center px-3 py-2">WhatsApp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumenList.map(([id, r], i) => (
+                    <tr key={id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                      <td className="px-3 py-2 font-medium text-slate-800">{r.titulo}</td>
+                      <td className="px-3 py-2 text-center text-slate-600">{r.vistas}</td>
+                      <td className="px-3 py-2 text-center font-bold text-[#25D366]">{r.whatsapp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Log de eventos */}
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <span className="font-bold text-slate-700 text-sm">Últimos eventos</span>
+            <span className="text-xs text-slate-400">{servicioClicks.length} registros</span>
+          </div>
+          {!loadingData && servicioClicks.length === 0 && (
+            <p className="text-center py-10 text-slate-400 text-sm">Sin eventos registrados todavía.</p>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              {servicioClicks.length > 0 && (
+                <thead>
+                  <tr className="text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                    <th className="text-left px-3 py-2">Fecha</th>
+                    <th className="text-left px-3 py-2">Prestador</th>
+                    <th className="text-center px-3 py-2">Evento</th>
+                    <th className="text-left px-3 py-2">Usuario</th>
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                {servicioClicks.map((c, i) => {
+                  const fecha = new Date(c.clicked_at);
+                  const fechaStr = fecha.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+                  const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <tr key={c.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                      <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{fechaStr} {horaStr}</td>
+                      <td className="px-3 py-2 text-slate-800 font-medium">{c.servicio_titulo}</td>
+                      <td className="px-3 py-2 text-center">
+                        {c.tipo_evento === 'whatsapp_click' ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-[#25D366]/10 text-[#1a9e4e]">WhatsApp</span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">Vista</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-slate-500">{c.user_nombre ?? <span className="italic text-slate-300">Anónimo</span>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (userLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -482,6 +588,7 @@ const AdminPanel: React.FC = () => {
         {tab === 'Grupos' && renderGrupos()}
         {tab === 'Llaves' && renderLlaves()}
         {tab === 'Acciones' && renderAcciones()}
+        {tab === 'Servicios' && renderServicios()}
       </div>
     </div>
   );
