@@ -127,7 +127,7 @@ const TournamentDetails: React.FC = () => {
  <div className="mt-3 h-24 w-full overflow-hidden rounded-xl relative border border-gray-200">
  <div 
  className="absolute inset-0 bg-cover bg-center opacity-80"
- style={{ backgroundImage: 'url("/images/tournament-detail-2.jpg")', filter: 'hue-rotate(-90deg) saturate(1.3)' }}
+ style={{ backgroundImage: 'url("/images/tournament-detail-2.jpg")' }}
  ></div>
  <a
  href="https://maps.app.goo.gl/W5j2pF2XkeEyLCqq5"
