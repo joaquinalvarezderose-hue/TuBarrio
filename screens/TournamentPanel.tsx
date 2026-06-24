@@ -43,8 +43,7 @@ type TournamentScope = {
 };
 
 type TournamentConfigRow = {
- jugadores_por_grupo: number;
- sortear_grupos_en_sorteo: boolean;
+ max_participantes_por_grupo: number;
  grupo_base: string | null;
  grupo_base_id: string | null;
  clasificados_por_grupo: number;
@@ -278,14 +277,13 @@ const TournamentPanel: React.FC = () => {
 
  const { data: configRow, error: configError } = await supabase
  .from('torneo_configuracion')
- .select('jugadores_por_grupo, sortear_grupos_en_sorteo, grupo_base, grupo_base_id, clasificados_por_grupo, crear_playoffs_eliminacion_directa')
+ .select('max_participantes_por_grupo, grupo_base, grupo_base_id, clasificados_por_grupo, crear_playoffs_eliminacion_directa')
  .eq('torneo_id', tournament.id)
  .maybeSingle();
 
  if (!configError && configRow) {
  setTournamentConfig({
- jugadores_por_grupo: Number(configRow.jugadores_por_grupo || 0),
- sortear_grupos_en_sorteo: Boolean(configRow.sortear_grupos_en_sorteo),
+ max_participantes_por_grupo: Number(configRow.max_participantes_por_grupo || 0),
  grupo_base: configRow.grupo_base ? String(configRow.grupo_base) : null,
  grupo_base_id: configRow.grupo_base_id ? String(configRow.grupo_base_id) : null,
  clasificados_por_grupo: Number(configRow.clasificados_por_grupo || 0),
@@ -508,9 +506,8 @@ const TournamentPanel: React.FC = () => {
 
  try {
  const categoria = userScope?.categoria || tournament.subtitle || 'General';
-
- if (tournamentConfig?.sortear_grupos_en_sorteo) {
  const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
+
  const { data, error } = await supabase.rpc('iniciar_torneo_en_curso', {
  p_torneo_id: Number(tournament.id),
  p_categoria: categoria,
@@ -525,36 +522,6 @@ const TournamentPanel: React.FC = () => {
  setAdminMessage(`Torneo iniciado en ${startedGroups} grupo(s).`);
  } else {
  setAdminMessage('El torneo ya estaba en curso o no habia grupos por iniciar.');
- }
- } else {
- const { data: statusRows, error: statusError } = await supabase
- .from('torneo_estado')
- .select('categoria, grupo, estado')
- .eq('torneo_id', Number(tournament.id))
- .eq('categoria', categoria)
- .eq('estado', 'LOCKED');
-
- if (statusError) throw statusError;
-
- const lockedGroups = Array.isArray(statusRows) ? statusRows : [];
- if (lockedGroups.length === 0) {
- throw new Error('No hay grupos en estado LOCKED para iniciar.');
- }
-
- const results = await Promise.all(
- lockedGroups.map((row: any) =>
- supabase.rpc('iniciar_torneo_manual', {
- p_torneo_id: Number(tournament.id),
- p_categoria: String(row.categoria),
- p_grupo: String(row.grupo),
- })
- )
- );
-
- const failed = results.find((result) => result.error);
- if (failed?.error) throw failed.error;
-
- setAdminMessage(`Torneo iniciado en ${lockedGroups.length} grupo(s).`);
  }
 
  refreshPanel();
@@ -760,14 +727,8 @@ const TournamentPanel: React.FC = () => {
 
  <div className="grid grid-cols-2 gap-3 text-xs text-slate-600 ">
  <div className="rounded-lg bg-white border border-slate-200 p-3">
- <p className="font-bold uppercase tracking-wide text-slate-500 ">Jugadores por grupo</p>
- <p className="mt-1 text-lg font-bold text-slate-900 ">{tournamentConfig?.jugadores_por_grupo || '-'}</p>
- </div>
- <div className="rounded-lg bg-white border border-slate-200 p-3">
- <p className="font-bold uppercase tracking-wide text-slate-500 ">Modo grupos</p>
- <p className="mt-1 text-sm font-bold text-slate-900 ">
- {tournamentConfig?.sortear_grupos_en_sorteo ? 'Diferido al sorteo' : 'Asignación inmediata'}
- </p>
+ <p className="font-bold uppercase tracking-wide text-slate-500 ">Max por grupo</p>
+ <p className="mt-1 text-lg font-bold text-slate-900 ">{tournamentConfig?.max_participantes_por_grupo || '-'}</p>
  </div>
  <div className="rounded-lg bg-white border border-slate-200 p-3">
  <p className="font-bold uppercase tracking-wide text-slate-500 ">Clasifican por grupo</p>
@@ -809,7 +770,7 @@ const TournamentPanel: React.FC = () => {
  <div className="grid grid-cols-1 gap-3">
  <button
  onClick={handleDrawGroupsAndFixture}
- disabled={adminActionLoading !== null || !tournamentConfig?.sortear_grupos_en_sorteo}
+ disabled={adminActionLoading !== null}
  className="w-full rounded-lg bg-[#4a9c40] text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
  >
  {adminActionLoading === 'draw' ? 'Sorteando...' : 'Sortear Grupos y Fixture'}

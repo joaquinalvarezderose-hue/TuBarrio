@@ -256,15 +256,14 @@ export type Database = {
           formato: string | null
           grupo_base: string | null
           grupo_base_id: string | null
-          grupos_cantidad: number | null
           id: string
-          jugadores_por_grupo: number | null
+          cantidad_mejores_terceros: number | null
+          incluir_mejores_terceros: boolean
           max_participantes_por_grupo: number | null
           max_participantes_total: number | null
           min_participantes_por_grupo: number | null
           numero_grupos: number | null
           partidos_por_jugador: number | null
-          sortear_grupos_en_sorteo: boolean
           torneo_id: number
           updated_at: string | null
         }
@@ -562,7 +561,7 @@ export type Database = {
           categoria: string
           grupo_base: string
           grupos_creados: number
-          jugadores_por_grupo: number
+          max_participantes_por_grupo: number
           jugadores_sorteados: number
           partidos_creados: number
         }[]
