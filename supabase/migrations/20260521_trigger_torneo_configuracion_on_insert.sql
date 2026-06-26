@@ -7,8 +7,7 @@ as $$
 begin
   insert into public.torneo_configuracion (
     torneo_id,
-    jugadores_por_grupo,
-    sortear_grupos_en_sorteo,
+    max_participantes_por_grupo,
     grupo_base,
     max_participantes_total,
     clasificados_por_grupo,
@@ -17,7 +16,6 @@ begin
   values (
     new.id,
     4,
-    false,
     format('TORNEO_%s', new.id),
     null,
     2,
