@@ -196,14 +196,14 @@ const Services: React.FC = () => {
   if (!DIRECTORIO_ACTIVO) {
     return (
       <div className="flex flex-col h-full bg-gray-50 overflow-y-auto no-scrollbar">
-        <header className="fixed top-0 w-full z-50 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 flex items-center px-5 h-16">
+        <header className="fixed top-0 w-full z-50 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 relative flex items-center px-5 h-16">
           <button
             onClick={() => navigate(-1)}
-            className="hover:opacity-80 transition-opacity active:scale-95 text-secondary"
+            className="absolute left-5 hover:opacity-80 transition-opacity active:scale-95 text-secondary"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h1 className="absolute left-1/2 -translate-x-1/2 font-display font-bold text-base text-secondary">
+          <h1 className="w-full text-center font-display font-bold text-base text-secondary">
             Directorio de Servicios
           </h1>
         </header>
