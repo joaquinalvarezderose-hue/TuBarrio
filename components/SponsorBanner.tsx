@@ -43,7 +43,7 @@ const SponsorBanner: React.FC = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       setCurrent((prev) => (prev + 1) % validSponsors.length);
-    }, 3000);
+    }, 4000);
   };
 
   useEffect(() => {
