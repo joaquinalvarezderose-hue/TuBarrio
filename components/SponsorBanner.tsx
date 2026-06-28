@@ -140,7 +140,7 @@ const SponsorBanner: React.FC = () => {
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   draggable={false}
                   onError={() => setFailedImages((prev) => new Set([...prev, sponsor.id]))}
                 />
@@ -150,7 +150,7 @@ const SponsorBanner: React.FC = () => {
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   draggable={false}
                   onError={() => setFailedImages((prev) => new Set([...prev, sponsor.id]))}
                 />
