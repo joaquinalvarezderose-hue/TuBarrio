@@ -13,23 +13,9 @@ const sponsors: Sponsor[] = [
   {
     id: 'sponsor-1',
     name: 'Sponsor 1',
-    src: '/images/sponsors/sponsor-1.jpg',
+    src: '/images/sponsors/sponsor-1.png',
     alt: 'Sponsor 1',
     href: 'https://api.whatsapp.com/send?phone=5491122945685&text=Quisiera%20contactarme%20con%20ustedes%20los%20vi%20en%20TuBarrio',
-  },
-  {
-    id: 'sponsor-2',
-    name: 'Sponsor 2',
-    src: '/images/sponsors/sponsor-2.jpg',
-    alt: 'Sponsor 2',
-    href: 'https://...',
-  },
-  {
-    id: 'sponsor-3',
-    name: 'Sponsor 3',
-    src: '/images/sponsors/sponsor-3.jpg',
-    alt: 'Sponsor 3',
-    href: 'https://...',
   },
 ];
 
