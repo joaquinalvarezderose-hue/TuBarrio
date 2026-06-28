@@ -2,6 +2,9 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServicios, ServicioConStats } from '../hooks/useServicios';
 
+// Cambiá esto a true cuando el directorio tenga suficientes proveedores
+const DIRECTORIO_ACTIVO = false;
+
 const CATEGORIAS = ['Todos', 'Plomería', 'Electricidad', 'Pintura', 'Jardinería', 'Tutorías', 'Otros'];
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -190,6 +193,43 @@ const Services: React.FC = () => {
 
   const handleRecomendar = () => navigate('/recomendar-profesional');
 
+  if (!DIRECTORIO_ACTIVO) {
+    return (
+      <div className="flex flex-col h-full bg-gray-50">
+        <header className="fixed top-0 w-full z-50 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-5 h-16">
+          <button
+            onClick={() => navigate(-1)}
+            className="hover:opacity-80 transition-opacity active:scale-95 text-secondary"
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h1 className="font-display font-bold text-base text-secondary">Directorio de Servicios</h1>
+          <div className="w-6" />
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center px-8 text-center pb-24">
+          <span
+            className="material-symbols-outlined text-6xl text-primary mb-6"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            handshake
+          </span>
+          <h2 className="font-display font-black text-xl text-secondary mb-3">
+            Estamos armando la red de profesionales del barrio
+          </h2>
+          <p className="text-sm text-gray-500 mb-8 max-w-[280px] leading-relaxed">
+            Cada recomendación nos acerca a un directorio de confianza. ¿Conocés a alguien que merezca estar acá?
+          </p>
+          <button
+            onClick={handleRecomendar}
+            className="px-8 py-3.5 bg-primary text-secondary font-bold text-sm rounded-xl shadow-sm hover:opacity-90 transition-all active:scale-95"
+          >
+            Recomendar un profesional
+          </button>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-y-auto no-scrollbar">
       {/* Header */}
@@ -252,30 +292,6 @@ const Services: React.FC = () => {
             );
           })}
         </section>
-
-        {/* Building the network hero */}
-        {!hayBusqueda && !categoriaActiva && (
-          <section className="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center text-center">
-            <span
-              className="material-symbols-outlined text-5xl text-primary mb-4"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              handshake
-            </span>
-            <h2 className="font-display font-bold text-base text-secondary mb-2">
-              Estamos armando la red de profesionales del barrio
-            </h2>
-            <p className="text-sm text-gray-500 mb-5 max-w-[280px]">
-              Cada recomendación nos acerca a un directorio de confianza. ¿Conocés a alguien que merezca estar acá?
-            </p>
-            <button
-              onClick={handleRecomendar}
-              className="px-8 py-3 bg-primary text-secondary font-bold text-sm rounded-lg shadow-sm hover:opacity-90 transition-all active:scale-95"
-            >
-              Recomendar un profesional
-            </button>
-          </section>
-        )}
 
         {/* Community Banner */}
         {!hayBusqueda && !categoriaActiva && (
