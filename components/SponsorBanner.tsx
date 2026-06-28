@@ -55,15 +55,11 @@ const SponsorBanner: React.FC = () => {
 
   useEffect(() => {
     startInterval();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [validSponsors.length]);
 
   useEffect(() => {
-    if (current >= validSponsors.length && validSponsors.length > 0) {
-      setCurrent(0);
-    }
+    if (current >= validSponsors.length && validSponsors.length > 0) setCurrent(0);
   }, [validSponsors.length]);
 
   const goTo = (index: number) => {
@@ -81,22 +77,18 @@ const SponsorBanner: React.FC = () => {
   const handleDragMove = (x: number) => {
     if (dragStartX.current === null) return;
     dragDelta.current = x - dragStartX.current;
-    if (Math.abs(dragDelta.current) > DRAG_THRESHOLD) {
-      isDragging.current = true;
-    }
+    if (Math.abs(dragDelta.current) > DRAG_THRESHOLD) isDragging.current = true;
   };
 
   const handleDragEnd = () => {
     if (dragStartX.current === null) return;
     const delta = dragDelta.current;
     dragStartX.current = null;
-
     if (Math.abs(delta) >= SWIPE_THRESHOLD) {
-      if (delta < 0) {
-        goTo((current + 1) % validSponsors.length);
-      } else {
-        goTo((current - 1 + validSponsors.length) % validSponsors.length);
-      }
+      goTo(delta < 0
+        ? (current + 1) % validSponsors.length
+        : (current - 1 + validSponsors.length) % validSponsors.length
+      );
     } else {
       startInterval();
     }
@@ -105,34 +97,24 @@ const SponsorBanner: React.FC = () => {
   const logClick = async (sponsor: Sponsor) => {
     const { data: authData } = await supabase.auth.getUser();
     const userId = authData.user?.id ?? null;
-
     let userNombre: string | null = null;
     if (userId) {
-      const { data: perfil, error: perfilError } = await supabase
+      const { data: perfil } = await supabase
         .from('perfiles')
         .select('nombre_completo')
         .eq('id', userId)
         .single();
-      if (perfilError) console.error('[SponsorBanner] Error al obtener perfil:', perfilError);
       userNombre = perfil?.nombre_completo ?? null;
-      console.log('[SponsorBanner] perfil obtenido:', perfil, 'userNombre:', userNombre);
     }
-
-    const { error } = await supabase.from('sponsor_clicks').insert({
+    await supabase.from('sponsor_clicks').insert({
       sponsor_id: sponsor.id,
       sponsor_name: sponsor.name,
       user_id: userId,
       user_nombre: userNombre,
     });
-    if (error) console.error('[SponsorBanner] Error al registrar click:', error);
   };
 
-  const handleLinkClick = (e: React.MouseEvent, sponsor: Sponsor) => {
-    e.preventDefault();
-    if (isDragging.current) return;
-    logClick(sponsor);
-    window.open(sponsor.href, '_blank', 'noopener,noreferrer');
-  };
+  if (validSponsors.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -153,13 +135,13 @@ const SponsorBanner: React.FC = () => {
           className="flex h-full transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${current * 100}%)` }}
         >
-          {validSponsors.map((sponsor, i) =>
+          {validSponsors.map((sponsor) =>
             sponsor.href ? (
               <a
                 key={sponsor.id}
                 href={sponsor.href}
                 className="min-w-full h-full block cursor-pointer"
-                onClick={(e) => handleLinkClick(e, sponsor)}
+                onClick={(e) => { e.preventDefault(); if (!isDragging.current) { logClick(sponsor); window.open(sponsor.href, '_blank', 'noopener,noreferrer'); } }}
                 draggable={false}
               >
                 <img
@@ -184,23 +166,18 @@ const SponsorBanner: React.FC = () => {
           )}
         </div>
 
-        {/* Flechas de navegación (visibles al hover en desktop, solo si hay más de 1 sponsor) */}
         {validSponsors.length > 1 && (
           <>
             <button
               onClick={() => goTo((current - 1 + validSponsors.length) % validSponsors.length)}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-lg leading-none"
               aria-label="Anterior"
-            >
-              ‹
-            </button>
+            >‹</button>
             <button
               onClick={() => goTo((current + 1) % validSponsors.length)}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-lg leading-none"
               aria-label="Siguiente"
-            >
-              ›
-            </button>
+            >›</button>
           </>
         )}
       </div>
@@ -211,9 +188,7 @@ const SponsorBanner: React.FC = () => {
             <button
               key={i}
               onClick={() => goTo(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === current ? 'w-4 bg-primary' : 'w-1.5 bg-gray-300'
-              }`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-4 bg-primary' : 'w-1.5 bg-gray-300'}`}
               aria-label={`Sponsor ${i + 1}`}
             />
           ))}

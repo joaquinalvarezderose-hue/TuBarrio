@@ -253,6 +253,30 @@ const Services: React.FC = () => {
           })}
         </section>
 
+        {/* Building the network hero */}
+        {!hayBusqueda && !categoriaActiva && (
+          <section className="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center text-center">
+            <span
+              className="material-symbols-outlined text-5xl text-primary mb-4"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              handshake
+            </span>
+            <h2 className="font-display font-bold text-base text-secondary mb-2">
+              Estamos armando la red de profesionales del barrio
+            </h2>
+            <p className="text-sm text-gray-500 mb-5 max-w-[280px]">
+              Cada recomendación nos acerca a un directorio de confianza. ¿Conocés a alguien que merezca estar acá?
+            </p>
+            <button
+              onClick={handleRecomendar}
+              className="px-8 py-3 bg-primary text-secondary font-bold text-sm rounded-lg shadow-sm hover:opacity-90 transition-all active:scale-95"
+            >
+              Recomendar un profesional
+            </button>
+          </section>
+        )}
+
         {/* Community Banner */}
         {!hayBusqueda && !categoriaActiva && (
           <section className="mb-10 bg-primary/10 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
