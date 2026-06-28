@@ -17,6 +17,13 @@ const sponsors: Sponsor[] = [
     alt: 'Sponsor 1',
     href: 'https://api.whatsapp.com/send?phone=5491122945685&text=Quisiera%20contactarme%20con%20ustedes%20los%20vi%20en%20TuBarrio',
   },
+  {
+    id: 'sponsor-2',
+    name: 'Sponsor 2',
+    src: '/images/sponsors/sponsor-2.png',
+    alt: 'Sponsor 2',
+    href: 'https://docs.google.com/forms/d/1NhO9Ufc6kVmybhqV1g2I_fD7-VN8xFZHiIutzjOVfZM/viewform',
+  },
 ];
 
 const SWIPE_THRESHOLD = 50;
