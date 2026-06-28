@@ -195,7 +195,7 @@ const Services: React.FC = () => {
 
   if (!DIRECTORIO_ACTIVO) {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
+      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto no-scrollbar">
         <header className="fixed top-0 w-full z-50 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-5 h-16">
           <button
             onClick={() => navigate(-1)}
@@ -206,14 +206,14 @@ const Services: React.FC = () => {
           <h1 className="font-display font-bold text-base text-secondary">Directorio de Servicios</h1>
           <div className="w-6" />
         </header>
-        <main className="flex-1 flex flex-col items-center justify-center px-8 text-center pb-24">
+        <main className="min-h-full flex flex-col items-center justify-center px-8 text-center pt-16 pb-28">
           <span
-            className="material-symbols-outlined text-6xl text-primary mb-6"
+            className="material-symbols-outlined text-7xl text-primary mb-6"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
-            handshake
+            groups
           </span>
-          <h2 className="font-display font-black text-xl text-secondary mb-3">
+          <h2 className="font-display font-black text-xl text-secondary mb-3 max-w-[300px]">
             Estamos armando la red de profesionales del barrio
           </h2>
           <p className="text-sm text-gray-500 mb-8 max-w-[280px] leading-relaxed">
