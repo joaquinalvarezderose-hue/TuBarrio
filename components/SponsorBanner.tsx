@@ -99,12 +99,13 @@ const SponsorBanner: React.FC = () => {
         .single();
       userNombre = perfil?.nombre_completo ?? null;
     }
-    await supabase.from('sponsor_clicks').insert({
+    const { error } = await supabase.from('sponsor_clicks').insert({
       sponsor_id: sponsor.id,
       sponsor_name: sponsor.name,
       user_id: userId,
       user_nombre: userNombre,
     });
+    if (error) console.error('sponsor_clicks insert error:', error);
   };
 
   if (validSponsors.length === 0) return null;
