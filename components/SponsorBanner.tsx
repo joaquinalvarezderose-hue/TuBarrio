@@ -104,11 +104,11 @@ const SponsorBanner: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+      <span className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider px-1">
         Nuestros Sponsors
       </span>
       <div
-        className="relative overflow-hidden rounded-2xl shadow-sm border border-gray-100 bg-black h-24 group select-none"
+        className="relative overflow-hidden rounded-2xl shadow-sm border border-gray-100 bg-black h-24 md:h-40 group select-none"
         onMouseDown={(e) => handleDragStart(e.clientX)}
         onMouseMove={(e) => handleDragMove(e.clientX)}
         onMouseUp={handleDragEnd}
