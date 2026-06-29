@@ -15,7 +15,7 @@ const sponsors: Sponsor[] = [
     name: 'Sponsor 1',
     src: '/images/sponsors/sponsor-1.png',
     alt: 'Sponsor 1',
-    href: 'https://api.whatsapp.com/send?phone=5491122945685&text=Quisiera%20contactarme%20con%20ustedes%20los%20vi%20en%20TuBarrio',
+    href: 'https://api.whatsapp.com/send?phone=5491122945685&text=Hola%2C%20qu%C3%A9%20tal%3F%20Quisiera%20contactarme%20con%20ustedes%2C%20los%20vi%20en%20TuBarrio',
   },
   {
     id: 'sponsor-2',
