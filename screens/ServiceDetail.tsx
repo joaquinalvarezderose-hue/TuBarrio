@@ -19,7 +19,7 @@ function formatFecha(iso: string | null): string {
 function abrirWhatsApp(whatsapp: string, nombre: string) {
   const numero = whatsapp.replace(/\D/g, '');
   const texto = encodeURIComponent(`Hola ${nombre}, te contacto desde TuBarrio`);
-  window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
+  window.open(`https://wa.me/${numero}?text=${texto}`, '_blank', 'noopener,noreferrer');
 }
 
 const AVATAR_COLORS = [
