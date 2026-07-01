@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServicios, ServicioConStats } from '../hooks/useServicios';
+import { useRequireAuth } from '../hooks/useRequireAuth';
 
 // Cambiá esto a true cuando el directorio tenga suficientes proveedores
 const DIRECTORIO_ACTIVO = false;
@@ -176,6 +177,7 @@ function ProveedorCard({ p, onClick }: { p: ServicioConStats; onClick: () => voi
 
 const Services: React.FC = () => {
   const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
   const [busqueda, setBusqueda] = useState('');
   const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
 
@@ -342,7 +344,7 @@ const Services: React.FC = () => {
                   <CarouselCard
                     key={p.id}
                     p={p}
-                    onClick={() => navigate(`/service/${p.id}`)}
+                    onClick={() => requireAuth({ type: 'service-hire', payload: { serviceId: p.id } }, () => navigate(`/service/${p.id}`))}
                   />
                 ))
               ) : null}
@@ -393,7 +395,7 @@ const Services: React.FC = () => {
                   <ProveedorCard
                     key={p.id}
                     p={p}
-                    onClick={() => navigate(`/service/${p.id}`)}
+                    onClick={() => requireAuth({ type: 'service-hire', payload: { serviceId: p.id } }, () => navigate(`/service/${p.id}`))}
                   />
                 ))
               )}

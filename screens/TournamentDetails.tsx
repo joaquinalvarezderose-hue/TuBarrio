@@ -4,10 +4,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 import Logo from '../components/Logo';
+import { useRequireAuth } from '../hooks/useRequireAuth';
 
 const TournamentDetails: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
+ const requireAuth = useRequireAuth();
  const [isRegistered, setIsRegistered] = useState(false);
  const [inscripcionPendiente, setInscripcionPendiente] = useState(false);
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
@@ -247,7 +249,10 @@ const TournamentDetails: React.FC = () => {
  <span>Administrar Torneo</span>
  </button>
  <button
- onClick={() => navigate('/payment', { state: { tournament } })}
+ onClick={() => requireAuth(
+ { type: 'tournament-signup', payload: { tournament } },
+ () => navigate('/payment', { state: { tournament } })
+ )}
  className="w-full bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
  >
  <span>Inscribirme al Torneo</span>
@@ -256,7 +261,10 @@ const TournamentDetails: React.FC = () => {
  </div>
  ) : (
  <button
- onClick={() => navigate('/payment', { state: { tournament } })}
+ onClick={() => requireAuth(
+ { type: 'tournament-signup', payload: { tournament } },
+ () => navigate('/payment', { state: { tournament } })
+ )}
  className="w-full md:w-[420px] bg-primary hover:bg-[#5cd60f] active:scale-[0.98] transition-all text-black font-bold text-lg h-14 rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2"
  >
  <span>Inscribirme al Torneo</span>

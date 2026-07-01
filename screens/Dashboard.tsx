@@ -6,24 +6,32 @@ import SponsorBanner from '../components/SponsorBanner';
 
 const Dashboard: React.FC = () => {
  const navigate = useNavigate();
- const { perfil } = useCurrentUser();
- const displayName = perfil?.nombre_completo || 'Mi Barrio';
+ const { authUser, perfil } = useCurrentUser();
+ const isGuest = !authUser;
+ const displayName = perfil?.nombre_completo || (isGuest ? 'vecino' : 'Mi Barrio');
 
  return (
  <div className="relative flex h-full w-full flex-col bg-white font-display text-[#111813] antialiased pb-24 md:pb-0">
  {/* Header */}
  <header className="sticky top-0 z-40 flex items-center justify-between bg-white px-4 md:px-8 py-3 shadow-sm transition-colors border-b border-gray-50 ">
  <div className="flex items-center gap-3">
- <div className="relative cursor-pointer" onClick={() => navigate('/profile')}>
- <div className="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary/20" 
- style={{ backgroundImage: 'url("/images/dashboard-bg.jpg")' }}></div>
- <div className="absolute bottom-0 right-0 size-3 rounded-full bg-primary border-2 border-white "></div>
+ {isGuest ? (
+ <div className="relative flex items-center justify-center rounded-full size-10 bg-gray-100">
+ <span className="material-symbols-outlined text-gray-400" style={{ fontSize: '24px' }}>person</span>
  </div>
+ ) : (
+ <div className="relative cursor-pointer" onClick={() => navigate('/profile')}>
+ <div className="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary/20"
+ style={{ backgroundImage: 'url("/images/dashboard-bg.jpg")' }}></div>
+ <div className="absolute bottom-0 right-0 size-3 rounded-full bg-primary border-2 border-white"></div>
+ </div>
+ )}
  <div className="flex flex-col">
- <span className="text-xs font-medium text-gray-500 leading-none">Hola de nuevo,</span>
+ <span className="text-xs font-medium text-gray-500 leading-none">{isGuest ? 'Bienvenido,' : 'Hola de nuevo,'}</span>
  <h2 className="text-[#111813] text-lg font-bold leading-tight tracking-[-0.015em]">{displayName}</h2>
  </div>
  </div>
+ {!isGuest && (
  <button className="relative flex items-center justify-center rounded-full size-10 bg-gray-50 hover:bg-gray-100 text-[#111813] transition-colors">
  <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>notifications</span>
  <span className="absolute top-2.5 right-2.5 flex h-2 w-2">
@@ -31,6 +39,15 @@ const Dashboard: React.FC = () => {
  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
  </span>
  </button>
+ )}
+ {isGuest && (
+ <button
+ onClick={() => navigate('/register')}
+ className="text-xs font-semibold text-primary hover:underline"
+ >
+ Registrarse
+ </button>
+ )}
  </header>
 
  <main className="flex-1 p-4 md:p-8 flex flex-col gap-6 w-full max-w-2xl mx-auto">
