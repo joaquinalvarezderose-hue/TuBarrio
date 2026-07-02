@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
+import RankingCategorias from '../components/RankingCategorias';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -115,7 +116,7 @@ const FALLBACK_TORNEOS: Torneo[] = [
 
 const Tournaments: React.FC = () => {
  const navigate = useNavigate();
- const [view, setView] = useState<'hub' | 'available' | 'my'>('hub');
+ const [view, setView] = useState<'hub' | 'available' | 'my' | 'ranking'>('hub');
 
  const [registeredIds, setRegisteredIds] = useState<number[]>([]);
  // Torneos en los que el usuario está inscripto (datos completos, cargados directamente)
@@ -457,6 +458,11 @@ const jugadorIds = (jugadoresData || [])
  navigate('/tournament-details', { state: { tournament: toNavTorneo(t) } });
  };
 
+ // RANKING VIEW
+ if (view === 'ranking') {
+ return <RankingCategorias onBack={() => setView('hub')} />;
+ }
+
  // AVAILABLE TOURNAMENTS VIEW
  if (view === 'available') {
  return (
@@ -767,7 +773,7 @@ const jugadorIds = (jugadoresData || [])
  <div className="flex w-12 items-center justify-end"></div>
  </header>
 
- <div className="flex flex-col md:flex-row gap-5 px-4 md:px-8 py-4 md:py-8 flex-1 max-w-7xl mx-auto w-full">
+ <div className="flex flex-col md:flex-row md:flex-wrap gap-5 px-4 md:px-8 py-4 md:py-8 flex-1 max-w-7xl mx-auto w-full">
  {/* Card: Mis Torneos */}
  <div 
  onClick={() => setView('my')}
@@ -809,6 +815,23 @@ const jugadorIds = (jugadoresData || [])
  <div className="absolute bottom-8 right-8 bg-[#4a9c40] rounded-full p-4 text-background-dark flex items-center justify-center group-hover:bg-[#3d8b33] transition-all group-hover:scale-110 shadow-lg shadow-[#4a9c40]/40">
  <span className="material-symbols-outlined text-3xl font-bold">add</span>
  </div>
+ </div>
+ {/* Card: Ranking General */}
+ <div
+ onClick={() => setView('ranking')}
+ className="group relative flex items-center justify-between overflow-hidden rounded-3xl bg-white p-6 shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5 cursor-pointer border border-transparent hover:border-[#4a9c40] w-full"
+ >
+ <div className="absolute right-0 top-0 h-48 w-48 translate-x-12 translate-y-[-2rem] rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+ <div className="flex items-center gap-4 relative z-10">
+ <div className="rounded-2xl bg-[#4a9c40]/10 p-4 text-[#4a9c40] group-hover:scale-110 transition-transform">
+ <span className="material-symbols-outlined text-4xl">leaderboard</span>
+ </div>
+ <div>
+ <h3 className="text-2xl font-bold text-[#111813]">Ranking General</h3>
+ <p className="text-secondary-text font-medium">Posiciones por categoría</p>
+ </div>
+ </div>
+ <span className="material-symbols-outlined text-gray-400 group-hover:text-[#4a9c40] transition-colors relative z-10 text-3xl">chevron_right</span>
  </div>
  </div>
  </div>
