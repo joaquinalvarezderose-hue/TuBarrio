@@ -57,10 +57,14 @@ const InstallPrompt: React.FC = () => {
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      handleClose();
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        handleClose();
+      }
+    } catch (err) {
+      console.error('[PWA] Error al mostrar prompt de instalación:', err);
     }
     setDeferredPrompt(null);
   };
