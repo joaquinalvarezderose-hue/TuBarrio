@@ -25,6 +25,7 @@ import Ayuda from './screens/Ayuda';
 import TermsAndConditions from './screens/TermsAndConditions';
 import CompleteProfile from './screens/CompleteProfile';
 import Navigation from './components/Navigation';
+import InstallPrompt from './components/InstallPrompt';
 import Welcome from './screens/Welcome';
 import { useCurrentUser } from './hooks/useCurrentUser';
 import { supabase } from './services/supabaseClient';
@@ -173,6 +174,7 @@ const App: React.FC = () => {
         perfil={perfil}
         loading={loading}
       />
+      <InstallPrompt />
     </Router>
   );
 };
