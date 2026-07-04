@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
 import RankingCategorias from '../components/RankingCategorias';
+import SponsorBanner from '../components/SponsorBanner';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -768,29 +769,29 @@ const jugadorIds = (jugadoresData || [])
  <span className="material-symbols-outlined">arrow_back</span>
  </div>
  <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4">
- <Logo variant="tournament" className="h-[120px] w-auto" />
+ <Logo variant="tournament" className="h-[80px] md:h-[120px] w-auto" />
  </div>
  <div className="flex w-12 items-center justify-end"></div>
  </header>
 
- <div className="flex flex-col md:flex-row md:flex-wrap gap-5 px-4 md:px-8 py-4 md:py-8 flex-1 max-w-7xl mx-auto w-full">
+ <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-5 px-4 md:px-8 pt-2 pb-4 md:py-8 flex-1 max-w-7xl mx-auto w-full">
  {/* Card: Mis Torneos */}
  <div 
  onClick={() => setView('my')}
- className="group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-white p-8 shadow-md transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer flex-1 min-h-[240px] border border-transparent hover:border-[#4a9c40]"
+ className="group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-white p-5 md:p-8 shadow-md transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer flex-1 min-h-[175px] md:min-h-[240px] border border-transparent hover:border-[#4a9c40]"
  >
  <div className="absolute right-0 top-0 h-64 w-64 translate-x-12 translate-y-[-3rem] rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors"></div>
  <div className="flex justify-between items-start relative z-10">
- <div className="rounded-2xl bg-[#4a9c40]/10 p-5 text-[#4a9c40] group-hover:scale-110 transition-transform">
- <span className="material-symbols-outlined text-5xl">sports_tennis</span>
+ <div className="rounded-2xl bg-[#4a9c40]/10 p-3 md:p-5 text-[#4a9c40] group-hover:scale-110 transition-transform">
+ <span className="material-symbols-outlined text-3xl md:text-5xl">sports_tennis</span>
  </div>
  <span className="inline-flex items-center rounded-full bg-[#4a9c40]/20 px-4 py-1.5 text-xs font-bold text-green-800 ring-1 ring-inset ring-green-600/20">
  {activeTorneosCount} {activeTorneosCount === 1 ? 'Activo' : 'Activos'}
  </span>
  </div>
  <div className="mt-auto relative z-10">
- <h3 className="text-4xl font-bold text-[#111813] mb-2">Mis Torneos</h3>
- <p className="text-secondary-text text-lg font-medium">Gestioná tus competencias actuales</p>
+ <h3 className="text-2xl md:text-4xl font-bold text-[#111813] mb-2">Mis Torneos</h3>
+ <p className="text-secondary-text text-sm md:text-lg font-medium">Gestioná tus competencias actuales</p>
  </div>
  <div className="absolute bottom-8 right-8 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0 translate-x-4">
  <span className="material-symbols-outlined text-[#4a9c40] text-4xl">arrow_forward</span>
@@ -800,17 +801,17 @@ const jugadorIds = (jugadoresData || [])
  {/* Card: Torneos Disponibles */}
  <div 
  onClick={() => setView('available')}
- className="group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-[#111813] p-8 shadow-md transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer flex-1 min-h-[240px] border border-gray-800"
+ className="group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-[#111813] p-5 md:p-8 shadow-md transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer flex-1 min-h-[175px] md:min-h-[240px] border border-gray-800"
  >
  <div className="absolute right-0 bottom-0 h-64 w-64 translate-x-16 translate-y-16 rounded-full bg-[#4a9c40]/15 blur-3xl group-hover:bg-[#4a9c40]/25 transition-colors"></div>
  <div className="flex justify-between items-start relative z-10">
- <div className="rounded-2xl bg-white/10 p-5 text-[#4a9c40] group-hover:scale-110 transition-transform">
- <span className="material-symbols-outlined text-5xl">emoji_events</span>
+ <div className="rounded-2xl bg-white/10 p-3 md:p-5 text-[#4a9c40] group-hover:scale-110 transition-transform">
+ <span className="material-symbols-outlined text-3xl md:text-5xl">emoji_events</span>
  </div>
  </div>
  <div className="mt-auto relative z-10">
- <h3 className="text-4xl font-bold text-white mb-2">Torneos Disponibles</h3>
- <p className="text-[#4a9c40] font-bold text-lg">¡Inscribite ahora!</p>
+ <h3 className="text-2xl md:text-4xl font-bold text-white mb-2">Torneos Disponibles</h3>
+ <p className="text-[#4a9c40] font-bold text-sm md:text-lg">¡Inscribite ahora!</p>
  </div>
  <div className="absolute bottom-8 right-8 bg-[#4a9c40] rounded-full p-4 text-background-dark flex items-center justify-center group-hover:bg-[#3d8b33] transition-all group-hover:scale-110 shadow-lg shadow-[#4a9c40]/40">
  <span className="material-symbols-outlined text-3xl font-bold">add</span>
@@ -819,7 +820,7 @@ const jugadorIds = (jugadoresData || [])
  {/* Card: Ranking General */}
  <div
  onClick={() => setView('ranking')}
- className="group relative flex items-center justify-between overflow-hidden rounded-3xl bg-white p-6 shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5 cursor-pointer border border-transparent hover:border-[#4a9c40] w-full"
+ className="group relative flex items-center justify-between overflow-hidden rounded-3xl bg-white p-4 md:p-6 shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5 cursor-pointer border border-transparent hover:border-[#4a9c40] w-full"
  >
  <div className="absolute right-0 top-0 h-48 w-48 translate-x-12 translate-y-[-2rem] rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors"></div>
  <div className="flex items-center gap-4 relative z-10">
@@ -833,6 +834,9 @@ const jugadorIds = (jugadoresData || [])
  </div>
  <span className="material-symbols-outlined text-gray-400 group-hover:text-[#4a9c40] transition-colors relative z-10 text-3xl">chevron_right</span>
  </div>
+ </div>
+ <div className="px-4 md:px-8 pb-6 max-w-7xl mx-auto w-full">
+ <SponsorBanner />
  </div>
  </div>
  );

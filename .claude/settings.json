@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(pip install Pillow -q)",
-      "PowerShell(python -c \"from PIL import Image; print\\('ok'\\)\")"
+      "PowerShell(python -c \"from PIL import Image; print\\('ok'\\)\")",
+      "mcp__claude_ai_Supabase__list_projects"
     ]
   }
 }

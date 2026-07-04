@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -55,12 +56,20 @@ const InstallPrompt: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  const trackInstall = async (platform: 'android' | 'ios') => {
+    await supabase.from('pwa_installs').insert({
+      platform,
+      user_agent: navigator.userAgent,
+    });
+  };
+
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
+        trackInstall('android');
         handleClose();
       }
     } catch (err) {
@@ -136,7 +145,7 @@ const InstallPrompt: React.FC = () => {
         {showIOS && (
           <div className="px-4 pb-4">
             <button
-              onClick={handleClose}
+              onClick={() => { trackInstall('ios'); handleClose(); }}
               className="w-full py-2 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
             >
               Entendido
