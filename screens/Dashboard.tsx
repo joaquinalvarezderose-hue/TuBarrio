@@ -80,7 +80,7 @@ const Dashboard: React.FC = () => {
  >
    <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 via-yellow-300/15 to-transparent pointer-events-none"></div>
    <div className="flex justify-between items-start relative z-10">
-     <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-amber-600">
        <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>emoji_events</span>
      </div>
      <span className="bg-[#13ec49] text-[#005313] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-sm">
