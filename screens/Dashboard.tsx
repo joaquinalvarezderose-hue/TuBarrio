@@ -51,38 +51,50 @@ const Dashboard: React.FC = () => {
  </header>
 
  <main className="flex-1 p-4 md:p-8 flex flex-col gap-6 w-full max-w-2xl mx-auto">
+ {/* Card: Contratar Servicios */}
  <div
- onClick={() => navigate('/services')}
- className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#5cb858] via-[#4a9c40] to-[#2e6b27] p-6 shadow-xl text-white group cursor-pointer flex items-center justify-between h-48 active:scale-[0.98] transition-transform"
+   onClick={() => navigate('/services')}
+   className="relative overflow-hidden bg-white rounded-2xl p-6 flex flex-col justify-between min-h-[180px] border-l-8 border-[#13ec49] group cursor-pointer active:scale-[0.97] transition-all duration-300"
+   style={{ boxShadow: '0 4px 20px rgba(15,23,42,0.05)' }}
  >
- <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/20 blur-3xl group-hover:bg-white/30 transition-all"></div>
- <div className="relative z-10 flex flex-col justify-center gap-2 h-full">
- <div className="inline-flex items-center justify-center rounded-xl bg-white/20 p-3 backdrop-blur-sm w-fit mb-1">
- <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>home_repair_service</span>
- </div>
- <h4 className="text-2xl font-bold leading-tight tracking-tight">Contratar Servicios</h4>
- <p className="text-green-50 text-sm font-medium opacity-90">Plomería, electricidad y más</p>
- </div>
- <div className="relative z-10 bg-white/20 rounded-full p-3 backdrop-blur-sm flex items-center justify-center self-center transition-transform group-hover:scale-110 group-hover:bg-white/30">
- <span className="material-symbols-outlined text-2xl font-bold">arrow_forward</span>
- </div>
+   <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+     <span className="material-symbols-outlined" style={{ fontSize: '120px' }}>home_repair_service</span>
+   </div>
+   <div className="relative z-10">
+     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-[#006e1c] mb-4">
+       <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>handyman</span>
+     </div>
+     <h3 className="text-2xl font-bold text-[#111813] leading-tight">Contratar Servicios</h3>
+     <p className="text-gray-500 text-sm mt-1">Plomería, electricidad y más profesionales cerca de ti.</p>
+   </div>
+   <div className="mt-4 flex items-center text-[#006e1c] font-bold text-xs uppercase tracking-wider group-hover:translate-x-2 transition-transform duration-200">
+     Explorar ahora
+     <span className="material-symbols-outlined ml-1" style={{ fontSize: '18px' }}>chevron_right</span>
+   </div>
  </div>
 
+ {/* Card: Mis Torneos */}
  <div
- onClick={() => navigate('/tournaments')}
- className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 p-6 shadow-xl text-white group cursor-pointer flex items-center justify-between h-48 active:scale-[0.98] transition-transform"
+   onClick={() => navigate('/tournaments')}
+   className="relative overflow-hidden bg-white rounded-2xl p-6 flex flex-col justify-between min-h-[180px] group cursor-pointer active:scale-[0.97] transition-all duration-300 shadow-lg"
  >
- <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/20 blur-3xl group-hover:bg-white/30 transition-all"></div>
- <div className="relative z-10 flex flex-col justify-center gap-2 h-full">
- <div className="inline-flex items-center justify-center rounded-xl bg-white/20 p-3 backdrop-blur-sm w-fit mb-1">
- <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>emoji_events</span>
- </div>
- <h4 className="text-2xl font-bold leading-tight tracking-tight">Torneos del Barrio</h4>
- <p className="text-amber-50 text-sm font-medium opacity-90">Participa y gana premios</p>
- </div>
- <div className="relative z-10 bg-white/20 rounded-full p-3 backdrop-blur-sm flex items-center justify-center self-center transition-transform group-hover:scale-110 group-hover:bg-white/30">
- <span className="material-symbols-outlined text-2xl font-bold">arrow_forward</span>
- </div>
+   <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 via-yellow-300/15 to-transparent pointer-events-none"></div>
+   <div className="flex justify-between items-start relative z-10">
+     <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+       <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>emoji_events</span>
+     </div>
+     <span className="bg-[#13ec49] text-[#005313] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-sm">
+       <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>bolt</span>
+       Competir ahora
+     </span>
+   </div>
+   <div className="mt-6 relative z-10">
+     <h3 className="text-2xl font-bold text-[#111813] leading-tight">Mis Torneos</h3>
+     <p className="text-gray-500 text-sm mt-1">Gestión de equipos, fixture y resultados del barrio.</p>
+   </div>
+   <div className="absolute right-[-10px] bottom-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
+     <span className="material-symbols-outlined" style={{ fontSize: '100px' }}>sports_soccer</span>
+   </div>
  </div>
 
          <SponsorBanner />
