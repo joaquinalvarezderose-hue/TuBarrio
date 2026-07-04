@@ -128,8 +128,8 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             {categorias.length === 0 && (
               <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
                 <span className="material-symbols-outlined text-6xl text-gray-300 mb-4 block">leaderboard</span>
-                <p className="text-gray-500 font-medium text-lg">Todavía no hay partidos registrados.</p>
-                <p className="text-gray-400 text-sm mt-1">El ranking se genera automáticamente cuando se confirman resultados.</p>
+                <p className="text-gray-500 font-medium text-lg">Todavía no se disputó ningún partido.</p>
+                <p className="text-gray-400 text-sm mt-1">El ranking aparecerá aquí una vez que se confirmen los primeros resultados.</p>
               </div>
             )}
 

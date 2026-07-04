@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
  <main className="flex-1 p-4 md:p-8 flex flex-col gap-6 w-full max-w-2xl mx-auto">
  <div
  onClick={() => navigate('/services')}
- className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#13ec49] via-green-500 to-green-700 p-6 shadow-xl text-white group cursor-pointer flex items-center justify-between h-48 active:scale-[0.98] transition-transform"
+ className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#5cb858] via-[#4a9c40] to-[#2e6b27] p-6 shadow-xl text-white group cursor-pointer flex items-center justify-between h-48 active:scale-[0.98] transition-transform"
  >
  <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/20 blur-3xl group-hover:bg-white/30 transition-all"></div>
  <div className="relative z-10 flex flex-col justify-center gap-2 h-full">

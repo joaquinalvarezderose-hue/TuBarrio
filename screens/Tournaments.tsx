@@ -828,8 +828,8 @@ const jugadorIds = (jugadoresData || [])
  <span className="material-symbols-outlined text-4xl">leaderboard</span>
  </div>
  <div>
- <h3 className="text-2xl font-bold text-[#111813]">Ranking General</h3>
- <p className="text-secondary-text font-medium">Posiciones por categoría</p>
+ <h3 className="text-2xl md:text-4xl font-bold text-[#111813]">Ranking General</h3>
+ <p className="text-secondary-text text-sm md:text-lg font-medium">Posiciones por categoría</p>
  </div>
  </div>
  <span className="material-symbols-outlined text-gray-400 group-hover:text-[#4a9c40] transition-colors relative z-10 text-3xl">chevron_right</span>
