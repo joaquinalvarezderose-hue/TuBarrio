@@ -57,9 +57,11 @@ const InstallPrompt: React.FC = () => {
   }, []);
 
   const trackInstall = async (platform: 'android' | 'ios') => {
+    const { data: { user } } = await supabase.auth.getUser();
     await supabase.from('pwa_installs').insert({
       platform,
       user_agent: navigator.userAgent,
+      user_id: user?.id ?? null,
     });
   };
 
