@@ -4,18 +4,18 @@ const INTL_WHATSAPP_E164_RE = /^\+[1-9]\d{6,14}$/;
 const INTL_WHATSAPP_LOCAL_RE = /^\d[\d\s\-]{5,13}$/;
 
 export const COUNTRY_CODES = [
-  { code: '+549', label: '🇦🇷 Argentina (+549)', placeholder: '11 1234-5678' },
-  { code: '+55',  label: '🇧🇷 Brasil (+55)',     placeholder: '11 91234-5678' },
-  { code: '+598', label: '🇺🇾 Uruguay (+598)',   placeholder: '9 1234-5678' },
-  { code: '+595', label: '🇵🇾 Paraguay (+595)',  placeholder: '9 1234-5678' },
-  { code: '+56',  label: '🇨🇱 Chile (+56)',      placeholder: '9 1234-5678' },
-  { code: '+591', label: '🇧🇴 Bolivia (+591)',   placeholder: '7 1234-567' },
-  { code: '+57',  label: '🇨🇴 Colombia (+57)',   placeholder: '312 345-6789' },
-  { code: '+51',  label: '🇵🇪 Perú (+51)',       placeholder: '912 345-678' },
-  { code: '+34',  label: '🇪🇸 España (+34)',     placeholder: '612 345 678' },
-  { code: '+1',   label: '🇺🇸 EE.UU./Canadá (+1)', placeholder: '212 555-1234' },
-  { code: '+52',  label: '🇲🇽 México (+52)',     placeholder: '55 1234-5678' },
-  { code: '+58',  label: '🇻🇪 Venezuela (+58)',  placeholder: '412-345-6789' },
+  { code: '+549', label: 'AR (+549)', placeholder: '11 1234-5678' },
+  { code: '+55',  label: 'BR (+55)',  placeholder: '11 91234-5678' },
+  { code: '+598', label: 'UY (+598)', placeholder: '9 1234-5678' },
+  { code: '+595', label: 'PY (+595)', placeholder: '9 1234-5678' },
+  { code: '+56',  label: 'CL (+56)',  placeholder: '9 1234-5678' },
+  { code: '+591', label: 'BO (+591)', placeholder: '7 1234-567' },
+  { code: '+57',  label: 'CO (+57)',  placeholder: '312 345-6789' },
+  { code: '+51',  label: 'PE (+51)',  placeholder: '912 345-678' },
+  { code: '+34',  label: 'ES (+34)',  placeholder: '612 345 678' },
+  { code: '+1',   label: 'US (+1)',   placeholder: '212 555-1234' },
+  { code: '+52',  label: 'MX (+52)',  placeholder: '55 1234-5678' },
+  { code: '+58',  label: 'VE (+58)',  placeholder: '412-345-6789' },
 ] as const;
 
 export const EmailSchema = z
