@@ -83,7 +83,7 @@ const secciones: Seccion[] = [
       {
         id: 'c1',
         q: '¿Cómo actualizo mi número de WhatsApp?',
-        a: 'Desde tu Perfil, en la sección WhatsApp, tocá "Editar" e ingresá tu nuevo número en formato internacional (ej: +54 9 11 1234-5678). Es importante tenerlo actualizado para que tus rivales puedan contactarte.',
+        a: 'Desde tu Perfil, en la sección WhatsApp, tocá "Editar", seleccioná el país y escribí tu número local. Es importante tenerlo actualizado para que tus rivales puedan contactarte.',
       },
       {
         id: 'c2',

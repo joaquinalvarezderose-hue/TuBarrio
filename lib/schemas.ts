@@ -53,7 +53,7 @@ export const WhatsAppLocalSchema = z
 
 export const WhatsAppE164Schema = z
   .string()
-  .regex(INTL_WHATSAPP_E164_RE, 'Número inválido. Ej: +5491112345678');
+  .regex(INTL_WHATSAPP_E164_RE, 'Número inválido');
 
 export function normalizeWhatsApp(dialCode: string, local: string): string {
   const digits = local.replace(/\D/g, '');
