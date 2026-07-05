@@ -6,6 +6,7 @@ import {
   RegisterSchema,
   flattenZodErrors,
   normalizeWhatsApp,
+  COUNTRY_CODES,
   BARRIOS,
   LOCALIDADES,
   SECTORES_CANTON,
@@ -46,6 +47,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [terms, setTerms] = useState(false);
   const [whatsappLocal, setWhatsappLocal] = useState('');
+  const [whatsappDialCode, setWhatsappDialCode] = useState('+549');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,7 +90,7 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
     const validated = result.data;
     setLoading(true);
     try {
-      const normalizedWA = normalizeWhatsApp(whatsappLocal);
+      const normalizedWA = normalizeWhatsApp(whatsappDialCode, whatsappLocal);
       if (supabase && typeof supabase.auth?.signUp === 'function') {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
@@ -276,15 +278,20 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">WhatsApp</label>
                   <div className="flex items-center">
-                    <span className="flex items-center gap-1 px-3 py-3 bg-gray-100 border border-r-0 border-outline rounded-l-xl text-sm font-medium text-on-surface-variant select-none whitespace-nowrap">
-                      <span className="material-symbols-outlined text-on-surface-variant text-xl">call</span>
-                      +54 9
-                    </span>
+                    <select
+                      value={whatsappDialCode}
+                      onChange={(e) => setWhatsappDialCode(e.target.value)}
+                      className="px-2 py-3 bg-gray-100 border border-r-0 border-outline rounded-l-xl text-xs font-medium text-on-surface-variant outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    >
+                      {COUNTRY_CODES.map(c => (
+                        <option key={c.code} value={c.code}>{c.label}</option>
+                      ))}
+                    </select>
                     <input
                       id="whatsapp"
                       type="tel"
                       className="flex-1 px-4 py-3 bg-white border border-outline rounded-r-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
-                      placeholder="11 1234-5678"
+                      placeholder={COUNTRY_CODES.find(c => c.code === whatsappDialCode)?.placeholder ?? ''}
                       value={whatsappLocal}
                       onChange={(e) => setWhatsappLocal(e.target.value)}
                     />

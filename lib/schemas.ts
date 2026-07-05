@@ -1,7 +1,22 @@
 import { z } from 'zod';
 
-const ARG_WHATSAPP_E164_RE = /^\+549\d{10}$/;
-const ARG_WHATSAPP_LOCAL_RE = /^\d[\d\s\-]{7,11}$/;
+const INTL_WHATSAPP_E164_RE = /^\+[1-9]\d{6,14}$/;
+const INTL_WHATSAPP_LOCAL_RE = /^\d[\d\s\-]{5,13}$/;
+
+export const COUNTRY_CODES = [
+  { code: '+549', label: '🇦🇷 Argentina (+549)', placeholder: '11 1234-5678' },
+  { code: '+55',  label: '🇧🇷 Brasil (+55)',     placeholder: '11 91234-5678' },
+  { code: '+598', label: '🇺🇾 Uruguay (+598)',   placeholder: '9 1234-5678' },
+  { code: '+595', label: '🇵🇾 Paraguay (+595)',  placeholder: '9 1234-5678' },
+  { code: '+56',  label: '🇨🇱 Chile (+56)',      placeholder: '9 1234-5678' },
+  { code: '+591', label: '🇧🇴 Bolivia (+591)',   placeholder: '7 1234-567' },
+  { code: '+57',  label: '🇨🇴 Colombia (+57)',   placeholder: '312 345-6789' },
+  { code: '+51',  label: '🇵🇪 Perú (+51)',       placeholder: '912 345-678' },
+  { code: '+34',  label: '🇪🇸 España (+34)',     placeholder: '612 345 678' },
+  { code: '+1',   label: '🇺🇸 EE.UU./Canadá (+1)', placeholder: '212 555-1234' },
+  { code: '+52',  label: '🇲🇽 México (+52)',     placeholder: '55 1234-5678' },
+  { code: '+58',  label: '🇻🇪 Venezuela (+58)',  placeholder: '412-345-6789' },
+] as const;
 
 export const EmailSchema = z
   .string()
@@ -34,15 +49,26 @@ export const DireccionSchema = z
 
 export const WhatsAppLocalSchema = z
   .string()
-  .regex(ARG_WHATSAPP_LOCAL_RE, 'Número local inválido (ej: 11 1234-5678)');
+  .regex(INTL_WHATSAPP_LOCAL_RE, 'Número local inválido');
 
 export const WhatsAppE164Schema = z
   .string()
-  .regex(ARG_WHATSAPP_E164_RE, 'Formato esperado: +549XXXXXXXXXX');
+  .regex(INTL_WHATSAPP_E164_RE, 'Número inválido. Ej: +5491112345678');
 
-export function normalizeWhatsApp(local: string): string {
+export function normalizeWhatsApp(dialCode: string, local: string): string {
   const digits = local.replace(/\D/g, '');
-  return digits ? `+549${digits}` : '';
+  return digits ? `${dialCode}${digits}` : '';
+}
+
+export function parseWhatsApp(e164: string): { dialCode: string; local: string } {
+  const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+  for (const c of sorted) {
+    if (e164.startsWith(c.code)) {
+      return { dialCode: c.code, local: e164.slice(c.code.length) };
+    }
+  }
+  const m = e164.match(/^(\+\d{1,4})(\d+)$/);
+  return m ? { dialCode: m[1], local: m[2] } : { dialCode: '+549', local: '' };
 }
 
 export const BARRIOS = [

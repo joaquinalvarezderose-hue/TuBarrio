@@ -2,48 +2,57 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useCurrentUser } from '../hooks/useCurrentUser';
-import { WhatsAppE164Schema } from '../lib/schemas';
+import { WhatsAppE164Schema, COUNTRY_CODES, normalizeWhatsApp, parseWhatsApp } from '../lib/schemas';
 
 const Profile: React.FC = () => {
  const navigate = useNavigate();
  const { authUser, perfil, refresh } = useCurrentUser();
  const [editingWa, setEditingWa] = useState(false);
- const [waValue, setWaValue] = useState<string>('');
+ const [waDialCode, setWaDialCode] = useState('+549');
+ const [waLocal, setWaLocal] = useState('');
  const [waSaving, setWaSaving] = useState(false);
  const [waError, setWaError] = useState<string | null>(null);
  const [waSuccess, setWaSuccess] = useState(false);
 
  useEffect(() => {
- setWaValue(perfil?.whatsapp || '');
+   if (perfil?.whatsapp) {
+     const { dialCode, local } = parseWhatsApp(perfil.whatsapp);
+     setWaDialCode(dialCode);
+     setWaLocal(local);
+   } else {
+     setWaDialCode('+549');
+     setWaLocal('');
+   }
  }, [perfil?.whatsapp]);
 
  const handleSaveWhatsapp = async () => {
- setWaError(null);
- setWaSuccess(false);
- if (waValue) {
- const parsed = WhatsAppE164Schema.safeParse(waValue);
- if (!parsed.success) {
- setWaError(parsed.error.issues[0]?.message ?? 'Número inválido');
- return;
- }
- }
- setWaSaving(true);
- try {
- const userId = authUser?.id;
- if (!userId) throw new Error('Sin sesión');
- const { error } = await supabase
- .from('perfiles')
- .update({ whatsapp: waValue || null })
- .eq('id', userId);
- if (error) throw error;
- await refresh();
- setWaSuccess(true);
- setEditingWa(false);
- } catch (err: any) {
- setWaError(err?.message || 'No se pudo guardar');
- } finally {
- setWaSaving(false);
- }
+   setWaError(null);
+   setWaSuccess(false);
+   const combined = normalizeWhatsApp(waDialCode, waLocal);
+   if (combined) {
+     const parsed = WhatsAppE164Schema.safeParse(combined);
+     if (!parsed.success) {
+       setWaError(parsed.error.issues[0]?.message ?? 'Número inválido');
+       return;
+     }
+   }
+   setWaSaving(true);
+   try {
+     const userId = authUser?.id;
+     if (!userId) throw new Error('Sin sesión');
+     const { error } = await supabase
+       .from('perfiles')
+       .update({ whatsapp: combined || null })
+       .eq('id', userId);
+     if (error) throw error;
+     await refresh();
+     setWaSuccess(true);
+     setEditingWa(false);
+   } catch (err: any) {
+     setWaError(err?.message || 'No se pudo guardar');
+   } finally {
+     setWaSaving(false);
+   }
  };
 
  const handleLogout = async () => {
@@ -122,29 +131,50 @@ const Profile: React.FC = () => {
  </div>
  {editingWa ? (
  <div className="space-y-2">
- <input
- type="tel"
- className="w-full px-3 py-2.5 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all"
- placeholder="+54 9 11 1234-5678"
- value={waValue}
- onChange={(e) => setWaValue(e.target.value)}
- />
- {waError && <p className="text-xs text-red-600">{waError}</p>}
- <div className="flex gap-2">
- <button
- onClick={handleSaveWhatsapp}
- disabled={waSaving}
- className="flex-1 bg-primary text-secondary font-black text-sm py-2 rounded-xl disabled:opacity-50"
- >
- {waSaving ? 'Guardando…' : 'Guardar'}
- </button>
- <button
- onClick={() => { setEditingWa(false); setWaValue(user?.whatsapp || ''); }}
- className="flex-1 border border-gray-200 text-slate-600 font-semibold text-sm py-2 rounded-xl"
- >
- Cancelar
- </button>
- </div>
+   <div className="flex items-center">
+     <select
+       value={waDialCode}
+       onChange={(e) => setWaDialCode(e.target.value)}
+       className="px-2 py-2.5 bg-gray-100 border border-r-0 border-outline rounded-l-xl text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+     >
+       {COUNTRY_CODES.map(c => (
+         <option key={c.code} value={c.code}>{c.label}</option>
+       ))}
+     </select>
+     <input
+       type="tel"
+       className="flex-1 px-3 py-2.5 bg-white border border-outline rounded-r-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all"
+       placeholder={COUNTRY_CODES.find(c => c.code === waDialCode)?.placeholder ?? ''}
+       value={waLocal}
+       onChange={(e) => setWaLocal(e.target.value)}
+     />
+   </div>
+   {waError && <p className="text-xs text-red-600">{waError}</p>}
+   <div className="flex gap-2">
+     <button
+       onClick={handleSaveWhatsapp}
+       disabled={waSaving}
+       className="flex-1 bg-primary text-secondary font-black text-sm py-2 rounded-xl disabled:opacity-50"
+     >
+       {waSaving ? 'Guardando…' : 'Guardar'}
+     </button>
+     <button
+       onClick={() => {
+         setEditingWa(false);
+         if (user?.whatsapp) {
+           const { dialCode, local } = parseWhatsApp(user.whatsapp);
+           setWaDialCode(dialCode);
+           setWaLocal(local);
+         } else {
+           setWaDialCode('+549');
+           setWaLocal('');
+         }
+       }}
+       className="flex-1 border border-gray-200 text-slate-600 font-semibold text-sm py-2 rounded-xl"
+     >
+       Cancelar
+     </button>
+   </div>
  </div>
  ) : (
  <p className="text-sm text-slate-500 ml-10">
