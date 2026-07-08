@@ -9,7 +9,7 @@ interface Sponsor {
   href?: string;
 }
 
-const sponsors: Sponsor[] = [
+const DEFAULT_SPONSORS: Sponsor[] = [
   {
     id: 'sponsor-1',
     name: 'Sponsor 1',
@@ -26,10 +26,19 @@ const sponsors: Sponsor[] = [
   },
 ];
 
+export const SUSHICLUB_SPONSORS: Sponsor[] = [
+  {
+    id: 'sushiclub',
+    name: 'Sushiclub Maschwitz',
+    src: '/images/sponsors/sushiclub.png',
+    alt: 'Sushiclub Maschwitz',
+  },
+];
+
 const SWIPE_THRESHOLD = 50;
 const DRAG_THRESHOLD = 10;
 
-const SponsorBanner: React.FC = () => {
+const SponsorBanner: React.FC<{ sponsors?: Sponsor[] }> = ({ sponsors = DEFAULT_SPONSORS }) => {
   const [current, setCurrent] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const validSponsors = sponsors.filter((s) => !failedImages.has(s.id));

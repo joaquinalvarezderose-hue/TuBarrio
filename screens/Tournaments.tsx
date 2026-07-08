@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
 import RankingCategorias from '../components/RankingCategorias';
-import SponsorBanner from '../components/SponsorBanner';
+import SponsorBanner, { SUSHICLUB_SPONSORS } from '../components/SponsorBanner';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -560,7 +560,7 @@ const jugadorIds = (jugadoresData || [])
  // MY TOURNAMENTS VIEW
  if (view === 'my') {
  return (
- <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-32 md:pb-0">
+ <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-52 md:pb-0">
  <header className="flex items-center bg-white p-4 md:px-8 justify-between border-b border-gray-100 sticky top-0 z-20">
  <button
  onClick={() => setView('hub')}
@@ -753,6 +753,13 @@ const jugadorIds = (jugadoresData || [])
  )
  )}
  </div>
+
+   {/* Banner fijo en el fondo, sobre la nav bar */}
+   <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 z-30 px-4 pb-2 md:px-8 md:pb-4 bg-gradient-to-t from-background-light/90 to-transparent pt-4 pointer-events-none">
+     <div className="pointer-events-auto max-w-7xl mx-auto">
+       <SponsorBanner sponsors={SUSHICLUB_SPONSORS} />
+     </div>
+   </div>
  </div>
  );
  }
