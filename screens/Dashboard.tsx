@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
      <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mb-4">
        <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>emoji_events</span>
      </div>
-     <h3 className="text-2xl font-bold text-[#111813] leading-tight">Mis Torneos</h3>
+     <h3 className="text-2xl font-bold text-[#111813] leading-tight">Torneos</h3>
      <p className="text-gray-500 text-sm mt-1">Gestión de equipos, fixture y resultados del barrio.</p>
    </div>
    <div className="mt-4 flex items-center text-amber-600 font-bold text-xs uppercase tracking-wider group-hover:translate-x-2 transition-transform duration-200">
