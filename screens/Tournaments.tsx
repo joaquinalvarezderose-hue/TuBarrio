@@ -753,23 +753,18 @@ const jugadorIds = (jugadoresData || [])
  )
  )}
  </div>
+ </div>
 
-   {/* Banner fijo Sushiclub */}
-   <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 z-30 px-4 pb-2 md:px-8 md:pb-4 pointer-events-none">
-     <div className="pointer-events-auto max-w-7xl mx-auto">
-       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 block mb-1">Nuestros Sponsors</span>
-       <a
-         href="https://sushiclub.com.ar"
-         target="_blank"
-         rel="noopener noreferrer"
-         className="block rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-24 md:h-40"
-       >
-         <img
-           src="/images/sponsors/sushiclub.png"
-           alt="Sushiclub Maschwitz"
-           className="w-full h-full object-cover"
-         />
-       </a>
+ {/* Sushiclub banner — solo visible en Mis Torneos */}
+ <div className="fixed bottom-[72px] md:bottom-4 left-0 right-0 z-30 px-4 md:px-8">
+   <div className="max-w-7xl mx-auto">
+     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 px-1">Sponsors</p>
+     <div className="w-full h-20 md:h-32 rounded-2xl overflow-hidden shadow-md border border-gray-200">
+       <img
+         src="/images/sponsors/sushiclub.png"
+         alt="Sushiclub Maschwitz"
+         className="w-full h-full object-cover"
+       />
      </div>
    </div>
  </div>
