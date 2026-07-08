@@ -560,6 +560,7 @@ const jugadorIds = (jugadoresData || [])
  // MY TOURNAMENTS VIEW
  if (view === 'my') {
  return (
+ <>
  <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-52 md:pb-0">
  <header className="flex items-center bg-white p-4 md:px-8 justify-between border-b border-gray-100 sticky top-0 z-20">
  <button
@@ -768,6 +769,7 @@ const jugadorIds = (jugadoresData || [])
      </div>
    </div>
  </div>
+ </>
  );
  }
 
