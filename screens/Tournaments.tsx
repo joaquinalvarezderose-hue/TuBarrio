@@ -560,7 +560,8 @@ const jugadorIds = (jugadoresData || [])
  // MY TOURNAMENTS VIEW
  if (view === 'my') {
  return (
- <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-32 md:pb-0">
+ <>
+ <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-52 md:pb-0">
  <header className="flex items-center bg-white p-4 md:px-8 justify-between border-b border-gray-100 sticky top-0 z-20">
  <button
  onClick={() => setView('hub')}
@@ -754,6 +755,21 @@ const jugadorIds = (jugadoresData || [])
  )}
  </div>
  </div>
+
+ {/* Sushiclub banner — solo visible en Mis Torneos */}
+ <div className="fixed bottom-[72px] md:bottom-4 left-0 right-0 z-30 px-4 md:px-8">
+   <div className="max-w-7xl mx-auto">
+     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 px-1">Sponsors</p>
+     <div className="w-full h-20 md:h-32 rounded-2xl overflow-hidden shadow-md border border-gray-200">
+       <img
+         src="/images/sponsors/sushiclub.png"
+         alt="Sushiclub Maschwitz"
+         className="w-full h-full object-cover"
+       />
+     </div>
+   </div>
+ </div>
+ </>
  );
  }
 
