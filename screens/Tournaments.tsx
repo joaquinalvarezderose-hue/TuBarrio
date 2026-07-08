@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
 import RankingCategorias from '../components/RankingCategorias';
-import SponsorBanner, { SUSHICLUB_SPONSORS } from '../components/SponsorBanner';
+import SponsorBanner from '../components/SponsorBanner';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -754,10 +754,22 @@ const jugadorIds = (jugadoresData || [])
  )}
  </div>
 
-   {/* Banner fijo en el fondo, sobre la nav bar */}
-   <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 z-30 px-4 pb-2 md:px-8 md:pb-4 bg-gradient-to-t from-background-light/90 to-transparent pt-4 pointer-events-none">
+   {/* Banner fijo Sushiclub */}
+   <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 z-30 px-4 pb-2 md:px-8 md:pb-4 pointer-events-none">
      <div className="pointer-events-auto max-w-7xl mx-auto">
-       <SponsorBanner sponsors={SUSHICLUB_SPONSORS} />
+       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 block mb-1">Nuestros Sponsors</span>
+       <a
+         href="https://sushiclub.com.ar"
+         target="_blank"
+         rel="noopener noreferrer"
+         className="block rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-24 md:h-40"
+       >
+         <img
+           src="/images/sponsors/sushiclub.png"
+           alt="Sushiclub Maschwitz"
+           className="w-full h-full object-cover"
+         />
+       </a>
      </div>
    </div>
  </div>
