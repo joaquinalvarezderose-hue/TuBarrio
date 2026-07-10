@@ -136,31 +136,32 @@ const SponsorBanner: React.FC<{ sponsors?: Sponsor[] }> = ({ sponsors = DEFAULT_
       >
         <div
           className="flex h-full transition-transform duration-500 ease-in-out"
-          style={{ transform: `translateX(-${current * 100}%)` }}
+          style={{ transform: `translateX(-${current * 100}%)`, width: `${validSponsors.length * 100}%` }}
         >
           {validSponsors.map((sponsor) =>
             sponsor.href ? (
               <a
                 key={sponsor.id}
                 href={sponsor.href}
-                className="min-w-full h-full block cursor-pointer"
+                className="relative flex-shrink-0 h-full block cursor-pointer"
+                style={{ width: `${100 / validSponsors.length}%` }}
                 onClick={(e) => { e.preventDefault(); if (!isDragging.current) { logClick(sponsor); window.open(sponsor.href, '_blank', 'noopener,noreferrer'); } }}
                 draggable={false}
               >
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                   draggable={false}
                   onError={() => setFailedImages((prev) => new Set([...prev, sponsor.id]))}
                 />
               </a>
             ) : (
-              <div key={sponsor.id} className="min-w-full h-full">
+              <div key={sponsor.id} className="relative flex-shrink-0 h-full" style={{ width: `${100 / validSponsors.length}%` }}>
                 <img
                   src={sponsor.src}
                   alt={sponsor.alt}
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                   draggable={false}
                   onError={() => setFailedImages((prev) => new Set([...prev, sponsor.id]))}
                 />
