@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { supabase } from '../services/supabaseClient';
+import RankingCategorias from '../components/RankingCategorias';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import { useNextMatch } from '../hooks/useNextMatch';
 
