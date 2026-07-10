@@ -164,8 +164,48 @@ const App: React.FC = () => {
 
   if (loading && !overrideUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-on-surface-variant text-sm">Cargando…</div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white font-display select-none">
+        {/* Logo con fade-in + escala suave */}
+        <div
+          className="flex flex-col items-center gap-6"
+          style={{ animation: 'tb-fadein 0.5s ease both' }}
+        >
+          <img
+            src="/logos/logo-primary.png"
+            alt="TuBarrio"
+            className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-md"
+            draggable={false}
+          />
+
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#111813]">
+              TuBarrio
+            </h1>
+            <p className="text-sm md:text-base text-secondary-text">Tu comunidad, tu espacio</p>
+          </div>
+
+          {/* Dots bouncing */}
+          <div className="flex items-center gap-2 mt-2">
+            {[0, 150, 300].map((delay) => (
+              <span
+                key={delay}
+                className="block w-2.5 h-2.5 rounded-full bg-primary"
+                style={{ animation: `tb-bounce 0.9s ease-in-out ${delay}ms infinite` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes tb-fadein {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes tb-bounce {
+            0%, 100% { transform: translateY(0);    opacity: 0.4; }
+            50%       { transform: translateY(-8px); opacity: 1;   }
+          }
+        `}</style>
       </div>
     );
   }
