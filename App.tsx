@@ -39,6 +39,7 @@ interface AppContentProps {
   authUser: ReturnType<typeof useCurrentUser>['authUser'];
   perfil: ReturnType<typeof useCurrentUser>['perfil'];
   loading: boolean;
+  refresh: () => Promise<void>;
 }
 
 const ScrollToTop: React.FC = () => {
@@ -54,7 +55,7 @@ const ScrollToTop: React.FC = () => {
   return null;
 };
 
-const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery, authUser, perfil, loading }) => {
+const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery, authUser, perfil, loading, refresh }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const hideNavigation =
@@ -109,7 +110,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/complete-profile" element={<CompleteProfile />} />
+          <Route path="/complete-profile" element={<CompleteProfile onSaved={refresh} />} />
 
           {/* Public routes — no auth required */}
           <Route path="/services" element={<Services />} />
@@ -142,7 +143,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
 };
 
 const App: React.FC = () => {
-  const { authUser, perfil, loading } = useCurrentUser();
+  const { authUser, perfil, loading, refresh } = useCurrentUser();
   const [overrideUser, setOverrideUser] = React.useState<boolean>(false);
   const [pendingRecovery, setPendingRecovery] = React.useState(false);
 
@@ -178,6 +179,7 @@ const App: React.FC = () => {
         authUser={authUser}
         perfil={perfil}
         loading={loading}
+        refresh={refresh}
       />
       <InstallPrompt />
     </Router>

@@ -5,7 +5,11 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 import { normalizeWhatsApp, COUNTRY_CODES, BARRIOS, LOCALIDADES, SECTORES_CANTON, type Barrio, type Localidad, type SectorCanton } from '../lib/schemas';
 import type { PendingIntent } from '../types/intent';
 
-const CompleteProfile: React.FC = () => {
+interface Props {
+  onSaved?: () => Promise<void>;
+}
+
+const CompleteProfile: React.FC<Props> = ({ onSaved }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { authUser, refresh } = useCurrentUser();
@@ -73,7 +77,9 @@ const CompleteProfile: React.FC = () => {
 
       if (upsertError) throw upsertError;
 
-      await refresh();
+      // Refresh the shared App-level perfil first so the guard check in App.tsx
+      // sees the updated profile before we navigate away from /complete-profile.
+      await (onSaved ?? refresh)();
 
       if (intent?.type === 'tournament-signup') {
         navigate('/payment', { state: { tournament: intent.payload.tournament } });
