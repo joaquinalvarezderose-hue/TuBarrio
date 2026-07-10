@@ -24,6 +24,7 @@ import AdminPanel from './screens/AdminPanel';
 import Ayuda from './screens/Ayuda';
 import TermsAndConditions from './screens/TermsAndConditions';
 import CompleteProfile from './screens/CompleteProfile';
+import CoordinarPartido from './screens/CoordinarPartido';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import Welcome from './screens/Welcome';
@@ -62,35 +63,38 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
     location.pathname === '/reset-password' ||
     location.pathname === '/welcome' ||
     location.pathname === '/terms' ||
-    location.pathname === '/complete-profile';
+    location.pathname === '/complete-profile' ||
+    location.pathname === '/coordinar-partido';
 
-  // Handle pending_intent after OAuth redirect (Google login)
+  // Handle pending_intent after OAuth redirect (Google login) + enforce complete profile
   React.useEffect(() => {
     if (loading || !authUser) return;
+    if (location.pathname === '/complete-profile') return;
 
     const raw = localStorage.getItem('pending_intent');
-    if (!raw) return;
-
-    let intent: PendingIntent;
-    try {
-      intent = JSON.parse(raw) as PendingIntent;
-    } catch {
-      localStorage.removeItem('pending_intent');
-      return;
+    let intent: PendingIntent | undefined;
+    if (raw) {
+      try {
+        intent = JSON.parse(raw) as PendingIntent;
+        localStorage.removeItem('pending_intent');
+      } catch {
+        localStorage.removeItem('pending_intent');
+      }
     }
-    localStorage.removeItem('pending_intent');
 
+    // Redirect to complete-profile whenever whatsapp or domicilio is missing,
+    // regardless of whether the user came from a pending intent (covers Google OAuth flow).
     if (!perfil?.whatsapp || !perfil?.calle) {
-      navigate('/complete-profile', { state: { intent } });
+      navigate('/complete-profile', { state: intent ? { intent } : undefined });
       return;
     }
 
-    if (intent.type === 'tournament-signup') {
+    if (intent?.type === 'tournament-signup') {
       navigate('/payment', { state: { tournament: intent.payload.tournament } });
-    } else if (intent.type === 'service-hire') {
+    } else if (intent?.type === 'service-hire') {
       navigate(`/service/${intent.payload.serviceId}`);
     }
-  }, [authUser, loading, perfil]);
+  }, [authUser, loading, perfil, location.pathname]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">
@@ -121,6 +125,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
 
           {/* Protected routes — require auth */}
           <Route path="/tournament-panel" element={user ? <TournamentPanel /> : <Navigate to="/login" replace />} />
+          <Route path="/coordinar-partido" element={user ? <CoordinarPartido /> : <Navigate to="/login" replace />} />
           <Route path="/match-result" element={user ? <MatchResult /> : <Navigate to="/login" replace />} />
           <Route path="/result-detail" element={user ? <ResultDetail /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" replace />} />

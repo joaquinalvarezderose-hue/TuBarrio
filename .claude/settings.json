@@ -5,7 +5,9 @@
       "PowerShell(python -c \"from PIL import Image; print\\('ok'\\)\")",
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Supabase__execute_sql",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(node -e \"const d=require\\('C:/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/ab53f2da-342b-4677-b4ee-9554d5f7a836/tool-results/toolu_01SR7FhWop6z5KaENXmhJWjk.json'\\); process.stdout.write\\(JSON.parse\\(d[0].text\\).types\\);\")"
     ]
   }
 }
