@@ -74,14 +74,14 @@ interface DisponibilidadGridProps {
 
 const DisponibilidadGrid: React.FC<DisponibilidadGridProps> = ({ slots, editable, onToggle }) => (
   <div className="overflow-x-auto -mx-1">
-    <table className="w-full text-xs">
+    <table className="w-full text-xs md:text-sm font-sans">
       <thead>
         <tr>
-          <th className="text-left py-1.5 px-2 text-gray-400 font-semibold w-20"></th>
+          <th className="text-left py-1.5 px-2 text-gray-400 font-semibold w-20 md:w-28"></th>
           {FRANJAS.map(f => (
             <th key={f.id} className="py-1.5 px-1 text-center text-gray-500 font-semibold">
               <div>{f.label}</div>
-              <div className="text-[10px] text-gray-400 font-normal">{f.rango}</div>
+              <div className="text-[10px] md:text-xs text-gray-400 font-normal">{f.rango}</div>
             </th>
           ))}
         </tr>
@@ -89,16 +89,16 @@ const DisponibilidadGrid: React.FC<DisponibilidadGridProps> = ({ slots, editable
       <tbody>
         {DIAS_SEMANA.map((dia, diaIdx) => (
           <tr key={diaIdx} className="border-t border-gray-50">
-            <td className="py-2 px-2 text-gray-700 font-semibold">{dia}</td>
+            <td className="py-2 md:py-3 px-2 text-gray-700 font-semibold">{dia}</td>
             {FRANJAS.map(f => {
               const active = slots.some(s => s.dia === diaIdx && s.franja === f.id);
               return (
-                <td key={f.id} className="py-2 px-1 text-center">
+                <td key={f.id} className="py-2 md:py-3 px-1 text-center">
                   {editable ? (
                     <button
                       type="button"
                       onClick={() => onToggle?.(diaIdx, f.id)}
-                      className={`w-full py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                      className={`w-full py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all active:scale-95 ${
                         active
                           ? 'bg-[#13ec49] text-[#111813] shadow-sm'
                           : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
@@ -108,7 +108,7 @@ const DisponibilidadGrid: React.FC<DisponibilidadGridProps> = ({ slots, editable
                     </button>
                   ) : (
                     <span
-                      className={`inline-block w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center ${
+                      className={`inline-flex w-7 h-7 md:w-8 md:h-8 rounded-lg text-xs font-bold items-center justify-center ${
                         active
                           ? 'bg-[#13ec49]/20 text-[#0eb538]'
                           : 'bg-gray-50 text-gray-300'
@@ -321,7 +321,8 @@ const CoordinarPartido: React.FC = () => {
     <div className="min-h-screen bg-[#f6f8f6] flex flex-col">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#f6f8f6]/90 backdrop-blur-md px-4 py-4 flex items-center gap-3 border-b border-gray-200">
+      <header className="sticky top-0 z-50 bg-[#f6f8f6]/90 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-3xl mx-auto px-4 md:px-8 py-4 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
           className="size-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
@@ -329,8 +330,8 @@ const CoordinarPartido: React.FC = () => {
           <span className="material-symbols-outlined text-[#111813]" style={{ fontSize: 22 }}>arrow_back_ios</span>
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-base font-bold text-[#111813] font-[Lexend]">Coordinar Partido</h1>
-          <p className="text-xs text-gray-500 font-medium truncate">vs. {state.rivalNombre}</p>
+          <h1 className="text-base md:text-lg font-bold text-[#111813] font-[Lexend]">Coordinar Partido</h1>
+          <p className="text-xs md:text-sm text-gray-500 font-medium truncate">vs. {state.rivalNombre}</p>
         </div>
         {/* Badge de estado */}
         {estadoCoord === 'pendiente' && (
@@ -351,9 +352,10 @@ const CoordinarPartido: React.FC = () => {
             Manual
           </span>
         )}
+        </div>
       </header>
 
-      <main className="flex-1 w-full max-w-md mx-auto px-4 py-5 space-y-4 pb-10">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 md:px-8 py-5 md:py-8 space-y-4 pb-10">
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -450,6 +452,9 @@ const CoordinarPartido: React.FC = () => {
               </div>
             )}
 
+            {/* ── Grillas de disponibilidad (lado a lado en desktop) ──────── */}
+            <div className={`md:grid md:gap-6 md:items-start ${estadoCoord !== 'pactado' && mySubmitted && !isEditing ? 'md:grid-cols-2' : ''} space-y-4 md:space-y-0`}>
+
             {/* ── Mi disponibilidad ───────────────────────────────────────── */}
             {estadoCoord !== 'pactado' && (
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
@@ -517,6 +522,8 @@ const CoordinarPartido: React.FC = () => {
                 )}
               </div>
             )}
+
+            </div>{/* fin grillas lado a lado */}
 
             {/* ── Resultado del algoritmo ─────────────────────────────────── */}
             {estadoCoord === 'pendiente' && mySubmitted && rivalSubmitted && !isEditing && (
