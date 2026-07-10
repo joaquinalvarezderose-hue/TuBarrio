@@ -851,7 +851,7 @@ const jugadorIds = (jugadoresData || [])
  <span className="material-symbols-outlined text-gray-400 group-hover:text-[#4a9c40] transition-colors relative z-10 text-3xl">chevron_right</span>
  </div>
  </div>
- <div className="px-4 md:px-8 pb-6 max-w-7xl mx-auto w-full">
+ <div className="px-4 md:px-8 pb-6 max-w-2xl mx-auto w-full">
  <SponsorBanner />
  </div>
  </div>

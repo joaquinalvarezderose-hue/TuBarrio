@@ -136,7 +136,7 @@ const SponsorBanner: React.FC<{ sponsors?: Sponsor[] }> = ({ sponsors = DEFAULT_
       >
         <div
           className="flex h-full transition-transform duration-500 ease-in-out"
-          style={{ transform: `translateX(-${current * 100}%)`, width: `${validSponsors.length * 100}%` }}
+          style={{ transform: `translateX(-${current * (100 / validSponsors.length)}%)`, width: `${validSponsors.length * 100}%` }}
         >
           {validSponsors.map((sponsor) =>
             sponsor.href ? (

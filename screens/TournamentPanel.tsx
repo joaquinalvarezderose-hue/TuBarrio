@@ -1150,7 +1150,7 @@ const TournamentPanel: React.FC = () => {
  myWhatsapp,
  },
  })}
- className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#13ec49] text-[#111813] font-bold shadow-md hover:bg-[#0eb538] hover:text-white active:scale-[0.98] transition-all"
+ className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#4a9c40] text-white font-bold shadow-md hover:bg-[#3d8b33] active:scale-[0.98] transition-all"
  >
  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>event_available</span>
  Acordar Horario del Partido
