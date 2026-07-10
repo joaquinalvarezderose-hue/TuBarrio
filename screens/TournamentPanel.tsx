@@ -90,6 +90,7 @@ const TournamentPanel: React.FC = () => {
  const [loadingProposal, setLoadingProposal] = useState(false);
  const [pendingConfirmMatch, setPendingConfirmMatch] = useState<{ id: string; jornada: number } | null>(null);
  const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
+ const [showRanking, setShowRanking] = useState(false);
  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
  const [tournamentChampion, setTournamentChampion] = useState<string | null>(null);
  const [inscripcionPendiente, setInscripcionPendiente] = useState(false);
@@ -688,6 +689,8 @@ const TournamentPanel: React.FC = () => {
  );
  }
 
+ if (showRanking) return <RankingCategorias onBack={() => setShowRanking(false)} />;
+
  return (
  <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-background-light transition-colors duration-300 font-display no-scrollbar overflow-y-auto">
  {/* Header */}
@@ -915,6 +918,24 @@ const TournamentPanel: React.FC = () => {
  <span className="text-sm font-semibold text-center text-[#111813] ">Reglamento y FAQ</span>
  </button>
  </section>
+
+ {/* Card: Ranking General */}
+ <div
+ onClick={() => setShowRanking(true)}
+ className="group relative flex items-center justify-between overflow-hidden rounded-3xl bg-white p-4 shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5 cursor-pointer border border-transparent hover:border-[#4a9c40] w-full"
+ >
+ <div className="absolute right-0 top-0 h-48 w-48 translate-x-12 translate-y-[-2rem] rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+ <div className="flex items-center gap-4 relative z-10">
+ <div className="rounded-2xl bg-[#4a9c40]/10 p-4 text-[#4a9c40] group-hover:scale-110 transition-transform">
+ <span className="material-symbols-outlined text-4xl">leaderboard</span>
+ </div>
+ <div>
+ <h3 className="text-xl font-bold text-[#111813]">Ranking General</h3>
+ <p className="text-secondary-text text-sm font-medium">Posiciones por categoría</p>
+ </div>
+ </div>
+ <span className="material-symbols-outlined text-gray-400 group-hover:text-[#4a9c40] transition-colors relative z-10 text-3xl">chevron_right</span>
+ </div>
 
  {loadingNextMatch ? (
  <section className="space-y-4">
