@@ -36,32 +36,24 @@ const FRANJAS: { id: Franja; label: string; rango: string; inicio: string; fin: 
 
 // ─── Algoritmo ───────────────────────────────────────────────────────────────
 
-function findFirstOverlap(slotsJ1: Slot[], slotsJ2: Slot[]): { dia: number; franja: Franja } | null {
+function findAllOverlaps(slotsJ1: Slot[], slotsJ2: Slot[]): Slot[] {
+  const result: Slot[] = [];
   for (let dia = 0; dia <= 6; dia++) {
     for (const { id: franja } of FRANJAS) {
-      const j1Has = slotsJ1.some(s => s.dia === dia && s.franja === franja);
-      const j2Has = slotsJ2.some(s => s.dia === dia && s.franja === franja);
-      if (j1Has && j2Has) return { dia, franja };
+      if (slotsJ1.some(s => s.dia === dia && s.franja === franja) &&
+          slotsJ2.some(s => s.dia === dia && s.franja === franja)) {
+        result.push({ dia, franja });
+      }
     }
   }
-  return null;
+  return result;
 }
 
-// Devuelve el ISO timestamp de la próxima ocurrencia del día de semana dado (nunca hoy)
-function nextOccurrenceOf(diaSemana: number, horaInicio: string): string {
-  const now = new Date();
-  // JS: 0=Dom, 1=Lun … 6=Sab → convertir a nuestro 0=Lun … 6=Dom
-  const todayDow = (now.getDay() + 6) % 7;
-  let daysAhead = (diaSemana - todayDow + 7) % 7;
-  if (daysAhead === 0) daysAhead = 7; // siempre próxima semana, nunca hoy
-
-  const date = new Date(now);
-  date.setDate(now.getDate() + daysAhead);
-
-  const [h, m] = horaInicio.split(':').map(Number);
-  date.setHours(h, m, 0, 0);
-
-  return date.toISOString();
+function buildWhatsAppMessage(rivalNombre: string, torneoTitle: string, slots: Slot[]): string {
+  const franjasList = slots
+    .map(s => `${DIAS_SEMANA[s.dia]} ${FRANJAS.find(f => f.id === s.franja)?.label} (${FRANJAS.find(f => f.id === s.franja)?.rango})`)
+    .join(', ');
+  return `Hola ${rivalNombre}! Te escribo por nuestro partido en ${torneoTitle}. Coincidimos en: ${franjasList}. ¿Cuándo te viene bien jugar?`;
 }
 
 // ─── WhatsApp SVG (reutilizado del resto de la app) ──────────────────────────
@@ -161,13 +153,12 @@ const CoordinarPartido: React.FC = () => {
   // UI
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Overlap calculado
-  const overlap = useMemo<{ dia: number; franja: Franja } | null>(() => {
-    if (!mySubmitted || !rivalSubmitted) return null;
-    return findFirstOverlap(mySlots, rivalSlots);
+  // Overlaps calculados
+  const overlaps = useMemo<Slot[]>(() => {
+    if (!mySubmitted || !rivalSubmitted) return [];
+    return findAllOverlaps(mySlots, rivalSlots);
   }, [mySlots, rivalSlots, mySubmitted, rivalSubmitted]);
 
   // ── Cargar datos ───────────────────────────────────────────────────────────
@@ -287,44 +278,19 @@ const CoordinarPartido: React.FC = () => {
     }
   };
 
-  // ── Confirmar horario ──────────────────────────────────────────────────────
+  // ── Coordinar por WhatsApp ────────────────────────────────────────────────
 
-  const handleConfirmar = async () => {
-    if (!overlap || !state?.partido?.id) return;
-    const franja = FRANJAS.find(f => f.id === overlap.franja)!;
-    const isoTimestamp = nextOccurrenceOf(overlap.dia, franja.inicio);
-
-    setConfirming(true);
-    setError(null);
-    try {
-      const { data, error: rpcErr } = await supabase.rpc('confirmar_horario_partido', {
-        p_partido_id: state.partido.id,
-        p_horario: isoTimestamp,
-      });
-      if (rpcErr) throw rpcErr;
-      const rpcResult = data as { ok: boolean; error?: string } | null;
-      if (rpcResult && !rpcResult.ok) throw new Error(rpcResult.error ?? 'No se pudo confirmar');
-
-      setEstadoCoord('pactado');
-      setHorarioPactado(isoTimestamp);
-    } catch (err: any) {
-      setError(err?.message ?? 'No se pudo confirmar el horario.');
-    } finally {
-      setConfirming(false);
-    }
-  };
-
-  // ── Fallback manual ────────────────────────────────────────────────────────
-
-  const handleManual = async () => {
+  const handleManual = async (msg?: string) => {
     if (state?.partido?.id) {
-      // Fire and forget — no bloqueamos la navegación
       supabase.rpc('set_coordinacion_manual', { p_partido_id: state.partido.id }).then(() => {
         setEstadoCoord('manual');
       });
     }
     const link = toWhatsAppLink(state?.rivalWhatsapp);
-    if (link) window.open(link, '_blank', 'noopener,noreferrer');
+    if (link) {
+      const url = msg ? `${link}?text=${encodeURIComponent(msg)}` : link;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // ─── Guard ────────────────────────────────────────────────────────────────
@@ -348,20 +314,6 @@ const CoordinarPartido: React.FC = () => {
     : null;
 
   const isJugador1 = currentUserId === state.partido.jugador1_id;
-
-  const overlapFranjaObj = overlap ? FRANJAS.find(f => f.id === overlap.franja) : null;
-  const overlapHora1Fin = overlapFranjaObj
-    ? (() => {
-        const [h, m] = overlapFranjaObj.inicio.split(':').map(Number);
-        return `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      })()
-    : '';
-  const overlapHora2Fin = overlapFranjaObj
-    ? (() => {
-        const [h, m] = overlapFranjaObj.inicio.split(':').map(Number);
-        return `${String(h + 2).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      })()
-    : '';
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -568,61 +520,58 @@ const CoordinarPartido: React.FC = () => {
 
             {/* ── Resultado del algoritmo ─────────────────────────────────── */}
             {estadoCoord === 'pendiente' && mySubmitted && rivalSubmitted && !isEditing && (
-              overlap ? (
+              overlaps.length > 0 ? (
                 <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-[#13ec49]" />
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className="material-symbols-outlined text-[#13ec49]" style={{ fontSize: 24 }}>event_available</span>
-                    <h3 className="font-bold text-[#111813]">¡Horario en común encontrado!</h3>
+                    <h3 className="font-bold text-[#111813]">¡Franjas en común encontradas!</h3>
                   </div>
-                  <p className="text-xl font-black text-[#111813] font-[Lexend]">{DIAS_SEMANA[overlap.dia]}</p>
-                  <p className="text-base font-bold text-[#4a9c40] mb-1">
-                    {overlapFranjaObj?.label} — {overlapFranjaObj?.inicio} a {overlapHora2Fin}
-                  </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    El sistema reservó un bloque de 2 horas dentro de la franja {overlapFranjaObj?.label.toLowerCase()} ({overlapFranjaObj?.rango}).
+                    Coinciden en {overlaps.length} franja{overlaps.length !== 1 ? 's' : ''}. Acordá con tu rival por WhatsApp el horario exacto.
                   </p>
 
-                  {/* Roles */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className={`rounded-xl p-3 text-center ${isJugador1 ? 'bg-emerald-50 border border-emerald-100' : 'bg-gray-50 border border-gray-100'}`}>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#4a9c40] mb-1">Turno 1</p>
-                      <p className="text-sm font-bold text-[#111813]">
-                        {overlapFranjaObj?.inicio} – {overlapHora1Fin}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {isJugador1 ? '👤 Vos reservás' : `👤 ${state.rivalNombre.split(' ')[0]} reserva`}
-                      </p>
-                    </div>
-                    <div className={`rounded-xl p-3 text-center ${!isJugador1 ? 'bg-emerald-50 border border-emerald-100' : 'bg-gray-50 border border-gray-100'}`}>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-1">Turno 2</p>
-                      <p className="text-sm font-bold text-[#111813]">
-                        {overlapHora1Fin} – {overlapHora2Fin}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {!isJugador1 ? '👤 Vos reservás' : `👤 ${state.rivalNombre.split(' ')[0]} reserva`}
-                      </p>
-                    </div>
+                  <div className="flex flex-col gap-2 mb-5">
+                    {overlaps.map(slot => {
+                      const f = FRANJAS.find(fr => fr.id === slot.franja)!;
+                      return (
+                        <div key={`${slot.dia}-${slot.franja}`} className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+                          <span className="material-symbols-outlined text-[#4a9c40]" style={{ fontSize: 18 }}>schedule</span>
+                          <div>
+                            <p className="text-sm font-bold text-[#111813]">{DIAS_SEMANA[slot.dia]}</p>
+                            <p className="text-xs text-[#4a9c40]">{f.label} · {f.rango}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {error && <p className="mb-3 text-xs text-red-500 font-medium">{error}</p>}
 
                   <button
-                    onClick={handleConfirmar}
-                    disabled={confirming}
-                    className="w-full py-3 rounded-xl bg-[#13ec49] text-[#111813] font-bold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
+                    onClick={() => handleManual(buildWhatsAppMessage(state.rivalNombre, state.torneo.title, overlaps))}
+                    disabled={!toWhatsAppLink(state.rivalWhatsapp)}
+                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm shadow-md active:scale-[0.98] transition-all ${
+                      toWhatsAppLink(state.rivalWhatsapp)
+                        ? 'bg-[#25D366] text-white'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
                   >
-                    {confirming ? 'Confirmando…' : 'Confirmar este horario'}
+                    <WhatsAppIcon className="size-5 fill-current" />
+                    Coordinar horario por WhatsApp
                   </button>
+                  {!toWhatsAppLink(state.rivalWhatsapp) && (
+                    <p className="text-xs text-gray-400 text-center mt-2">Tu rival no tiene WhatsApp registrado</p>
+                  )}
                 </div>
               ) : (
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                   <div className="flex items-start gap-2">
                     <span className="material-symbols-outlined text-amber-500 shrink-0" style={{ fontSize: 20 }}>search_off</span>
                     <div>
-                      <p className="text-sm font-semibold text-amber-800">No hay franjas en común esta semana.</p>
+                      <p className="text-sm font-semibold text-amber-800">No hay franjas en común.</p>
                       <p className="text-xs text-amber-600 mt-1">
-                        Agregá más disponibilidad o coordinen manualmente.
+                        Agregá más disponibilidad o coordinen directamente por WhatsApp.
                       </p>
                     </div>
                   </div>
@@ -641,29 +590,31 @@ const CoordinarPartido: React.FC = () => {
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex gap-3">
                 <span className="material-symbols-outlined text-blue-400 shrink-0" style={{ fontSize: 20 }}>info</span>
                 <p className="text-xs text-blue-700">
-                  Cargá tu disponibilidad. Cuando tu rival haga lo mismo, el sistema encontrará automáticamente el mejor horario para el partido.
+                  Cargá tu disponibilidad. Cuando tu rival haga lo mismo, verás todas las franjas en que coinciden para coordinar el partido.
                 </p>
               </div>
             )}
 
-            {/* ── Botón manual (siempre visible) ──────────────────────────── */}
-            <div className="pt-1 border-t border-gray-100">
-              <p className="text-xs text-gray-400 text-center mb-3">¿Preferís coordinar directamente?</p>
-              <button
-                onClick={handleManual}
-                disabled={!toWhatsAppLink(state.rivalWhatsapp)}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm active:scale-[0.98] transition-all ${
-                  toWhatsAppLink(state.rivalWhatsapp)
-                    ? 'border-[#25D366] bg-white text-[#25D366] hover:bg-[#25D366]/5'
-                    : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <WhatsAppIcon className="size-4 fill-current" />
-                {toWhatsAppLink(state.rivalWhatsapp)
-                  ? 'Coordinar manualmente por WhatsApp'
-                  : 'Rival sin WhatsApp registrado'}
-              </button>
-            </div>
+            {/* ── Botón manual (visible solo cuando no hay overlaps aún) ──── */}
+            {!(estadoCoord === 'pendiente' && mySubmitted && rivalSubmitted && overlaps.length > 0) && (
+              <div className="pt-1 border-t border-gray-100">
+                <p className="text-xs text-gray-400 text-center mb-3">¿Preferís coordinar directamente?</p>
+                <button
+                  onClick={() => handleManual()}
+                  disabled={!toWhatsAppLink(state.rivalWhatsapp)}
+                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm active:scale-[0.98] transition-all ${
+                    toWhatsAppLink(state.rivalWhatsapp)
+                      ? 'border-[#25D366] bg-white text-[#25D366] hover:bg-[#25D366]/5'
+                      : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <WhatsAppIcon className="size-4 fill-current" />
+                  {toWhatsAppLink(state.rivalWhatsapp)
+                    ? 'Coordinar por WhatsApp'
+                    : 'Rival sin WhatsApp registrado'}
+                </button>
+              </div>
+            )}
           </>
         )}
       </main>
