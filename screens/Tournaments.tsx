@@ -790,7 +790,7 @@ const jugadorIds = (jugadoresData || [])
  <div className="flex w-12 items-center justify-end"></div>
  </header>
 
- <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-5 px-4 md:px-8 pt-2 pb-4 md:py-8 flex-1 max-w-7xl mx-auto w-full">
+ <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-5 px-4 md:px-8 pt-2 pb-4 md:py-8 max-w-7xl mx-auto w-full">
  {/* Card: Mis Torneos */}
  <div 
  onClick={() => setView('my')}
@@ -832,23 +832,6 @@ const jugadorIds = (jugadoresData || [])
  <div className="absolute bottom-8 right-8 bg-[#4a9c40] rounded-full p-4 text-background-dark flex items-center justify-center group-hover:bg-[#3d8b33] transition-all group-hover:scale-110 shadow-lg shadow-[#4a9c40]/40">
  <span className="material-symbols-outlined text-3xl font-bold">add</span>
  </div>
- </div>
- {/* Card: Ranking General */}
- <div
- onClick={() => setView('ranking')}
- className="group relative flex items-center justify-between overflow-hidden rounded-3xl bg-white p-4 md:p-6 shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5 cursor-pointer border border-transparent hover:border-[#4a9c40] w-full"
- >
- <div className="absolute right-0 top-0 h-48 w-48 translate-x-12 translate-y-[-2rem] rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors"></div>
- <div className="flex items-center gap-4 relative z-10">
- <div className="rounded-2xl bg-[#4a9c40]/10 p-4 text-[#4a9c40] group-hover:scale-110 transition-transform">
- <span className="material-symbols-outlined text-4xl">leaderboard</span>
- </div>
- <div>
- <h3 className="text-2xl md:text-4xl font-bold text-[#111813]">Ranking General</h3>
- <p className="text-secondary-text text-sm md:text-lg font-medium">Posiciones por categoría</p>
- </div>
- </div>
- <span className="material-symbols-outlined text-gray-400 group-hover:text-[#4a9c40] transition-colors relative z-10 text-3xl">chevron_right</span>
  </div>
  </div>
  <div className="px-4 md:px-8 pb-6 max-w-2xl mx-auto w-full">
