@@ -1,5 +1,13 @@
 const CACHE_NAME = 'tubarrio-v2';
 
+// Returns a valid offline fallback Response
+function getOfflineResponse() {
+  return new Response(
+    '<html><body style="font-family: sans-serif; padding: 20px;"><h1>Offline</h1><p>You are currently offline. Please check your connection and try again.</p></body></html>',
+    { headers: { 'Content-Type': 'text/html' }, status: 503 }
+  );
+}
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -24,11 +32,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
+          if (!response || !response.ok) {
+            return caches.match(event.request).then((cached) => cached || getOfflineResponse());
+          }
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() =>
+          caches.match(event.request).then((cached) => cached || getOfflineResponse())
+        )
     );
     return;
   }
@@ -36,21 +49,36 @@ self.addEventListener('fetch', (event) => {
   // Cache-first for versioned assets (content-hashed filenames never change)
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
-      caches.match(event.request).then(
-        (cached) =>
-          cached ||
-          fetch(event.request).then((response) => {
+      caches.match(event.request).then((cached) => {
+        if (cached) {
+          return cached;
+        }
+        return fetch(event.request)
+          .then((response) => {
+            if (!response || !response.ok) {
+              return getOfflineResponse();
+            }
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
             return response;
           })
-      )
+          .catch(() => getOfflineResponse());
+      })
     );
     return;
   }
 
   // Default: network with cache fallback
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request)
+      .then((response) => {
+        if (!response || !response.ok) {
+          return caches.match(event.request).then((cached) => cached || getOfflineResponse());
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => cached || getOfflineResponse())
+      )
   );
 });

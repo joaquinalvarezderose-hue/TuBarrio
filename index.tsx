@@ -16,9 +16,8 @@ root.render(
   </React.StrictMode>
 );
 
-// Disabled temporarily: Service Worker has a TypeError in Response handling
-// if ('serviceWorker' in navigator) {
-//   window.addEventListener('load', () => {
-//     navigator.serviceWorker.register('/sw.js');
-//   });
-// }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
