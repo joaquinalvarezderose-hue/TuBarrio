@@ -61,12 +61,8 @@ export function useCurrentUser(): CurrentUserState {
 
       if (!data?.user) {
         setAuthUser(null);
-        // IMPORTANTE: NO borramos el perfil del cache aquí.
-        // Si hay perfil en cache (usuario ya logueado antes), lo mantenemos disponible.
-        // Esto permite que el app funcione aunque la sesión de Supabase se haya perdido.
-        if (!perfil) {
-          localStorage.removeItem(PERFIL_CACHE_KEY);
-        }
+        setPerfil(null);
+        localStorage.removeItem(PERFIL_CACHE_KEY);
         return;
       }
 

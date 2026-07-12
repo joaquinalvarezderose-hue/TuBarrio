@@ -133,7 +133,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           <Route path="/domicilio" element={user ? <Domicilio /> : <Navigate to="/login" replace />} />
           <Route path="/payment" element={user ? <Payment /> : <Navigate to="/login" replace />} />
           <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
-          <Route path="/admin" element={user || perfil ? <AdminPanel /> : <Navigate to="/login" replace />} />
+          <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

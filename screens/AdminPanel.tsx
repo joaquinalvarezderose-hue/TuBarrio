@@ -4,22 +4,14 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
-  const { perfil, loading, authUser, refresh } = useCurrentUser();
+  const { perfil, loading, authUser } = useCurrentUser();
 
-  // Redirect to login once we know for sure there's no session and no cached profile
+  // Redirect to login once we know for sure there's no server-verified session
   useEffect(() => {
-    if (!loading && !authUser && !perfil) {
+    if (!loading && !authUser) {
       navigate('/login', { replace: true });
     }
-  }, [loading, authUser, perfil, navigate]);
-
-  // If we have a cached profile but lost the Supabase session, try to refresh it
-  useEffect(() => {
-    if (!authUser && perfil) {
-      refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loading, authUser, navigate]);
 
   // Redirect non-admins away once the profile is known
   useEffect(() => {
@@ -39,7 +31,7 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  if (!authUser && !perfil) {
+  if (!authUser) {
     return null;
   }
 
