@@ -21,12 +21,4 @@ root.render(
   </React.StrictMode>
 );
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      console.log('[index.tsx] SW registered successfully');
-    }).catch(err => {
-      console.error('[index.tsx] SW registration failed:', err);
-    });
-  });
-}
+// SW disabled - no caching
