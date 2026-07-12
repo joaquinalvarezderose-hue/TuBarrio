@@ -31,13 +31,12 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  // If not authenticated, redirect to login
-  if (!authUser) {
-    useEffect(() => {
+  // If not authenticated and no cached profile, redirect to login
+  useEffect(() => {
+    if (!authUser && !perfil) {
       navigate('/login', { replace: true });
-    }, [navigate]);
-    return null;
-  }
+    }
+  }, [authUser, perfil, navigate]);
 
   // If no profile, show error
   if (!perfil) {
