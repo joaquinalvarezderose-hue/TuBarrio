@@ -2,24 +2,32 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 
-console.log('[AdminPanel] Component loaded!');
-
 const AdminPanel: React.FC = () => {
-  console.log('[AdminPanel] Rendering...');
   const navigate = useNavigate();
   const { perfil, loading, authUser, refresh } = useCurrentUser();
 
-  // Log everything for debugging
+  // Redirect to login once we know for sure there's no session and no cached profile
   useEffect(() => {
-    console.log('[AdminPanel] State:', {
-      loading,
-      authUser: authUser?.id,
-      perfilId: perfil?.id,
-      rol: perfil?.rol,
-    });
-  }, [loading, authUser, perfil]);
+    if (!loading && !authUser && !perfil) {
+      navigate('/login', { replace: true });
+    }
+  }, [loading, authUser, perfil, navigate]);
 
-  // If still loading, show loading state
+  // If we have a cached profile but lost the Supabase session, try to refresh it
+  useEffect(() => {
+    if (!authUser && perfil) {
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Redirect non-admins away once the profile is known
+  useEffect(() => {
+    if (!loading && perfil && perfil.rol !== 'admin') {
+      navigate('/tournaments', { replace: true });
+    }
+  }, [loading, perfil, navigate]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -31,22 +39,10 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  // If not authenticated and no cached profile, redirect to login
-  useEffect(() => {
-    if (!authUser && !perfil) {
-      navigate('/login', { replace: true });
-    }
-  }, [authUser, perfil, navigate]);
+  if (!authUser && !perfil) {
+    return null;
+  }
 
-  // Try to refresh session when component mounts
-  // This handles the case where the user has a cached profile but lost their Supabase session
-  useEffect(() => {
-    if (!authUser && perfil) {
-      refresh();
-    }
-  }, []);
-
-  // If no profile, show error
   if (!perfil) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -58,11 +54,7 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  // If not admin, redirect to dashboard
   if (perfil.rol !== 'admin') {
-    useEffect(() => {
-      navigate('/tournaments', { replace: true });
-    }, [navigate]);
     return null;
   }
 
