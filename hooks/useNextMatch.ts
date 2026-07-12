@@ -35,12 +35,18 @@ export type UseNextMatchResult = {
   refetch: () => void;
 };
 
-export function useNextMatch(tournamentId: number | string): UseNextMatchResult {
+export function useNextMatch(tournamentId: number | string, enabled: boolean = true): UseNextMatchResult {
   const [loading, setLoading] = useState(true);
   const [match, setMatch] = useState<NextMatch | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchNextMatch = useCallback(async () => {
+    if (!enabled) {
+      setLoading(false);
+      setMatch(null);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     setMatch(null);
@@ -219,7 +225,7 @@ export function useNextMatch(tournamentId: number | string): UseNextMatchResult 
     } finally {
       setLoading(false);
     }
-  }, [tournamentId]);
+  }, [tournamentId, enabled]);
 
   useEffect(() => {
     fetchNextMatch();

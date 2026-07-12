@@ -6,6 +6,7 @@ import { fixtureCache } from '../services/fixtureCache';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import BracketTab from '../components/BracketTab';
 import { toWhatsAppLink } from '../utils/whatsapp';
+import { TournamentPreviewScope } from '../types/tournamentPreview';
 
 type FixturePlayer = {
  perfil_id: string;
@@ -77,9 +78,10 @@ type MatchCardProps = {
  highlightedMatchId: string | null;
  torneoFinalizado: boolean;
  tournament: { id: number | string; title: string; subtitle: string };
+ previewScope?: TournamentPreviewScope;
 };
 
-const MatchCard = React.memo<MatchCardProps>(({ match, currentUserId, highlightedMatchId, torneoFinalizado, tournament }) => {
+const MatchCard = React.memo<MatchCardProps>(({ match, currentUserId, highlightedMatchId, torneoFinalizado, tournament, previewScope }) => {
  const navigate = useNavigate();
  const isFinal = Boolean(match.finalScore) || match.estado === 'finalizado';
  const p1Sets = match.finalScore?.sets_jugador1 ?? 0;
@@ -121,7 +123,7 @@ const MatchCard = React.memo<MatchCardProps>(({ match, currentUserId, highlighte
   </div>
   <div className="flex gap-2">
    <button
-    onClick={isClickable ? () => navigate(isFinal ? '/result-detail' : '/match-result', { state: { tournament, partidoId: match.id, currentUserId } }) : undefined}
+    onClick={isClickable ? () => navigate(isFinal ? '/result-detail' : '/match-result', { state: { tournament, partidoId: match.id, currentUserId, previewScope } }) : undefined}
     disabled={!isClickable}
     className={`flex-1 h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-transform ${isClickable ? 'bg-background-light text-[#111813] active:scale-95 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
    >
@@ -145,6 +147,9 @@ const MatchCard = React.memo<MatchCardProps>(({ match, currentUserId, highlighte
 const Fixture: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
+ const previewScope = location.state?.previewScope as TournamentPreviewScope | undefined;
+ const previewMode = Boolean(previewScope?.previewMode);
+
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const [activeFecha, setActiveFecha] = useState(0);
  const [playersStats, setPlayersStats] = useState<FixturePlayer[]>([]);
@@ -155,7 +160,7 @@ const Fixture: React.FC = () => {
  const userIdRef = useRef<string>(String(appUser?.id || ''));
  const [currentUserId, setCurrentUserId] = useState<string>(userIdRef.current);
  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
- const [selectedGroup, setSelectedGroup] = useState<string>('');
+ const [selectedGroup, setSelectedGroup] = useState<string>(previewScope?.grupo || '');
  // Grupo propio del usuario (para el próximo partido)
  const [userGroup, setUserGroup] = useState<string>('');
  const isLoadingRef = useRef(false);
@@ -171,12 +176,13 @@ const Fixture: React.FC = () => {
  // Hook de estado del jugador – usa el grupo propio del usuario
  const { loading: nextMatchLoading, status: playerStatus } = usePlayerTournamentStatus(
  tournament.id,
- currentUserId || undefined
+ previewMode ? '' : (currentUserId || undefined)
  );
  const nextMatch = playerStatus?.proximo_partido ?? null;
  const isEliminated = playerStatus?.estado === 'eliminado';
 
  useEffect(() => {
+ if (previewMode) return;
  supabase.auth.getUser().then(({ data }) => {
  if (data?.user?.id) {
  userIdRef.current = String(data.user.id);
@@ -185,7 +191,7 @@ const Fixture: React.FC = () => {
  }).catch((err: unknown) => {
     console.error('[Fixture] Auth getUser failed:', err);
  });
- }, []);
+ }, [previewMode]);
 
  const loadFixtureData = useCallback(async () => {
  if (isLoadingRef.current) return;
@@ -209,9 +215,11 @@ const Fixture: React.FC = () => {
  // Resolver el grupo propio del usuario
  const uid = userIdRef.current;
  let userOwnGroup = '';
- let resolvedCategory = String(tournament.subtitle || '').trim();
+ let resolvedCategory = previewScope?.categoria || String(tournament.subtitle || '').trim();
 
- if (uid) {
+ if (previewMode) {
+ userOwnGroup = previewScope?.grupo || '';
+ } else if (uid) {
  const { data: playerScopeRows } = await supabase
  .from('torneo_jugadores')
  .select('categoria, grupo')
@@ -498,7 +506,7 @@ const Fixture: React.FC = () => {
  return (
  <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white font-display text-[#111813] transition-colors duration-200 pb-24">
 
- {/* â”€â”€ Header â”€â”€ */}
+ {/* Header */}
  <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-[#dbe6de] ">
  <div className="flex items-center p-4 pb-2 justify-between">
  <button onClick={() => navigate(-1)} className="text-[#111813] flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-background-light cursor-pointer transition-colors">
@@ -556,8 +564,23 @@ const Fixture: React.FC = () => {
  </div>
  </div>
 
- {/* â”€â”€ Main â”€â”€ */}
- <main className="flex-1 overflow-y-auto bg-background-light pb-8 no-scrollbar">
+ {previewMode && (
+ <div className=”bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between gap-3”>
+ <div className=”flex items-center gap-2 text-sm”>
+ <span className=”material-symbols-outlined text-amber-600 text-xl”>preview</span>
+ <span className=”font-semibold text-amber-900”>Vista previa • {previewScope?.grupo || 'Grupo'}</span>
+ </div>
+ <button
+ onClick={() => navigate(previewScope?.adminReturnTo || '/admin')}
+ className=”text-xs font-bold text-amber-700 hover:text-amber-900 px-3 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors”
+ >
+ Volver
+ </button>
+ </div>
+ )}
+
+ {/* Main */}
+ <main className=”flex-1 overflow-y-auto bg-background-light pb-8 no-scrollbar”>
  <div className="px-4 py-4">
 
  {/* Próximo partido – siempre muestra el del usuario (su grupo real) */}
@@ -651,11 +674,12 @@ const Fixture: React.FC = () => {
  categoria={tournament.subtitle}
  grupo={selectedGroup}
  selectedGroup={selectedGroup}
- currentUserId={currentUserId || undefined}
+ currentUserId={previewMode ? undefined : (currentUserId || undefined)}
  onMatchClick={(match) => {
  const isFinal = match.estado === 'finalizado';
+ if (previewMode && !isFinal) return; // No navegar en preview para partidos no finalizados
  navigate(isFinal ? '/result-detail' : '/match-result', {
- state: { tournament, partidoId: match.id, currentUserId },
+ state: { tournament, partidoId: match.id, currentUserId, previewScope },
  });
  }}
  />
@@ -700,6 +724,7 @@ const Fixture: React.FC = () => {
  highlightedMatchId={highlightedMatchId}
  torneoFinalizado={torneoFinalizado}
  tournament={tournament}
+ previewScope={previewScope}
  />
  ))
  )}

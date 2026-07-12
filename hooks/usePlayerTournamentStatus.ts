@@ -68,21 +68,25 @@ export function usePlayerTournamentStatus(
     try {
       let currentUserId = userId ?? '';
 
-      if (!currentUserId) {
-        try {
-          const { data: authData } = await supabase.auth.getUser();
-          currentUserId = authData?.user?.id ?? '';
-        } catch {
-          // no auth session
+      // Modo preview explícito: userId === '' (preview mode)
+      // Fallback a auth: userId === undefined (normal mode)
+      if (userId === undefined) {
+        if (!currentUserId) {
+          try {
+            const { data: authData } = await supabase.auth.getUser();
+            currentUserId = authData?.user?.id ?? '';
+          } catch {
+            // no auth session
+          }
         }
-      }
 
-      if (!currentUserId) {
-        try {
-          const stored = localStorage.getItem('app_user');
-          currentUserId = stored ? (JSON.parse(stored)?.id ?? '') : '';
-        } catch {
-          // localStorage inaccessible
+        if (!currentUserId) {
+          try {
+            const stored = localStorage.getItem('app_user');
+            currentUserId = stored ? (JSON.parse(stored)?.id ?? '') : '';
+          } catch {
+            // localStorage inaccessible
+          }
         }
       }
 

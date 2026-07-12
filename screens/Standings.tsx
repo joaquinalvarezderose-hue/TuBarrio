@@ -6,6 +6,7 @@ import { PlayerStats, TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
 import { fixtureCache } from '../services/fixtureCache';
 import BracketTab from '../components/BracketTab';
+import { TournamentPreviewScope } from '../types/tournamentPreview';
 
 type TournamentScope = {
  categoria: string;
@@ -98,13 +99,16 @@ const Standings: React.FC = () => {
  const navigate = useNavigate();
  const [activeTab, setActiveTab] = useState<'tabla' | 'llaves'>('tabla');
  const location = useLocation();
+ const previewScope = location.state?.previewScope as TournamentPreviewScope | undefined;
+ const previewMode = Boolean(previewScope?.previewMode);
+
  const [dbRows, setDbRows] = useState<any[] | null>(null);
  const [dbLoadError, setDbLoadError] = useState<string | null>(null);
  const [rawHistorial, setRawHistorial] = useState<TournamentHistoryRow[]>([]);
  const [isLoading, setIsLoading] = useState(true);
  const [scope, setScope] = useState<TournamentScope | null>(null);
  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
- const [selectedGroup, setSelectedGroup] = useState<string>('');
+ const [selectedGroup, setSelectedGroup] = useState<string>(previewScope?.grupo || '');
  const [currentUserId, setCurrentUserId] = useState<string>('');
  const [clasificadosPorGrupo, setClasificadosPorGrupo] = useState<number>(2);
  const [incluirMejoresTerceros, setIncluirMejoresTerceros] = useState<boolean>(false);
@@ -137,6 +141,14 @@ const Standings: React.FC = () => {
  }
 
  let currentUserId = '';
+ let resolvedScope: TournamentScope | null = null;
+
+ if (previewMode) {
+ resolvedScope = {
+ categoria: previewScope.categoria,
+ grupo: previewScope.grupo,
+ };
+ } else {
  try {
  const { data } = await supabase.auth.getUser();
  currentUserId = String(data?.user?.id || '');
@@ -156,7 +168,6 @@ const Standings: React.FC = () => {
 
  if (currentUserId) setCurrentUserId(currentUserId);
 
- let resolvedScope: TournamentScope | null = null;
  if (currentUserId) {
  const { data: playerScopeRows } = await supabase
  .from('torneo_jugadores')
@@ -189,6 +200,7 @@ const Standings: React.FC = () => {
  categoria: String(inscriptionScope.categoria),
  grupo: String(inscriptionScope.grupo),
  };
+ }
  }
  }
 
@@ -667,6 +679,21 @@ const Standings: React.FC = () => {
  </div>
  </div>
 
+ {previewMode && (
+ <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
+ <div className="flex items-center gap-2 text-sm">
+ <span className="material-symbols-outlined text-amber-600 text-xl">preview</span>
+ <span className="font-semibold text-amber-900">Vista previa • {previewScope?.grupo || 'Grupo'}</span>
+ </div>
+ <button
+ onClick={() => navigate(previewScope?.adminReturnTo || '/admin')}
+ className="text-xs font-bold text-amber-700 hover:text-amber-900 px-3 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors"
+ >
+ Volver
+ </button>
+ </div>
+ )}
+
  {/* Tabs */}
  <div className="px-4 pb-2">
  <div className="flex bg-slate-100 rounded-lg p-1">
@@ -701,11 +728,12 @@ const Standings: React.FC = () => {
  categoria={scope?.categoria || tournament.subtitle || 'General'}
  grupo={scope?.grupo}
  selectedGroup={selectedGroup || undefined}
- currentUserId={currentUserId || undefined}
+ currentUserId={previewMode ? undefined : (currentUserId || undefined)}
  onMatchClick={(match) => {
  const isFinal = match.estado === 'finalizado';
+ if (previewMode && !isFinal) return; // No navegar en preview para partidos no finalizados
  navigate(isFinal ? '/result-detail' : '/match-result', {
- state: { tournament, partidoId: match.id, currentUserId },
+ state: { tournament, partidoId: match.id, currentUserId, previewScope },
  });
  }}
  />

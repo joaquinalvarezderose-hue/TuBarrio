@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import BracketTab from '../components/BracketTab';
+import { TournamentPreviewScope } from '../types/tournamentPreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ type ForceForm = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const TABS = ['Disputas', 'Grupos', 'Llaves', 'Acciones', 'Servicios'] as const;
+const TABS = ['Disputas', 'Grupos', 'Vista Jugador', 'Llaves', 'Acciones', 'Servicios'] as const;
 type Tab = typeof TABS[number];
 
 function setsLabel(json: unknown): string {
@@ -86,6 +87,7 @@ const AdminPanel: React.FC = () => {
   const [grupos, setGrupos] = useState<GrupoRow[]>([]);
   const [servicioClicks, setServicioClicks] = useState<ServicioClickRow[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [previewGrupo, setPreviewGrupo] = useState<string>('');
 
   // Force result form state per propuesta_id
   const [forceOpen, setForceOpen] = useState<string | null>(null);
@@ -172,9 +174,19 @@ const AdminPanel: React.FC = () => {
   useEffect(() => {
     if (perfil?.rol !== 'admin') return;
     if (tab === 'Disputas') loadDisputas();
-    if (tab === 'Grupos') loadGrupos();
+    if (tab === 'Grupos' || tab === 'Vista Jugador') loadGrupos();
     if (tab === 'Servicios') loadServicioClicks();
   }, [tab, perfil, loadDisputas, loadGrupos, loadServicioClicks]);
+
+  useEffect(() => {
+    if (tab !== 'Vista Jugador' || !activeCategoria) return;
+    const gruposDeCategoria = [...new Set(
+      grupos.filter(r => r.categoria === activeCategoria).map(r => r.grupo)
+    )].sort();
+    if (gruposDeCategoria.length > 0 && !previewGrupo) {
+      setPreviewGrupo(gruposDeCategoria[0]);
+    }
+  }, [tab, activeCategoria, grupos, previewGrupo]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -425,6 +437,77 @@ const AdminPanel: React.FC = () => {
     );
   };
 
+  const renderVistaJugador = () => {
+    if (!activeTorneo || !activeCategoria) {
+      return <p className="text-center py-10 text-slate-400 text-sm">Seleccioná torneo y categoría.</p>;
+    }
+    const gruposDeCategoria = [...new Set(
+      grupos.filter(r => r.categoria === activeCategoria).map(r => r.grupo)
+    )].sort();
+
+    if (gruposDeCategoria.length === 0) {
+      return <p className="text-center py-10 text-slate-400 text-sm">No hay grupos disponibles.</p>;
+    }
+
+    const handleNavigate = (destino: '/tournament-panel' | '/fixture' | '/standings') => {
+      const torneoTitulo = torneos.find(t => t.id === activeTorneo)?.titulo || '';
+      const tournament = {
+        id: activeTorneo,
+        title: torneoTitulo,
+        subtitle: activeCategoria,
+        image: '/images/tournament-default.jpg'
+      };
+      const previewScope: TournamentPreviewScope = {
+        previewMode: true,
+        categoria: activeCategoria,
+        grupo: previewGrupo,
+        adminReturnTo: '/admin',
+      };
+      navigate(destino, { state: { tournament, previewScope } });
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-3">Elegir grupo</p>
+          <select
+            value={previewGrupo}
+            onChange={(e) => setPreviewGrupo(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white mb-4"
+          >
+            {gruposDeCategoria.map(g => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+
+          <div className="space-y-2">
+            <button
+              onClick={() => handleNavigate('/tournament-panel')}
+              disabled={!previewGrupo}
+              className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Ver Panel del Torneo
+            </button>
+            <button
+              onClick={() => handleNavigate('/fixture')}
+              disabled={!previewGrupo}
+              className="w-full bg-emerald-600 text-white rounded-lg py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Ver Fixture
+            </button>
+            <button
+              onClick={() => handleNavigate('/standings')}
+              disabled={!previewGrupo}
+              className="w-full bg-violet-600 text-white rounded-lg py-2 text-sm font-bold disabled:opacity-50"
+            >
+              Ver Tabla de Posiciones
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderServicios = () => {
     const resumen: Record<string, { titulo: string; vistas: number; whatsapp: number }> = {};
     for (const c of servicioClicks) {
@@ -586,6 +669,7 @@ const AdminPanel: React.FC = () => {
       <div className="flex-1 p-4 max-w-2xl w-full mx-auto">
         {tab === 'Disputas' && renderDisputas()}
         {tab === 'Grupos' && renderGrupos()}
+        {tab === 'Vista Jugador' && renderVistaJugador()}
         {tab === 'Llaves' && renderLlaves()}
         {tab === 'Acciones' && renderAcciones()}
         {tab === 'Servicios' && renderServicios()}

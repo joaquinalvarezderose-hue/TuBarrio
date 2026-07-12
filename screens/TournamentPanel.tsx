@@ -5,6 +5,7 @@ import { supabase } from '../services/supabaseClient';
 import RankingCategorias from '../components/RankingCategorias';
 import { usePlayerTournamentStatus } from '../hooks/usePlayerTournamentStatus';
 import { useNextMatch } from '../hooks/useNextMatch';
+import { TournamentPreviewScope } from '../types/tournamentPreview';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const PANEL_READY_STATUSES = new Set([
@@ -61,6 +62,9 @@ type GroupStatusRow = {
 const TournamentPanel: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
+ const previewScope = location.state?.previewScope as TournamentPreviewScope | undefined;
+ const previewMode = Boolean(previewScope?.previewMode);
+
  const savedTournament = localStorage.getItem('active_tournament');
  const rawTournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
  title: "Abierto de Tenis TuBarrio",
@@ -97,9 +101,9 @@ const TournamentPanel: React.FC = () => {
  const [checkingInscripcion, setCheckingInscripcion] = useState(true);
  const [myWhatsapp, setMyWhatsapp] = useState<string | null>(null);
  // Single authoritative backend hook for player status
- const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+ const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, previewMode ? '' : (currentUserId || undefined));
  // Direct query fallback for when the RPC doesn't return proximo_partido
- const { match: nextMatchFallback } = useNextMatch(tournament.id);
+ const { match: nextMatchFallback } = useNextMatch(tournament.id, !previewMode);
 
  const rpcNextMatch = playerStatus?.proximo_partido ?? null;
  const nextMatch = rpcNextMatch ?? (nextMatchFallback ? {
@@ -131,7 +135,7 @@ const TournamentPanel: React.FC = () => {
  const isUserMustConfirm = !!pendingConfirmMatch;
  const isUserWaitingRivalConfirm = matchIsWaitingValidation && !isUserMustConfirm;
 
- const noPlayoffMatch = !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isFinalista && !isWaiting && !loadingNextMatch;
+ const noPlayoffMatch = !previewMode && !nextMatch && bracketMatchesExist && !userBracketMatchExists && !isEliminated && !isCampeon && !isFinalista && !isWaiting && !loadingNextMatch;
  const rawStats = playerStatus?.stats ?? null;
  const tournamentStats = rawStats && rawStats.total > 0 ? {
  totalMatches: rawStats.total,
@@ -149,6 +153,10 @@ const TournamentPanel: React.FC = () => {
  // Chequeo rápido y paralelo: solo determina si el pago está pendiente,
  // sin esperar al resto de la carga del panel.
  useEffect(() => {
+ if (previewMode) {
+ setCheckingInscripcion(false);
+ return;
+ }
  const perfilId = String(appUser?.id || '');
  if (!perfilId || !tournament?.id) {
  setCheckingInscripcion(false);
@@ -232,6 +240,10 @@ const TournamentPanel: React.FC = () => {
  // This handles the case where nextMatch points to an earlier jornada (programado) but a later jornada
  // is already in esperando_validacion waiting for this user's confirmation.
  useEffect(() => {
+ if (previewMode) {
+ setPendingConfirmMatch(null);
+ return;
+ }
  if (!currentUserId || !tournament?.id) return;
  let cancelled = false;
  (async () => {
@@ -295,7 +307,13 @@ const TournamentPanel: React.FC = () => {
  setTournamentConfig(null);
  }
 
- if (currentUserId) {
+ // En modo preview, usar el scope pasado en location.state
+ if (previewScope) {
+ resolvedScope = {
+ categoria: previewScope.categoria,
+ grupo: previewScope.grupo,
+ };
+ } else if (currentUserId) {
  const [jugadorScopeRes, perfilRes] = await Promise.all([
  supabase
  .from('torneo_jugadores')
@@ -322,9 +340,8 @@ const TournamentPanel: React.FC = () => {
  if (perfilRes.data?.whatsapp) {
  setMyWhatsapp(String(perfilRes.data.whatsapp));
  }
- }
 
- if (!resolvedScope && currentUserId) {
+ if (!resolvedScope) {
  const { data: inscripcionScopeRows } = await supabase
  .from('inscripciones_torneo')
  .select('categoria, grupo, estado')
@@ -341,6 +358,7 @@ const TournamentPanel: React.FC = () => {
  };
  if (inscripcionScope.estado === 'pendiente_revision') {
  setInscripcionPendiente(true);
+ }
  }
  }
  }
@@ -705,6 +723,21 @@ const TournamentPanel: React.FC = () => {
  <div className="w-8"></div>
  </header>
 
+ {previewMode && (
+ <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
+ <div className="flex items-center gap-2 text-sm">
+ <span className="material-symbols-outlined text-amber-600 text-xl">preview</span>
+ <span className="font-semibold text-amber-900">Vista previa • {previewScope?.grupo || 'Grupo'}</span>
+ </div>
+ <button
+ onClick={() => navigate(previewScope?.adminReturnTo || '/admin')}
+ className="text-xs font-bold text-amber-700 hover:text-amber-900 px-3 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors"
+ >
+ Volver
+ </button>
+ </div>
+ )}
+
  <main className="flex-1 p-4 space-y-6">
  {/* Tournament Highlight Card */}
  <section className="">
@@ -725,7 +758,7 @@ const TournamentPanel: React.FC = () => {
  </div>
  </section>
 
- {isAdmin && (
+ {isAdmin && !previewMode && (
  <section className="space-y-3">
  <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-3">
  <div className="flex items-center justify-between gap-3">
@@ -878,8 +911,8 @@ const TournamentPanel: React.FC = () => {
 
  {/* Quick Action Grid 2x2 */}
  <section className="grid grid-cols-2 gap-4">
- <button 
- onClick={() => navigate('/fixture', { state: { tournament } })}
+ <button
+ onClick={() => navigate('/fixture', { state: { tournament, previewScope } })}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
  >
  <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
@@ -887,9 +920,9 @@ const TournamentPanel: React.FC = () => {
  </div>
  <span className="text-sm font-semibold text-center text-[#111813] ">Fixture y Fechas</span>
  </button>
- 
- <button 
- onClick={() => navigate('/standings', { state: { tournament } })}
+
+ <button
+ onClick={() => navigate('/standings', { state: { tournament, previewScope } })}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
  >
  <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
@@ -897,7 +930,8 @@ const TournamentPanel: React.FC = () => {
  </div>
  <span className="text-sm font-semibold text-center text-[#111813] ">Tabla de Posiciones</span>
  </button>
- 
+
+ {!previewMode && (
  <button
  onClick={() => navigate('/match-result', { state: { tournament } })}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
@@ -907,8 +941,9 @@ const TournamentPanel: React.FC = () => {
  </div>
  <span className="text-sm font-semibold text-center text-[#111813] ">Cargar Resultado</span>
  </button>
- 
- <button 
+ )}
+
+ <button
  onClick={() => navigate('/rules')}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
  >
@@ -941,6 +976,23 @@ const TournamentPanel: React.FC = () => {
  <section className="space-y-4">
  <div className="h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
  <div className="h-28 bg-gray-100 rounded-xl animate-pulse"></div>
+ </section>
+ ) : previewMode ? (
+ <section className="space-y-4">
+ <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813] ">Fixture del Grupo</h3>
+ <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+ <div className="text-center">
+ <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 shadow-sm mb-3">
+ <span className="material-symbols-outlined text-slate-500 text-4xl">visibility</span>
+ </div>
+ <p className="text-sm text-slate-600 font-medium">
+ Esta sección se personaliza según el próximo partido de cada jugador del grupo.
+ </p>
+ <p className="text-xs text-slate-500 mt-2">
+ Consultá el fixture completo en "Fixture y Fechas"
+ </p>
+ </div>
+ </div>
  </section>
  ) : (isEliminated || noPlayoffMatch || isCampeon || isFinalista || (isWaiting && !matchIsWaitingValidation)) ? (
  /* ── Resumen del torneo (eliminado / campeón / finalista / esperando ronda) ── */
