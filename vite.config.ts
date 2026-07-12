@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
     },
     esbuild: isProd
       ? {
-          drop: ['console', 'debugger'],
+          drop: ['debugger'],
           legalComments: 'none',
         }
       : undefined,
