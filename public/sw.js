@@ -1,84 +1,32 @@
-const CACHE_NAME = 'tubarrio-v4';
-
-// Returns a valid offline fallback Response
-function getOfflineResponse() {
-  return new Response(
-    '<html><body style="font-family: sans-serif; padding: 20px;"><h1>Offline</h1><p>You are currently offline. Please check your connection and try again.</p></body></html>',
-    { headers: { 'Content-Type': 'text/html' }, status: 503 }
-  );
-}
+// This SW simply unregisters itself and clears all caches
+// to allow the app to work without Service Worker caching issues
 
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing and skipping waiting...');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating and clearing all caches...');
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys().then((cacheNames) => {
+      console.log('[SW] Found caches:', cacheNames);
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('[SW] Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      console.log('[SW] All caches cleared, claiming clients...');
+      return self.clients.claim();
+    })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('supabase.co')) return;
-
-  const url = new URL(event.request.url);
-
-  // Network-first for HTML so the latest index.html (with new asset hashes) is always used
-  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (!response || !response.ok) {
-            return caches.match(event.request).then((cached) => cached || getOfflineResponse());
-          }
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() =>
-          caches.match(event.request).then((cached) => cached || getOfflineResponse())
-        )
-    );
-    return;
-  }
-
-  // Cache-first for versioned assets (content-hashed filenames never change)
-  if (url.pathname.startsWith('/assets/')) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) {
-          return cached;
-        }
-        return fetch(event.request)
-          .then((response) => {
-            if (!response || !response.ok) {
-              return getOfflineResponse();
-            }
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            return response;
-          })
-          .catch(() => getOfflineResponse());
-      })
-    );
-    return;
-  }
-
-  // Default: network with cache fallback
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (!response || !response.ok) {
-          return caches.match(event.request).then((cached) => cached || getOfflineResponse());
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(event.request).then((cached) => cached || getOfflineResponse())
-      )
-  );
+  // Don't intercept anything, let the browser handle all requests normally
+  // This allows the app to work without any caching
 });
+
+console.log('[SW] Service Worker loaded - passing through all requests');
