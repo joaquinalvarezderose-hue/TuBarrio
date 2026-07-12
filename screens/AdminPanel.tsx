@@ -2,7 +2,10 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 
+console.log('[AdminPanel] Component loaded!');
+
 const AdminPanel: React.FC = () => {
+  console.log('[AdminPanel] Rendering...');
   const navigate = useNavigate();
   const { perfil, loading, authUser } = useCurrentUser();
 
