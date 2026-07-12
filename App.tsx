@@ -148,6 +148,10 @@ const App: React.FC = () => {
   const [pendingRecovery, setPendingRecovery] = React.useState(false);
 
   React.useEffect(() => {
+    console.log('[App] useCurrentUser state:', { authUser: authUser?.id, perfil: perfil?.id, loading });
+  }, [authUser, perfil, loading]);
+
+  React.useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setPendingRecovery(true);
