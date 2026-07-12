@@ -32,7 +32,7 @@ type Tab = typeof TABS[number];
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
-  const { perfil, loading: userLoading } = useCurrentUser();
+  const { perfil, loading: userLoading, authUser } = useCurrentUser();
 
   const [tab, setTab] = useState<Tab>('Torneos');
   const [torneos, setTorneos] = useState<TorneoRow[]>([]);
@@ -41,10 +41,26 @@ const AdminPanel: React.FC = () => {
   const [servicioClicks, setServicioClicks] = useState<ServicioClickRow[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[AdminPanel] State:', {
+      userLoading,
+      authUser: authUser?.id,
+      perfil: perfil?.id,
+      rol: perfil?.rol,
+      isAdmin: perfil?.rol === 'admin'
+    });
+  }, [userLoading, authUser, perfil]);
+
   // Admin guard
   useEffect(() => {
     if (userLoading) return;
-    if (perfil?.rol !== 'admin') {
+
+    const isAdmin = perfil?.rol === 'admin';
+    console.log('[AdminPanel] Admin check:', { isAdmin, rol: perfil?.rol, perfil });
+
+    if (!isAdmin) {
+      console.log('[AdminPanel] Not admin, redirecting...');
       navigate('/tournaments', { replace: true });
     }
   }, [userLoading, perfil, navigate]);
@@ -218,12 +234,50 @@ const AdminPanel: React.FC = () => {
   if (userLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-slate-400 text-sm">Verificando permisos...</p>
+        <div className="text-center">
+          <p className="text-slate-400 text-sm mb-4">Verificando permisos...</p>
+          <p className="text-xs text-slate-300">authUser: {authUser?.id ? 'sí' : 'no'}</p>
+          <p className="text-xs text-slate-300">perfil: {perfil?.id ? 'sí' : 'no'}</p>
+          <p className="text-xs text-slate-300">rol: {perfil?.rol || 'undefined'}</p>
+        </div>
       </div>
     );
   }
 
-  if (perfil?.rol !== 'admin') return null;
+  // Not admin check
+  if (!authUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-slate-600 text-sm font-semibold">No autenticado</p>
+          <p className="text-xs text-slate-400 mt-2">Necesitás estar logueado para acceder al panel admin</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!perfil) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-slate-600 text-sm font-semibold">Perfil no encontrado</p>
+          <p className="text-xs text-slate-400 mt-2">No se pudo cargar tu perfil</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (perfil.rol !== 'admin') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-slate-600 text-sm font-semibold">Acceso Denegado</p>
+          <p className="text-xs text-slate-400 mt-2">Tu rol es: {perfil.rol}</p>
+          <p className="text-xs text-slate-400 mt-1">Se requiere rol: admin</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
