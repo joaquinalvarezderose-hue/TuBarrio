@@ -234,7 +234,7 @@ const Fixture: React.FC = () => {
 
  setUserGroup(userOwnGroup);
 
- // â”€â”€ 2. Cargar todos los grupos disponibles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ // â"€â"€ 2. Cargar todos los grupos disponibles â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  let groupsQuery: any = supabase
  .from('torneo_estado')
  .select('grupo, categoria')
@@ -261,7 +261,7 @@ const Fixture: React.FC = () => {
  setSelectedGroup(effectiveGroup);
  }
 
- // â”€â”€ 3. Ver estado del torneo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ // â"€â"€ 3. Ver estado del torneo â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  // Cargar estado, partidos, jugadores, historial y propuestas en paralelo
  let partidosQ: any = supabase
  .from('partidos')
@@ -306,7 +306,7 @@ const Fixture: React.FC = () => {
  const historial = Array.isArray(historialResp.data) ? historialResp.data : [];
  const propuestas = Array.isArray(propuestasResp.data) ? propuestasResp.data : [];
 
- // â”€â”€ 8. Perfiles de todos los jugadores en los partidos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ // â"€â"€ 8. Perfiles de todos los jugadores en los partidos â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  const profileIds = Array.from(new Set([
  ...jugadores.map((r: any) => r.perfil_id),
  ...partidos.flatMap((r: any) => [r.jugador1_id, r.jugador2_id]),
@@ -337,7 +337,7 @@ const Fixture: React.FC = () => {
  propuestas.map((r: any) => [r.partido_id, r.estado])
  );
 
- // â”€â”€ 9. Stats de posiciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ // â"€â"€ 9. Stats de posiciones â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  const stats: FixturePlayer[] = jugadores.map((row: any) => ({
  perfil_id: row.perfil_id,
  nombre: nameById[row.perfil_id] || 'Jugador',
@@ -564,23 +564,23 @@ const Fixture: React.FC = () => {
  </div>
  </div>
 
- {previewMode && (
- <div className=”bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between gap-3”>
- <div className=”flex items-center gap-2 text-sm”>
- <span className=”material-symbols-outlined text-amber-600 text-xl”>preview</span>
- <span className=”font-semibold text-amber-900”>Vista previa • {previewScope?.grupo || 'Grupo'}</span>
- </div>
- <button
- onClick={() => navigate(previewScope?.adminReturnTo || '/admin')}
- className=”text-xs font-bold text-amber-700 hover:text-amber-900 px-3 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors”
- >
- Volver
- </button>
- </div>
- )}
+  {previewMode && (
+    <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="material-symbols-outlined text-amber-600 text-xl">preview</span>
+        <span className="font-semibold text-amber-900">Vista previa • {previewScope?.grupo || 'Grupo'}</span>
+      </div>
+      <button
+        onClick={() => navigate(previewScope?.adminReturnTo || '/admin')}
+        className="text-xs font-bold text-amber-700 hover:text-amber-900 px-3 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors"
+      >
+        Volver
+      </button>
+    </div>
+  )}
 
  {/* Main */}
- <main className=”flex-1 overflow-y-auto bg-background-light pb-8 no-scrollbar”>
+ <main className="flex-1 overflow-y-auto bg-background-light pb-8 no-scrollbar">
  <div className="px-4 py-4">
 
  {/* Próximo partido – siempre muestra el del usuario (su grupo real) */}
@@ -738,3 +738,4 @@ const Fixture: React.FC = () => {
 };
 
 export default Fixture;
+
