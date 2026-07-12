@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tubarrio-v3';
+const CACHE_NAME = 'tubarrio-v4';
 
 // Returns a valid offline fallback Response
 function getOfflineResponse() {
