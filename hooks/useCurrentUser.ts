@@ -49,9 +49,8 @@ export function useCurrentUser(): CurrentUserState {
     try {
       let { data, error: authErr } = await supabase.auth.getUser();
 
-      // El access token pudo haber expirado (pestaña inactiva). getUser() no refresca
-      // por sí mismo: intentamos refreshSession() con el refresh token de larga duración
-      // antes de descartar la sesión. Así toda la app se auto-recupera de un token vencido.
+      console.log('[useCurrentUser] getUser result:', { userId: data?.user?.id, authErr });
+
       if (authErr || !data?.user) {
         const { data: refreshed } = await supabase.auth.refreshSession();
         if (refreshed?.user) {
@@ -63,6 +62,7 @@ export function useCurrentUser(): CurrentUserState {
       if (authErr) throw authErr;
 
       if (!data?.user) {
+        console.log('[useCurrentUser] No user found');
         setAuthUser(null);
         setPerfil(null);
         localStorage.removeItem(PERFIL_CACHE_KEY);
@@ -70,22 +70,31 @@ export function useCurrentUser(): CurrentUserState {
       }
 
       const next: AuthUser = { id: data.user.id, email: data.user.email ?? null };
+      console.log('[useCurrentUser] Auth user set:', next);
       setAuthUser(next);
 
+      console.log('[useCurrentUser] Querying profile for user:', data.user.id);
       const { data: profileData, error: profileErr } = await supabase
         .from('perfiles')
         .select('*')
         .eq('id', data.user.id)
         .maybeSingle();
 
+      console.log('[useCurrentUser] Profile query result:', { profileData, profileErr });
+
       if (profileErr) throw profileErr;
-      setPerfil(profileData ?? null);
+
       if (profileData) {
+        console.log('[useCurrentUser] Setting perfil with rol:', profileData.rol);
+        setPerfil(profileData);
         localStorage.setItem(PERFIL_CACHE_KEY, JSON.stringify(profileData));
       } else {
+        console.log('[useCurrentUser] No profile data returned!');
+        setPerfil(null);
         localStorage.removeItem(PERFIL_CACHE_KEY);
       }
     } catch (e) {
+      console.error('[useCurrentUser] Error:', e);
       setError(e as Error);
       setAuthUser(null);
       setPerfil(null);
