@@ -7,7 +7,7 @@ console.log('[AdminPanel] Component loaded!');
 const AdminPanel: React.FC = () => {
   console.log('[AdminPanel] Rendering...');
   const navigate = useNavigate();
-  const { perfil, loading, authUser } = useCurrentUser();
+  const { perfil, loading, authUser, refresh } = useCurrentUser();
 
   // Log everything for debugging
   useEffect(() => {
@@ -37,6 +37,14 @@ const AdminPanel: React.FC = () => {
       navigate('/login', { replace: true });
     }
   }, [authUser, perfil, navigate]);
+
+  // Try to refresh session when component mounts
+  // This handles the case where the user has a cached profile but lost their Supabase session
+  useEffect(() => {
+    if (!authUser && perfil) {
+      refresh();
+    }
+  }, []);
 
   // If no profile, show error
   if (!perfil) {
