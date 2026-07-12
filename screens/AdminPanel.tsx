@@ -1,10 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { supabase } from '../services/supabaseClient';
+import { TournamentPreviewScope } from '../types/tournamentPreview';
+
+type TorneoOption = { id: number; titulo: string };
+type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
   const { perfil, loading, authUser } = useCurrentUser();
+
+  const [torneos, setTorneos] = useState<TorneoOption[]>([]);
+  const [gruposPosiciones, setGruposPosiciones] = useState<GrupoOption[]>([]);
+  const [activeTorneo, setActiveTorneo] = useState<number | null>(null);
+  const [activeCategoria, setActiveCategoria] = useState<string>('');
+  const [previewGrupo, setPreviewGrupo] = useState<string>('');
 
   // Redirect to login once we know for sure there's no server-verified session
   useEffect(() => {
@@ -19,6 +30,66 @@ const AdminPanel: React.FC = () => {
       navigate('/tournaments', { replace: true });
     }
   }, [loading, perfil, navigate]);
+
+  // Load tournaments for the preview selector
+  useEffect(() => {
+    if (perfil?.rol !== 'admin') return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('torneos')
+        .select('id, titulo')
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        console.error('[AdminPanel] load torneos error:', error);
+        return;
+      }
+      const rows = (data ?? []) as TorneoOption[];
+      setTorneos(rows);
+      setActiveTorneo((prev) => prev ?? rows[0]?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [perfil]);
+
+  // Load groups/categories for the selected tournament from the pre-flattened admin view
+  useEffect(() => {
+    if (perfil?.rol !== 'admin' || !activeTorneo) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('v_admin_grupos_posiciones')
+        .select('torneo_id, categoria, grupo')
+        .eq('torneo_id', activeTorneo);
+      if (cancelled) return;
+      if (error) {
+        console.error('[AdminPanel] load grupos error:', error);
+        return;
+      }
+      setGruposPosiciones((data ?? []) as GrupoOption[]);
+    })();
+    return () => { cancelled = true; };
+  }, [perfil, activeTorneo]);
+
+  const categorias = [...new Set(gruposPosiciones.map((g) => g.categoria))].sort();
+  const gruposDeCategoria = [...new Set(
+    gruposPosiciones.filter((g) => g.categoria === activeCategoria).map((g) => g.grupo)
+  )].sort();
+
+  // Keep categoria/grupo selects pointed at a valid option as the data loads/changes
+  useEffect(() => {
+    if (perfil?.rol !== 'admin') return;
+    if (categorias.length > 0 && !categorias.includes(activeCategoria)) {
+      setActiveCategoria(categorias[0]);
+    }
+  }, [perfil, categorias, activeCategoria]);
+
+  useEffect(() => {
+    if (perfil?.rol !== 'admin') return;
+    if (gruposDeCategoria.length > 0 && !gruposDeCategoria.includes(previewGrupo)) {
+      setPreviewGrupo(gruposDeCategoria[0]);
+    }
+  }, [perfil, gruposDeCategoria, previewGrupo]);
 
   if (loading) {
     return (
@@ -49,6 +120,24 @@ const AdminPanel: React.FC = () => {
   if (perfil.rol !== 'admin') {
     return null;
   }
+
+  const handlePreviewNavigate = (destino: '/tournament-panel' | '/fixture' | '/standings') => {
+    if (!activeTorneo || !previewGrupo) return;
+    const torneoTitulo = torneos.find((t) => t.id === activeTorneo)?.titulo || '';
+    const tournament = {
+      id: activeTorneo,
+      title: torneoTitulo,
+      subtitle: activeCategoria,
+      image: '/images/tournament-default.jpg',
+    };
+    const previewScope: TournamentPreviewScope = {
+      previewMode: true,
+      categoria: activeCategoria,
+      grupo: previewGrupo,
+      adminReturnTo: '/admin',
+    };
+    navigate(destino, { state: { tournament, previewScope } });
+  };
 
   // ADMIN PANEL - User is admin
   return (
@@ -121,6 +210,85 @@ const AdminPanel: React.FC = () => {
             >
               Ir a Torneos
             </button>
+          </div>
+
+          {/* Vista Previa */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase mb-3">Vista Previa</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Elegí torneo, categoría y grupo para ver esas pantallas tal como las ve un jugador real (modo lectura).
+            </p>
+
+            {torneos.length === 0 ? (
+              <p className="text-sm text-slate-400">No hay torneos cargados.</p>
+            ) : (
+              <div className="space-y-3">
+                <select
+                  value={activeTorneo ?? ''}
+                  onChange={(e) => {
+                    setActiveTorneo(Number(e.target.value));
+                    setActiveCategoria('');
+                    setPreviewGrupo('');
+                  }}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                >
+                  {torneos.map((t) => (
+                    <option key={t.id} value={t.id}>{t.titulo}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={activeCategoria}
+                  onChange={(e) => {
+                    setActiveCategoria(e.target.value);
+                    setPreviewGrupo('');
+                  }}
+                  disabled={categorias.length === 0}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50"
+                >
+                  {categorias.length === 0 && <option value="">Sin categorías</option>}
+                  {categorias.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={previewGrupo}
+                  onChange={(e) => setPreviewGrupo(e.target.value)}
+                  disabled={gruposDeCategoria.length === 0}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50"
+                >
+                  {gruposDeCategoria.length === 0 && <option value="">Sin grupos</option>}
+                  {gruposDeCategoria.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+
+                <div className="space-y-2 pt-1">
+                  <button
+                    onClick={() => handlePreviewNavigate('/tournament-panel')}
+                    disabled={!previewGrupo}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 text-sm font-bold disabled:opacity-50 transition"
+                  >
+                    Ver Panel del Torneo
+                  </button>
+                  <button
+                    onClick={() => handlePreviewNavigate('/fixture')}
+                    disabled={!previewGrupo}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2 text-sm font-bold disabled:opacity-50 transition"
+                  >
+                    Ver Fixture
+                  </button>
+                  <button
+                    onClick={() => handlePreviewNavigate('/standings')}
+                    disabled={!previewGrupo}
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-lg py-2 text-sm font-bold disabled:opacity-50 transition"
+                  >
+                    Ver Tabla de Posiciones
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

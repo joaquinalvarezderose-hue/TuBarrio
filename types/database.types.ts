@@ -681,7 +681,6 @@ export type Database = {
           max_participantes_total: number | null
           min_participantes_por_grupo: number | null
           numero_grupos: number | null
-          partidos_por_jugador: number | null
           pendientes_revision: number
           torneo_id: number
           updated_at: string | null
@@ -703,7 +702,6 @@ export type Database = {
           max_participantes_total?: number | null
           min_participantes_por_grupo?: number | null
           numero_grupos?: number | null
-          partidos_por_jugador?: number | null
           pendientes_revision?: number
           torneo_id: number
           updated_at?: string | null
@@ -725,7 +723,6 @@ export type Database = {
           max_participantes_total?: number | null
           min_participantes_por_grupo?: number | null
           numero_grupos?: number | null
-          partidos_por_jugador?: number | null
           pendientes_revision?: number
           torneo_id?: number
           updated_at?: string | null

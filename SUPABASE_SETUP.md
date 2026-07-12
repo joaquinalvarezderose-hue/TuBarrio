@@ -2,26 +2,29 @@
 
 ## URLs de Redirección Requeridas
 
-Después de los cambios en el código, debes actualizar la configuración de Supabase Dashboard:
+La app usa `BrowserRouter` y maneja automáticamente el flujo de recuperación de contraseña. Para que funcione en producción y desarrollo, debes verificar/actualizar la configuración en el Dashboard de Supabase:
 
 ### En el Dashboard de Supabase:
 1. Ve a **Authentication** (en el menú izquierdo)
 2. Haz click en **URL Configuration**
 3. En la sección **Site URL**, asegúrate que sea:
-   - `https://tubarrio.vercel.app` (o tu dominio de producción)
+   - `https://www.tubarrioapp.com.ar` (producción con www)
 
-4. En la sección **Redirect URLs** (Allowed), asegúrate que contenga:
-   - `https://tubarrio.vercel.app` (producción)
+4. En la sección **Redirect URLs** (Allowed), asegúrate que contenga **ambos**:
+   - `https://www.tubarrioapp.com.ar` (producción)
+   - `https://tubarrioapp.com.ar` (producción sin www)
    - `http://localhost:5173` (desarrollo local)
-   - `https://tubarrio.vercel.app/` (con trailing slash, si aplica)
 
 5. **Elimina** cualquier URL antigua como:
+   - `https://tubarrio.vercel.app` (ya no se usa)
    - `https://tubarrio.vercel.app/#/reset-password` (ya no se necesita)
 
 ### Por qué estos cambios:
 
-- **Antes**: El `redirectTo` incluía `#/reset-password`, lo que entraba en conflicto con el token que Supabase agregaba (`#access_token=...&type=recovery`)
-- **Ahora**: El `redirectTo` es solo `window.location.origin`, y la app maneja el routing a `/reset-password` automáticamente detectando `type=recovery` en el hash
+- La app cambió a **`BrowserRouter`** (en lugar de `HashRouter`), que interpreta las URLs correctamente sin conflictos de hash.
+- El `redirectTo` en Login.tsx es `window.location.origin` (ej: `https://www.tubarrioapp.com.ar`), sin path ni hash.
+- Supabase agrega `#access_token=...&type=recovery` a esa URL, y el evento `PASSWORD_RECOVERY` de Supabase dispara automáticamente una redirección a `/reset-password`.
+- **Importante:** la whitelist de Redirect URLs en Supabase **debe** incluir el dominio exacto que el usuario tenga en su navegador; de lo contrario, Supabase rechaza el redirect silenciosamente.
 
 ## Verificación
 

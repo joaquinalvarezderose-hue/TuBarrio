@@ -123,7 +123,6 @@ CREATE TABLE IF NOT EXISTS public.torneo_configuracion (
   clasificados_por_grupo INTEGER NOT NULL DEFAULT 2,
   crear_playoffs_eliminacion_directa BOOLEAN NOT NULL DEFAULT false,
   grupo_base TEXT,
-  partidos_por_jugador INTEGER DEFAULT 3,
   grupo_base_id UUID REFERENCES public.torneo_grupos(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

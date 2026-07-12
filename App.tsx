@@ -70,6 +70,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
   // Handle pending_intent after OAuth redirect (Google login) + enforce complete profile
   React.useEffect(() => {
     if (loading || !authUser) return;
+    if (pendingRecovery) return;
     if (location.pathname === '/complete-profile') return;
 
     const raw = localStorage.getItem('pending_intent');
@@ -95,7 +96,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
     } else if (intent?.type === 'service-hire') {
       navigate(`/service/${intent.payload.serviceId}`);
     }
-  }, [authUser, loading, perfil, location.pathname]);
+  }, [authUser, loading, perfil, location.pathname, pendingRecovery]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 w-full overflow-hidden">

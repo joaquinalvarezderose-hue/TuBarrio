@@ -21,7 +21,8 @@
       "Bash(npm run *)",
       "Bash(Start-Sleep -Seconds 3)",
       "Bash(Write-Host \"Dev server starting in background...\")",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "mcp__claude_ai_Vercel__list_teams"
     ]
   }
 }
