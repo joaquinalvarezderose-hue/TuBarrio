@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { Database } from '../types/database.types';
 
@@ -42,8 +42,10 @@ export function useCurrentUser(): CurrentUserState {
   const [perfil, setPerfil] = useState<Perfil | null>(readPerfilCache);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const requestIdRef = useRef(0);
 
   const load = async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -60,6 +62,7 @@ export function useCurrentUser(): CurrentUserState {
       if (authErr) throw authErr;
 
       if (!data?.user) {
+        if (requestId !== requestIdRef.current) return;
         setAuthUser(null);
         setPerfil(null);
         localStorage.removeItem(PERFIL_CACHE_KEY);
@@ -67,7 +70,6 @@ export function useCurrentUser(): CurrentUserState {
       }
 
       const next: AuthUser = { id: data.user.id, email: data.user.email ?? null };
-      setAuthUser(next);
 
       const { data: profileData, error: profileErr } = await supabase
         .from('perfiles')
@@ -77,6 +79,13 @@ export function useCurrentUser(): CurrentUserState {
 
       if (profileErr) throw profileErr;
 
+      // Descartar esta respuesta si mientras tanto se disparó una llamada a load() más
+      // reciente (p. ej. signUp() + signInWithPassword() emiten dos eventos SIGNED_IN
+      // seguidos durante el registro) — evita pisar un perfil completo con uno parcial.
+      if (requestId !== requestIdRef.current) return;
+
+      setAuthUser(next);
+
       if (profileData) {
         setPerfil(profileData);
         localStorage.setItem(PERFIL_CACHE_KEY, JSON.stringify(profileData));
@@ -85,12 +94,13 @@ export function useCurrentUser(): CurrentUserState {
         localStorage.removeItem(PERFIL_CACHE_KEY);
       }
     } catch (e) {
+      if (requestId !== requestIdRef.current) return;
       console.error('[useCurrentUser] Error:', e);
       setError(e as Error);
       setAuthUser(null);
       setPerfil(null);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   };
 

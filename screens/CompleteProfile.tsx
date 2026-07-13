@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useCurrentUser } from '../hooks/useCurrentUser';
-import { normalizeWhatsApp, COUNTRY_CODES, BARRIOS, LOCALIDADES, SECTORES_CANTON, type Barrio, type Localidad, type SectorCanton } from '../lib/schemas';
+import { normalizeWhatsApp, COUNTRY_CODES, BARRIOS, LOCALIDADES, SECTORES_CANTON, DomicilioUpdateSchema, flattenZodErrors, type Barrio, type Localidad, type SectorCanton } from '../lib/schemas';
 import type { PendingIntent } from '../types/intent';
 
 interface Props {
@@ -25,25 +25,31 @@ const CompleteProfile: React.FC<Props> = ({ onSaved }) => {
   const [localidad, setLocalidad] = useState<Localidad | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authUser) return;
 
+    setFieldErrors({});
+
     if (!whatsappLocal.trim()) {
       setError('El WhatsApp es obligatorio para continuar.');
       return;
     }
-    if (!barrio) {
-      setError('Seleccioná tu country.');
-      return;
-    }
-    if (!calle.trim()) {
-      setError('Ingresá tu calle.');
-      return;
-    }
-    if (!localidad) {
-      setError('Seleccioná tu localidad.');
+
+    const result = DomicilioUpdateSchema.safeParse({
+      barrio: barrio || undefined,
+      sector: sector || undefined,
+      localidad: localidad || undefined,
+      calle,
+      numero_altura: numeroAltura || undefined,
+      lote: lote || undefined,
+    });
+
+    if (!result.success) {
+      setFieldErrors(flattenZodErrors(result));
+      setError('Por favor corrige los campos indicados.');
       return;
     }
 
@@ -181,6 +187,7 @@ const CompleteProfile: React.FC<Props> = ({ onSaved }) => {
                 </select>
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl pointer-events-none">expand_more</span>
               </div>
+              {fieldErrors.sector && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.sector}</p>}
             </div>
           )}
 
@@ -194,6 +201,7 @@ const CompleteProfile: React.FC<Props> = ({ onSaved }) => {
               value={calle}
               onChange={(e) => setCalle(e.target.value)}
             />
+            {fieldErrors.calle && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.calle}</p>}
           </div>
 
           {/* Número y Lote */}
@@ -209,7 +217,9 @@ const CompleteProfile: React.FC<Props> = ({ onSaved }) => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">Lote (opcional)</label>
+              <label className="block text-xs font-medium tracking-widest uppercase text-on-surface-variant ml-1">
+                {barrio === 'El Cantón' ? 'Lote' : 'Lote (Opcional)'}
+              </label>
               <input
                 type="text"
                 className="w-full pl-4 py-3 bg-white border border-outline rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
@@ -217,6 +227,7 @@ const CompleteProfile: React.FC<Props> = ({ onSaved }) => {
                 value={lote}
                 onChange={(e) => setLote(e.target.value)}
               />
+              {fieldErrors.lote && <p className="text-xs text-red-600 mt-1 ml-1">{fieldErrors.lote}</p>}
             </div>
           </div>
 
