@@ -647,7 +647,7 @@ const Fixture: React.FC = () => {
  <p className="text-sm text-[#61896b]">Todavía no hay estadísticas cargadas para este grupo.</p>
  ) : (
  <div className="space-y-2">
- {playersStats.slice(0, 4).map((p, idx) => (
+ {playersStats.map((p, idx) => (
  <div key={`${p.perfil_id}-${idx}`} className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-sm">
  <span className="font-bold text-[#4a9c40]">{idx + 1}</span>
  <span className={`font-semibold truncate ${p.perfil_id === currentUserId ? 'text-primary' : 'text-[#111813] '}`}>
