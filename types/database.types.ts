@@ -512,6 +512,7 @@ export type Database = {
           platform: string
           user_agent: string | null
           user_id: string | null
+          user_nombre: string | null
         }
         Insert: {
           id?: string
@@ -519,6 +520,7 @@ export type Database = {
           platform: string
           user_agent?: string | null
           user_id?: string | null
+          user_nombre?: string | null
         }
         Update: {
           id?: string
@@ -526,6 +528,7 @@ export type Database = {
           platform?: string
           user_agent?: string | null
           user_id?: string | null
+          user_nombre?: string | null
         }
         Relationships: []
       }

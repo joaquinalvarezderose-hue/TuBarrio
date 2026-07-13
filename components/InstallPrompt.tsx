@@ -58,10 +58,21 @@ const InstallPrompt: React.FC = () => {
 
   const trackInstall = async (platform: 'android' | 'ios') => {
     const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
+    let userNombre: string | null = null;
+    if (userId) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('nombre_completo')
+        .eq('id', userId)
+        .single();
+      userNombre = perfil?.nombre_completo ?? null;
+    }
     await supabase.from('pwa_installs').insert({
       platform,
       user_agent: navigator.userAgent,
-      user_id: session?.user?.id ?? null,
+      user_id: userId,
+      user_nombre: userNombre,
     });
   };
 
