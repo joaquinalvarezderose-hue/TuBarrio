@@ -31,9 +31,10 @@ function traducirErrorSupabase(msg: string): string {
 
 interface RegisterProps {
   onComplete: () => void;
+  refresh: () => Promise<void>;
 }
 
-const Register: React.FC<RegisterProps> = ({ onComplete }) => {
+const Register: React.FC<RegisterProps> = ({ onComplete, refresh }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const pendingIntent = (location.state as { intent?: PendingIntent } | null)?.intent;
@@ -153,12 +154,24 @@ const Register: React.FC<RegisterProps> = ({ onComplete }) => {
           }));
         }
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) {
-          console.warn('Auto sign-in tras registro falló:', signInError.message);
-        } else {
-          onComplete();
+        // Si signUp() ya devolvió una sesión activa (confirmación de email desactivada),
+        // NO volver a loguear: signInWithPassword dispara un segundo evento SIGNED_IN que
+        // compite con el primero (creado por el trigger de perfil, con datos incompletos)
+        // y puede hacer que App.tsx redirija a /complete-profile por una carrera de estado.
+        if (!authData?.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            console.warn('Auto sign-in tras registro falló:', signInError.message);
+            setLoading(false);
+            return;
+          }
         }
+
+        // Forzar que el perfil compartido (App.tsx) refleje los datos recién guardados
+        // ANTES de navegar, en vez de depender de que el listener onAuthStateChange
+        // termine de refrescarlo por su cuenta.
+        await refresh();
+        onComplete();
       } else {
         const localUser = { id: `local-${Date.now()}`, email, name };
         localStorage.setItem('app_user', JSON.stringify(localUser));

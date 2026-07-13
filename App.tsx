@@ -72,6 +72,10 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
     if (loading || !authUser) return;
     if (pendingRecovery) return;
     if (location.pathname === '/complete-profile') return;
+    // Register.tsx maneja su propia navegación post-registro (incluyendo un refresh()
+    // explícito del perfil antes de navegar) — evita que este guard dispare una
+    // redirección prematura a /complete-profile mientras el registro sigue en curso.
+    if (location.pathname === '/register') return;
 
     const raw = localStorage.getItem('pending_intent');
     let intent: PendingIntent | undefined;
@@ -108,7 +112,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           {/* Root: Dashboard for everyone (guest mode supported), recovery redirect takes priority */}
           <Route path="/" element={pendingRecovery ? <Navigate to="/reset-password" replace /> : <Dashboard />} />
           <Route path="/welcome" element={!user ? <Welcome /> : <Navigate to="/" replace />} />
-          <Route path="/register" element={<Register onComplete={() => setUser(true)} />} />
+          <Route path="/register" element={<Register onComplete={() => setUser(true)} refresh={refresh} />} />
           <Route path="/login" element={<Login onSuccess={() => setUser(true)} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/complete-profile" element={<CompleteProfile onSaved={refresh} />} />
