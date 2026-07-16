@@ -24,14 +24,12 @@ const DEFAULT_SPONSORS: Sponsor[] = [
     alt: 'Sponsor 2',
     href: 'https://docs.google.com/forms/d/1NhO9Ufc6kVmybhqV1g2I_fD7-VN8xFZHiIutzjOVfZM/viewform',
   },
-];
-
-export const SUSHICLUB_SPONSORS: Sponsor[] = [
   {
     id: 'sushiclub',
     name: 'Sushiclub Maschwitz',
     src: '/images/sponsors/sushiclub.png',
     alt: 'Sushiclub Maschwitz',
+    href: 'https://api.whatsapp.com/send?phone=5491135675912&text=Hola%2C%20qu%C3%A9%20tal%3F%20Quisiera%20hacer%20un%20pedido%2C%20vi%20el%20anuncio%20en%20TuBarrio',
   },
 ];
 
