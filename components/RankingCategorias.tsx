@@ -137,12 +137,10 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             {categorias.length > 0 && (
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Encabezado de tabla */}
-                <div className="grid grid-cols-[3rem_1fr_2.5rem_2.5rem_2.5rem_3rem] items-center px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <div className="grid grid-cols-[3rem_1fr_2.5rem_3rem] items-center px-4 py-3 border-b border-gray-100 bg-gray-50">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">#</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 pl-2">Jugador</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">PJ</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">V</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">D</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#4a9c40] text-center">Pts</span>
                 </div>
 
@@ -159,7 +157,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                     return (
                       <div
                         key={row.perfil_id}
-                        className={`grid grid-cols-[3rem_1fr_2.5rem_2.5rem_2.5rem_3rem] items-center px-4 py-3.5 transition-colors hover:bg-gray-50 ${
+                        className={`grid grid-cols-[3rem_1fr_2.5rem_3rem] items-center px-4 py-3.5 transition-colors hover:bg-gray-50 ${
                           !isLast ? 'border-b border-gray-100' : ''
                         } ${row.posicion === 1 ? 'bg-amber-50/30' : ''}`}
                       >
@@ -188,12 +186,6 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
 
                         {/* PJ */}
                         <span className="text-sm text-gray-500 text-center">{row.partidos_jugados}</span>
-
-                        {/* V */}
-                        <span className="text-sm font-semibold text-[#4a9c40] text-center">{row.victorias}</span>
-
-                        {/* D */}
-                        <span className="text-sm text-gray-400 text-center">{row.derrotas}</span>
 
                         {/* Pts */}
                         <div className="flex justify-center">
