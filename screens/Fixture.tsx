@@ -23,6 +23,7 @@ type FixtureMatch = {
  estado: string;
  resultado: string | null;
  proposalState: string | null;
+ confirmadoAutomaticamente: boolean;
  p1: FixturePlayer;
  p2: FixturePlayer;
  finalScore: {
@@ -65,7 +66,7 @@ const formatGroupName = (groupCode: string): string => {
 };
 
 const getStatusLabel = (match: FixtureMatch) => {
- if (match.estado === 'finalizado' || match.finalScore) return 'FINAL';
+ if (match.estado === 'finalizado' || match.finalScore) return match.confirmadoAutomaticamente ? 'FINAL (AUTO)' : 'FINAL';
  if (match.proposalState === 'discrepancia') return 'EN DISPUTA';
  if (match.proposalState === 'pendiente' || match.estado === 'en_curso') return 'PENDIENTE RIVAL';
  if (match.estado === 'esperando_validacion') return 'ESPERANDO CONFIRM.';
@@ -265,7 +266,7 @@ const Fixture: React.FC = () => {
  // Cargar estado, partidos, jugadores, historial y propuestas en paralelo
  let partidosQ: any = supabase
  .from('partidos')
- .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id')
+ .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, confirmado_automaticamente')
  .eq('torneo_id', parsedTournamentId)
  .is('bracket_tipo', null)
  .order('jornada', { ascending: true });
@@ -400,6 +401,7 @@ const Fixture: React.FC = () => {
  estado: String(row.estado || 'programado'),
  resultado: row.resultado || null,
  proposalState: proposalByMatch[row.id] || null,
+ confirmadoAutomaticamente: Boolean(row.confirmado_automaticamente),
  p1: makePlayer(row.jugador1_id, 'Jugador 1'),
  p2: makePlayer(row.jugador2_id, 'Jugador 2'),
  finalScore,

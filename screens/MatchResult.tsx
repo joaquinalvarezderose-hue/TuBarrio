@@ -35,6 +35,7 @@ type MatchContext = {
  bracket_tipo: string | null;
  stage_name: string | null;
  ronda: number | null;
+ confirmado_automaticamente: boolean;
 };
 
 type ProposalSets = {
@@ -534,13 +535,13 @@ const MatchResult: React.FC = () => {
  // La RLS garantiza que solo usuarios inscriptos en el torneo del partido pueden verlo.
  partidoQuery = supabase
  .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente')
  .eq('id', selectedPartidoId)
  .limit(1);
  } else {
  partidoQuery = supabase
  .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente')
  .eq('torneo_id', tournament.id)
  .eq('categoria', categoria);
 
@@ -563,7 +564,7 @@ const MatchResult: React.FC = () => {
  if (!targetPartido && grupo && !selectedPartidoId) {
  const { data: bracketRows, error: bracketError } = await supabase
  .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente')
  .eq('torneo_id', tournament.id)
  .eq('categoria', categoria)
  .eq('bracket_tipo', 'eliminacion_directa')
@@ -644,6 +645,7 @@ const MatchResult: React.FC = () => {
  bracket_tipo: targetPartido.bracket_tipo || null,
  stage_name: targetPartido.stage_name || null,
  ronda: targetPartido.ronda != null ? Number(targetPartido.ronda) : null,
+ confirmado_automaticamente: Boolean(targetPartido.confirmado_automaticamente),
  });
 
  // Check if the rival has unplayed previous jornadas (out-of-order match situation).
@@ -805,7 +807,7 @@ const MatchResult: React.FC = () => {
  setPartido((prev) => prev ? { ...prev, estado: 'esperando_validacion' } : prev);
  setHasOwnProposal(true);
  setLastSubmittedBy(String(currentUserId));
- setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador.');
+ setSubmitMessage('Resultado enviado. Esperando que tu rival confirme el marcador. Si no responde en 24hs, se confirmara automaticamente.');
  navigate('/tournament-panel', { state: { tournament } });
  } catch (error) {
  console.error('Error enviando el resultado', error);
@@ -971,7 +973,12 @@ const MatchResult: React.FC = () => {
  : `Jornada ${partido?.jornada || 1}`
  }
  </span>
- {!isWaitingValidation && <span className="font-bold uppercase">{partido?.estado || 'sin partido'}</span>}
+ {!isWaitingValidation && (
+ <span className="font-bold uppercase">
+ {partido?.estado || 'sin partido'}
+ {partido?.estado === 'finalizado' && partido?.confirmado_automaticamente ? ' (AUTO)' : ''}
+ </span>
+ )}
  </div>
  <div className="flex items-center justify-between mt-3">
  <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${winnerOrderedIndex === 1 ? 'opacity-40' : ''}`}>
@@ -1253,7 +1260,7 @@ const MatchResult: React.FC = () => {
  <span className="material-symbols-outlined text-sky-500 text-lg flex-shrink-0">schedule</span>
  <div>
  <p className="text-sm font-bold text-sky-800 ">Resultado enviado</p>
- <p className="text-[11px] text-sky-600 mt-0.5">Esperando que tu rival envie su marcador para poder confirmarlo.</p>
+ <p className="text-[11px] text-sky-600 mt-0.5">Esperando que tu rival envie su marcador para poder confirmarlo. Si no responde dentro de las 24hs, se confirmara automaticamente.</p>
  </div>
  </section>
  )}
