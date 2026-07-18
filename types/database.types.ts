@@ -250,6 +250,7 @@ export type Database = {
         Row: {
           bracket_tipo: string | null
           categoria: string | null
+          confirmado_automaticamente: boolean
           confirmado_por: string | null
           created_at: string | null
           estado: string | null
@@ -284,6 +285,7 @@ export type Database = {
         Insert: {
           bracket_tipo?: string | null
           categoria?: string | null
+          confirmado_automaticamente?: boolean
           confirmado_por?: string | null
           created_at?: string | null
           estado?: string | null
@@ -318,6 +320,7 @@ export type Database = {
         Update: {
           bracket_tipo?: string | null
           categoria?: string | null
+          confirmado_automaticamente?: boolean
           confirmado_por?: string | null
           created_at?: string | null
           estado?: string | null
@@ -1177,6 +1180,7 @@ export type Database = {
       torneo_propuestas_partido: {
         Row: {
           categoria: string
+          confirmado_automaticamente: boolean
           created_at: string | null
           debe_confirmar_por: string | null
           estado: string | null
@@ -1203,6 +1207,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string
+          confirmado_automaticamente?: boolean
           created_at?: string | null
           debe_confirmar_por?: string | null
           estado?: string | null
@@ -1229,6 +1234,7 @@ export type Database = {
         }
         Update: {
           categoria?: string
+          confirmado_automaticamente?: boolean
           created_at?: string | null
           debe_confirmar_por?: string | null
           estado?: string | null
@@ -1780,6 +1786,24 @@ export type Database = {
       }
     }
     Functions: {
+      _confirmar_resultado_core: {
+        Args: { p_automatico?: boolean; p_partido_id: string }
+        Returns: string
+      }
+      add_users_to_tournament_group: {
+        Args: {
+          p_grupo: string
+          p_torneo_id: number
+          p_username_22?: string
+          p_username_23?: string
+        }
+        Returns: {
+          message: string
+          participantes_actuales: number
+          partidos_creados: number
+          success: boolean
+        }[]
+      }
       admin_forzar_resultado_partido: {
         Args: {
           p_ganador_id: string
@@ -1793,6 +1817,7 @@ export type Database = {
         Args: { p_motivo?: string; p_partido_id: string }
         Returns: string
       }
+      auto_confirmar_resultados_vencidos: { Args: never; Returns: number }
       calcular_stage_name: {
         Args: { p_ronda: number; p_torneo_id: number }
         Returns: string
