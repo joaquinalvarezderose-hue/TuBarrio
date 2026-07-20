@@ -193,7 +193,7 @@ const Rules: React.FC = () => {
  <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Se pueden anticipar partidos siempre y cuando los jugadores puedan coordinarlo. Los resultados de partidos jugados anticipadamente recién se cargarán según el calendario de cada fecha.
+ Se pueden anticipar partidos siempre y cuando los jugadores puedan coordinarlo. El resultado se puede cargar apenas termine el partido, sin necesidad de esperar a la fecha del calendario.
  </div>
  </details>
 
