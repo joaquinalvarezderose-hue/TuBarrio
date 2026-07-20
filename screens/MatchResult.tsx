@@ -36,6 +36,7 @@ type MatchContext = {
  stage_name: string | null;
  ronda: number | null;
  confirmado_automaticamente: boolean;
+ es_wo: boolean;
 };
 
 type ProposalSets = {
@@ -535,13 +536,13 @@ const MatchResult: React.FC = () => {
  // La RLS garantiza que solo usuarios inscriptos en el torneo del partido pueden verlo.
  partidoQuery = supabase
  .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente, es_wo')
  .eq('id', selectedPartidoId)
  .limit(1);
  } else {
  partidoQuery = supabase
  .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente, es_wo')
  .eq('torneo_id', tournament.id)
  .eq('categoria', categoria);
 
@@ -564,7 +565,7 @@ const MatchResult: React.FC = () => {
  if (!targetPartido && grupo && !selectedPartidoId) {
  const { data: bracketRows, error: bracketError } = await supabase
  .from('partidos')
- .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente')
+ .select('id, jornada, estado, jugador1_id, jugador2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente, es_wo')
  .eq('torneo_id', tournament.id)
  .eq('categoria', categoria)
  .eq('bracket_tipo', 'eliminacion_directa')
@@ -574,26 +575,6 @@ const MatchResult: React.FC = () => {
  .limit(1);
  if (bracketError) throw bracketError;
  targetPartido = Array.isArray(bracketRows) ? bracketRows[0] : null;
- }
-
- // For round-robin matches navigated directly via selectedPartidoId, enforce jornada ordering.
- // Skip the block when the match is already in esperando_validacion — the user may be the
- // designated confirmer and should always be able to reach the confirmation screen.
- if (targetPartido && selectedPartidoId && targetPartido.bracket_tipo !== 'eliminacion_directa'
-     && targetPartido.estado !== 'esperando_validacion') {
- const { data: prevMatches } = await supabase
- .from('partidos')
- .select('id, jornada')
- .eq('torneo_id', tournament.id)
- .eq('categoria', categoria)
- .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
- .neq('estado', 'finalizado')
- .lt('jornada', Number(targetPartido.jornada || 1))
- .limit(1);
- if (prevMatches && prevMatches.length > 0) {
- setBlockReason(`Debes completar la jornada ${prevMatches[0].jornada} antes de cargar este resultado.`);
- return;
- }
  }
 
  if (!targetPartido) {
@@ -646,31 +627,8 @@ const MatchResult: React.FC = () => {
  stage_name: targetPartido.stage_name || null,
  ronda: targetPartido.ronda != null ? Number(targetPartido.ronda) : null,
  confirmado_automaticamente: Boolean(targetPartido.confirmado_automaticamente),
+ es_wo: Boolean(targetPartido.es_wo),
  });
-
- // Check if the rival has unplayed previous jornadas (out-of-order match situation).
- // Block submission — confirmation is not affected since its section ignores blockReason.
- if (targetPartido.bracket_tipo !== 'eliminacion_directa' && Number(targetPartido.jornada) > 1) {
- const rivalId = String(targetPartido.jugador1_id) === String(currentUserId)
- ? String(targetPartido.jugador2_id)
- : String(targetPartido.jugador1_id);
- const { data: rivalPrevMatches } = await supabase
- .from('partidos')
- .select('jornada')
- .eq('torneo_id', tournament.id)
- .eq('categoria', categoria)
- .or(`jugador1_id.eq.${rivalId},jugador2_id.eq.${rivalId}`)
- .neq('estado', 'finalizado')
- .neq('estado', 'esperando_validacion')
- .lt('jornada', Number(targetPartido.jornada))
- .limit(1);
- if (rivalPrevMatches && rivalPrevMatches.length > 0) {
- setBlockReason(
- `Tu rival todavia no cerro la jornada ${rivalPrevMatches[0].jornada}. ` +
- `Podras cargar este resultado cuando tu rival complete su partido pendiente.`
- );
- }
- }
 
  const playerIds = [targetPartido.jugador1_id, targetPartido.jugador2_id].filter(Boolean);
  const [{ data: jugadoresScoped, error: jugadoresScopedError }, { data: perfiles, error: perfilesError }, { data: propuesta }] = await Promise.all([
@@ -975,7 +933,7 @@ const MatchResult: React.FC = () => {
  </span>
  {!isWaitingValidation && (
  <span className="font-bold uppercase">
- {partido?.estado || 'sin partido'}
+ {partido?.es_wo ? 'W.O.' : (partido?.estado || 'sin partido')}
  {partido?.estado === 'finalizado' && partido?.confirmado_automaticamente ? ' (AUTO)' : ''}
  </span>
  )}

@@ -221,6 +221,10 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-xs font-bold text-gray-500">0</span>
                     <span className="text-xs text-gray-500">Derrota 0-2</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-xs font-bold text-amber-700">0</span>
+                    <span className="text-xs text-gray-500">W.O. (jugador designado)</span>
+                  </div>
                 </div>
               </div>
             )}

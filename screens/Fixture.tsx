@@ -24,6 +24,7 @@ type FixtureMatch = {
  resultado: string | null;
  proposalState: string | null;
  confirmadoAutomaticamente: boolean;
+ esWo: boolean;
  p1: FixturePlayer;
  p2: FixturePlayer;
  finalScore: {
@@ -104,15 +105,16 @@ const MatchCard = React.memo<MatchCardProps>(({ match, currentUserId, highlighte
    <div className="flex flex-col gap-3 flex-1">
     <div className="flex items-center justify-between pr-4">
      <span className={`${p1Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>{match.p1.nombre}</span>
-     {isFinal && <span className={`text-lg ${p1Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p1Sets}</span>}
+     {isFinal && !match.esWo && <span className={`text-lg ${p1Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p1Sets}</span>}
     </div>
     <div className="flex items-center justify-between pr-4">
      <span className={`${p2Won ? 'text-[#111813] font-bold' : 'text-[#111813] font-medium'} text-lg`}>{match.p2.nombre}</span>
-     {isFinal && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
+     {isFinal && !match.esWo && <span className={`text-lg ${p2Won ? 'font-black text-[#4a9c40]' : 'font-bold text-[#61896b]'}`}>{p2Sets}</span>}
     </div>
    </div>
    <div className="flex flex-col items-end gap-1">
     {isNext && !isFinal && <span className="bg-primary/20 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">MI PARTIDO</span>}
+    {match.esWo && <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">W.O.</span>}
     <span className="bg-primary/10 text-[#4a9c40] text-[10px] font-bold px-2 py-0.5 rounded-full">{getStatusLabel(match)}</span>
     {userWon && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">GANASTE</span>}
     {userLost && <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">PERDISTE</span>}
@@ -266,7 +268,7 @@ const Fixture: React.FC = () => {
  // Cargar estado, partidos, jugadores, historial y propuestas en paralelo
  let partidosQ: any = supabase
  .from('partidos')
- .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, confirmado_automaticamente')
+ .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, confirmado_automaticamente, es_wo')
  .eq('torneo_id', parsedTournamentId)
  .is('bracket_tipo', null)
  .order('jornada', { ascending: true });
@@ -402,6 +404,7 @@ const Fixture: React.FC = () => {
  resultado: row.resultado || null,
  proposalState: proposalByMatch[row.id] || null,
  confirmadoAutomaticamente: Boolean(row.confirmado_automaticamente),
+ esWo: Boolean(row.es_wo),
  p1: makePlayer(row.jugador1_id, 'Jugador 1'),
  p2: makePlayer(row.jugador2_id, 'Jugador 2'),
  finalScore,

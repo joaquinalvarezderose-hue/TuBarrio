@@ -253,6 +253,7 @@ export type Database = {
           confirmado_automaticamente: boolean
           confirmado_por: string | null
           created_at: string | null
+          es_wo: boolean
           estado: string | null
           estado_coordinacion: string
           external_match_key: string | null
@@ -288,6 +289,7 @@ export type Database = {
           confirmado_automaticamente?: boolean
           confirmado_por?: string | null
           created_at?: string | null
+          es_wo?: boolean
           estado?: string | null
           estado_coordinacion?: string
           external_match_key?: string | null
@@ -323,6 +325,7 @@ export type Database = {
           confirmado_automaticamente?: boolean
           confirmado_por?: string | null
           created_at?: string | null
+          es_wo?: boolean
           estado?: string | null
           estado_coordinacion?: string
           external_match_key?: string | null
@@ -1003,6 +1006,7 @@ export type Database = {
           cargado_en: string | null
           cargado_por_perfil_id: string | null
           categoria: string | null
+          es_wo: boolean
           external_match_key: string | null
           fecha_registro: string | null
           ganador_id: string | null
@@ -1031,6 +1035,7 @@ export type Database = {
           cargado_en?: string | null
           cargado_por_perfil_id?: string | null
           categoria?: string | null
+          es_wo?: boolean
           external_match_key?: string | null
           fecha_registro?: string | null
           ganador_id?: string | null
@@ -1059,6 +1064,7 @@ export type Database = {
           cargado_en?: string | null
           cargado_por_perfil_id?: string | null
           categoria?: string | null
+          es_wo?: boolean
           external_match_key?: string | null
           fecha_registro?: string | null
           ganador_id?: string | null
@@ -1811,6 +1817,10 @@ export type Database = {
           p_partido_id: string
           p_sets_json: Json
         }
+        Returns: string
+      }
+      admin_marcar_wo: {
+        Args: { p_ganador_id: string; p_partido_id: string }
         Returns: string
       }
       admin_resetear_disputa: {

@@ -18,6 +18,7 @@ interface BracketMatch {
  set2_j2: number | null;
  set3_j1: number | null;
  set3_j2: number | null;
+ es_wo: boolean;
  siguiente_partido_id: string | null;
 }
 
@@ -59,6 +60,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  set2_j2,
  set3_j1,
  set3_j2,
+ es_wo,
  siguiente_partido_id
  `)
  .eq('torneo_id', torneo_id)
@@ -344,6 +346,13 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  </div>
 
  {/* Status footer */}
+ {isFinalized && match.es_wo && (
+ <div className="px-4 py-1.5 border-t border-gray-100 bg-amber-50">
+ <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+ W.O.
+ </span>
+ </div>
+ )}
  {!isFinalized && (
  <div className={`px-4 py-1.5 border-t border-gray-100 flex items-center justify-between ${isMyMatch ? 'bg-primary/10' : 'bg-gray-50 '}`}>
  <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">

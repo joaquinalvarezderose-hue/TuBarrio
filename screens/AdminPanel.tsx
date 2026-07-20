@@ -210,6 +210,12 @@ const AdminPanel: React.FC = () => {
             >
               Ir a Torneos
             </button>
+            <button
+              onClick={() => navigate('/admin/partidos')}
+              className="w-full mt-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              Gestionar Partidos (W.O.)
+            </button>
           </div>
 
           {/* Vista Previa */}

@@ -21,6 +21,7 @@ import Domicilio from './screens/Domicilio';
 import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import AdminPanel from './screens/AdminPanel';
+import AdminPartidos from './screens/AdminPartidos';
 import Ayuda from './screens/Ayuda';
 import TermsAndConditions from './screens/TermsAndConditions';
 import CompleteProfile from './screens/CompleteProfile';
@@ -139,6 +140,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           <Route path="/payment" element={user ? <Payment /> : <Navigate to="/login" replace />} />
           <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/partidos" element={user ? <AdminPartidos /> : <Navigate to="/login" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

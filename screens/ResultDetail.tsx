@@ -22,6 +22,7 @@ type HistorialData = {
  ganador_perfil_id: string | null;
  jugador1_id: string;
  jugador2_id: string;
+ esWo: boolean;
 };
 
 const ResultDetail: React.FC = () => {
@@ -48,7 +49,7 @@ const ResultDetail: React.FC = () => {
  const [{ data: historialData, error: historialError }, { data: perfData, error: perfError }] = await Promise.all([
  supabase
  .from('torneo_partidos_historial')
- .select('jugador1_perfil_id, jugador2_perfil_id, sets_json, sets_jugador1, sets_jugador2, ganador_perfil_id')
+ .select('jugador1_perfil_id, jugador2_perfil_id, sets_json, sets_jugador1, sets_jugador2, ganador_perfil_id, es_wo')
  .eq('partido_id', partidoId)
  .maybeSingle(),
  supabase
@@ -75,6 +76,7 @@ const ResultDetail: React.FC = () => {
  ganador_perfil_id: historialData.ganador_perfil_id,
  jugador1_id: historialData.jugador1_perfil_id,
  jugador2_id: historialData.jugador2_perfil_id,
+ esWo: Boolean((historialData as any).es_wo),
  });
  } catch (err) {
  console.error('Error cargando detalle del resultado:', err);
@@ -134,6 +136,12 @@ const ResultDetail: React.FC = () => {
  <div className="text-center space-y-4">
  <h2 className="text-sm font-semibold text-[#61896b] uppercase tracking-wide">Resultado Final</h2>
 
+ {historial.esWo && (
+ <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
+ W.O.
+ </span>
+ )}
+
  <div className="space-y-2">
  <div className="flex items-center justify-between">
  <span
@@ -143,7 +151,7 @@ const ResultDetail: React.FC = () => {
  >
  {historial.jugador1_nombre}
  </span>
- <span className="text-2xl font-black text-[#4a9c40]">{historial.sets_jugador1}</span>
+ {!historial.esWo && <span className="text-2xl font-black text-[#4a9c40]">{historial.sets_jugador1}</span>}
  </div>
 
  <div className="h-px bg-[#dbe6de] " />
@@ -156,7 +164,7 @@ const ResultDetail: React.FC = () => {
  >
  {historial.jugador2_nombre}
  </span>
- <span className="text-2xl font-black text-[#4a9c40]">{historial.sets_jugador2}</span>
+ {!historial.esWo && <span className="text-2xl font-black text-[#4a9c40]">{historial.sets_jugador2}</span>}
  </div>
  </div>
 
