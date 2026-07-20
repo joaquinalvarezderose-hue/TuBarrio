@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
+import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
@@ -186,7 +187,24 @@ const AdminPartidos: React.FC = () => {
     loadPartidos();
   };
 
-  if (loading || !authUser || !perfil) return null;
+  if (loading || !authUser || !perfil) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-100">
+        <div className="bg-white border-b border-slate-200 px-4 py-4 flex items-center gap-3">
+          <Skeleton className="h-6 w-6 rounded-full" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="flex-1 p-6 max-w-4xl mx-auto w-full">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
+            <Skeleton className="h-4 w-40 mb-2" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (perfil.rol !== 'admin') return null;
 
   return (
@@ -262,7 +280,17 @@ const AdminPartidos: React.FC = () => {
             <h3 className="text-sm font-semibold text-slate-600 uppercase mb-3">Partidos</h3>
 
             {loadingPartidos ? (
-              <p className="text-sm text-slate-400">Cargando partidos...</p>
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <Skeleton className="h-4 w-2/3 mb-2" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                    <Skeleton className="h-8 w-24 rounded-lg shrink-0" />
+                  </div>
+                ))}
+              </div>
             ) : partidos.length === 0 ? (
               <p className="text-sm text-slate-400">No hay partidos para este grupo.</p>
             ) : (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { toWhatsAppLink } from '../utils/whatsapp';
+import { Skeleton } from '../components/Skeleton';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -358,8 +359,17 @@ const CoordinarPartido: React.FC = () => {
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 md:px-8 py-5 md:py-8 space-y-4 pb-10">
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-[#13ec49] border-t-transparent rounded-full animate-spin" />
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gray-200" />
+              <Skeleton className="h-4 w-40 mb-4" />
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 21 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+            <Skeleton className="h-12 w-full rounded-lg" />
           </div>
         ) : (
           <>

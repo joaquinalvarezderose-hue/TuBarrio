@@ -59,6 +59,15 @@ type GroupStatusRow = {
  sorteo_realizado: boolean;
 };
 
+type PendingLoadMatch = {
+ id: string;
+ jornada: number;
+ rival_nombre: string;
+ bracket_tipo: string | null;
+ stage_name: string | null;
+ ronda: number | null;
+};
+
 const TournamentPanel: React.FC = () => {
  const navigate = useNavigate();
  const location = useLocation();
@@ -93,6 +102,8 @@ const TournamentPanel: React.FC = () => {
  const [proposalMustConfirmBy, setProposalMustConfirmBy] = useState<string | null>(null);
  const [loadingProposal, setLoadingProposal] = useState(false);
  const [pendingConfirmMatch, setPendingConfirmMatch] = useState<{ id: string; jornada: number } | null>(null);
+ const [pendingLoadMatches, setPendingLoadMatches] = useState<PendingLoadMatch[]>([]);
+ const [showMatchPicker, setShowMatchPicker] = useState(false);
  const [bracketMatchesExist, setBracketMatchesExist] = useState(false);
  const [showRanking, setShowRanking] = useState(false);
  const [userBracketMatchExists, setUserBracketMatchExists] = useState(false);
@@ -280,6 +291,56 @@ const TournamentPanel: React.FC = () => {
  })();
  return () => { cancelled = true; };
  }, [currentUserId, tournament?.id, refreshKey]);
+
+ // Lists every match the user still hasn't submitted a result for (any jornada/ronda),
+ // so "Cargar Resultado" can offer a picker instead of only ever jumping to the oldest one.
+ useEffect(() => {
+ if (previewMode) {
+ setPendingLoadMatches([]);
+ return;
+ }
+ if (!currentUserId || !tournament?.id) return;
+ let cancelled = false;
+ (async () => {
+ try {
+ const { data: rows } = await supabase
+ .from('partidos')
+ .select('id, jornada, jugador1_id, jugador2_id, bracket_tipo, stage_name, ronda')
+ .eq('torneo_id', tournament.id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .in('estado', ['programado', 'en_curso'])
+ .order('jornada', { ascending: true });
+
+ const matches = Array.isArray(rows) ? rows : [];
+ const rivalIds = matches
+ .map((m: any) => (String(m.jugador1_id) === currentUserId ? m.jugador2_id : m.jugador1_id))
+ .filter(Boolean);
+
+ const { data: perfiles } = rivalIds.length > 0
+ ? await supabase.from('perfiles').select('id, nombre_completo').in('id', rivalIds)
+ : { data: [] as any[] };
+
+ const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Rival']));
+
+ if (!cancelled) {
+ setPendingLoadMatches(matches.map((m: any) => {
+ const rivalId = String(m.jugador1_id) === currentUserId ? m.jugador2_id : m.jugador1_id;
+ return {
+ id: String(m.id),
+ jornada: Number(m.jornada || 1),
+ rival_nombre: nameById[rivalId] || 'Rival',
+ bracket_tipo: m.bracket_tipo || null,
+ stage_name: m.stage_name || null,
+ ronda: m.ronda != null ? Number(m.ronda) : null,
+ };
+ }));
+ }
+ } catch {
+ if (!cancelled) setPendingLoadMatches([]);
+ }
+ })();
+ return () => { cancelled = true; };
+ }, [currentUserId, tournament?.id, previewMode, refreshKey]);
 
  useEffect(() => {
  const loadPanelData = async () => {
@@ -933,7 +994,13 @@ const TournamentPanel: React.FC = () => {
 
  {!previewMode && (
  <button
- onClick={() => navigate('/match-result', { state: { tournament } })}
+ onClick={() => {
+ if (pendingLoadMatches.length > 1) {
+ setShowMatchPicker((value) => !value);
+ } else {
+ navigate('/match-result', { state: { tournament, partidoId: pendingLoadMatches[0]?.id } });
+ }
+ }}
  className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
  >
  <div className="size-12 rounded-full flex items-center justify-center transition-colors shadow-md bg-[#4a9c40] text-white group-hover:bg-[#3d8b33]">
@@ -953,6 +1020,33 @@ const TournamentPanel: React.FC = () => {
  <span className="text-sm font-semibold text-center text-[#111813] ">Reglamento y FAQ</span>
  </button>
  </section>
+
+ {showMatchPicker && pendingLoadMatches.length > 1 && (
+ <section className="space-y-2">
+ <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide px-1">Elegí qué partido cargar</h3>
+ <div className="space-y-2">
+ {pendingLoadMatches.map((m) => (
+ <button
+ key={m.id}
+ onClick={() => navigate('/match-result', { state: { tournament, partidoId: m.id } })}
+ className="w-full flex items-center justify-between bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-left active:scale-[0.98] transition-transform"
+ >
+ <div>
+ <p className="text-xs font-bold text-[#4a9c40] uppercase tracking-wide">
+ {m.bracket_tipo === 'eliminacion_directa' && m.stage_name
+ ? m.stage_name
+ : m.bracket_tipo === 'eliminacion_directa' && m.ronda
+ ? `Ronda ${m.ronda}`
+ : `Fecha ${m.jornada}`}
+ </p>
+ <p className="text-sm font-semibold text-[#111813]">vs. {m.rival_nombre}</p>
+ </div>
+ <span className="material-symbols-outlined text-gray-400">chevron_right</span>
+ </button>
+ ))}
+ </div>
+ </section>
+ )}
 
  {/* Card: Ranking General */}
  <div

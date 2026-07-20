@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import { Skeleton } from '../components/Skeleton';
 
 type ResultDetailProps = {
  partidoId: string;
@@ -118,8 +119,37 @@ const ResultDetail: React.FC = () => {
 
  <main className="flex-1 p-4 max-w-3xl mx-auto w-full">
  {loading && (
- <div className="flex items-center justify-center py-8">
- <div className="text-center text-[#61896b]">Cargando...</div>
+ <div className="space-y-6">
+ <div className="bg-white rounded-xl p-6 shadow-sm border border-[#dbe6de]">
+ <div className="text-center space-y-4">
+ <Skeleton className="h-3.5 w-32 mx-auto" />
+ <div className="space-y-3">
+ <div className="flex items-center justify-between">
+ <Skeleton className="h-5 w-28" />
+ <Skeleton className="h-6 w-6" />
+ </div>
+ <div className="h-px bg-[#dbe6de]" />
+ <div className="flex items-center justify-between">
+ <Skeleton className="h-5 w-28" />
+ <Skeleton className="h-6 w-6" />
+ </div>
+ </div>
+ </div>
+ </div>
+ <div className="bg-white rounded-xl p-6 shadow-sm border border-[#dbe6de]">
+ <Skeleton className="h-3.5 w-36 mb-4" />
+ <div className="space-y-3">
+ {Array.from({ length: 3 }).map((_, i) => (
+ <div key={i} className="flex items-center justify-between p-3 bg-[#f5f7f6] rounded-lg">
+ <Skeleton className="h-3.5 w-10" />
+ <div className="flex items-center gap-4">
+ <Skeleton className="h-6 w-8" />
+ <Skeleton className="h-6 w-8" />
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
  </div>
  )}
 

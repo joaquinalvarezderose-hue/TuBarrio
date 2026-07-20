@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
 import { TournamentPreviewScope } from '../types/tournamentPreview';
+import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
@@ -93,10 +94,26 @@ const AdminPanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <p className="text-slate-600 mb-2">Cargando perfil...</p>
-          <p className="text-xs text-slate-400">Espera un momento</p>
+      <div className="flex flex-col min-h-screen bg-gray-100">
+        <div className="bg-white border-b border-slate-200 px-4 py-4 flex items-center gap-3">
+          <Skeleton className="h-6 w-6 rounded-full" />
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-6 w-16 rounded-full ml-auto" />
+        </div>
+        <div className="flex-1 p-6 max-w-4xl mx-auto w-full">
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <Skeleton className="h-6 w-56 mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="border border-slate-200 rounded-lg p-4 space-y-2">
+                  <Skeleton className="h-4 w-32 mb-2" />
+                  <Skeleton className="h-3.5 w-full" />
+                  <Skeleton className="h-3.5 w-2/3" />
+                  <Skeleton className="h-3.5 w-1/2" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );

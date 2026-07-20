@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BracketEngine, BracketTournament, BracketMatch, BracketPlayer } from '../utils/bracketEngine';
 import { supabase } from '../services/supabaseClient';
+import { Skeleton } from '../components/Skeleton';
 
 // JSX types for react-jsx transform
 declare global {
@@ -166,12 +167,24 @@ const BracketView: React.FC<BracketViewProps> = ({ torneo_id, categoria, grupo }
  };
 
  if (loading) {
+ const roundSizes = [4, 2, 1];
  return (
- <div className="flex items-center justify-center h-64">
- <div className="text-center">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
- <p className="text-gray-600 ">Cargando bracket...</p>
+ <div className="flex gap-8 overflow-x-auto p-4">
+ {roundSizes.map((count, roundIdx) => (
+ <div key={roundIdx} className="flex flex-col space-y-4 shrink-0" style={{ width: 180 }}>
+ <Skeleton className="h-5 w-2/3 mx-auto" />
+ <div className="flex flex-col justify-around flex-1 space-y-3">
+ {Array.from({ length: count }).map((_, i) => (
+ <div key={i} className="bg-white rounded-lg border-2 border-gray-100 p-3 space-y-2">
+ <Skeleton className="h-3 w-8" />
+ <Skeleton className="h-5 w-full" />
+ <Skeleton className="h-3 w-6 mx-auto" />
+ <Skeleton className="h-5 w-full" />
  </div>
+ ))}
+ </div>
+ </div>
+ ))}
  </div>
  );
  }

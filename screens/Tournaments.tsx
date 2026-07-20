@@ -5,6 +5,7 @@ import { supabase } from '../services/supabaseClient';
 import Logo from '../components/Logo';
 import RankingCategorias from '../components/RankingCategorias';
 import SponsorBanner from '../components/SponsorBanner';
+import { SkeletonImageCard } from '../components/Skeleton';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -505,9 +506,10 @@ const jugadorIds = (jugadoresData || [])
  )}
 
  {cargandoTorneos && (
- <div className="px-4 md:px-8 py-12 text-center">
- <span className="material-symbols-outlined text-4xl text-gray-300 ">sync</span>
- <p className="text-sm text-gray-400 mt-2">Cargando torneos...</p>
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-8 pt-0">
+ {Array.from({ length: 3 }).map((_, i) => (
+ <SkeletonImageCard key={i} />
+ ))}
  </div>
  )}
 
