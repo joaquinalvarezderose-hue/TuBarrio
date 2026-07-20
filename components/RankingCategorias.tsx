@@ -23,13 +23,6 @@ const POSITION_STYLES: Record<number, { bg: string; text: string; label: string 
   3: { bg: 'bg-orange-100', text: 'text-orange-700', label: '3°' },
 };
 
-function getInitials(nombre: string | null): string {
-  if (!nombre) return '?';
-  const parts = nombre.trim().split(' ');
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return parts[0][0]?.toUpperCase() ?? '?';
-}
-
 const RankingCategorias: React.FC<Props> = ({ onBack }) => {
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
@@ -137,7 +130,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             {categorias.length > 0 && (
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Encabezado de tabla */}
-                <div className="grid grid-cols-[3rem_1fr_2.5rem_3rem] items-center px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <div className="grid grid-cols-[2.5rem_1fr_2.5rem_3rem] items-center px-4 py-3 border-b border-gray-100 bg-gray-50">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">#</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 pl-2">Jugador</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">PJ</span>
@@ -157,7 +150,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                     return (
                       <div
                         key={row.perfil_id}
-                        className={`grid grid-cols-[3rem_1fr_2.5rem_3rem] items-center px-4 py-3.5 transition-colors hover:bg-gray-50 ${
+                        className={`grid grid-cols-[2.5rem_1fr_2.5rem_3rem] items-center px-4 py-3.5 transition-colors hover:bg-gray-50 ${
                           !isLast ? 'border-b border-gray-100' : ''
                         } ${row.posicion === 1 ? 'bg-amber-50/30' : ''}`}
                       >
@@ -173,12 +166,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                         </div>
 
                         {/* Jugador */}
-                        <div className="flex items-center gap-3 pl-2 min-w-0">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#4a9c40]/15 flex items-center justify-center">
-                            <span className="text-xs font-bold text-[#4a9c40]">
-                              {getInitials(row.nombre_completo)}
-                            </span>
-                          </div>
+                        <div className="flex items-center pl-2 min-w-0">
                           <span className="text-sm font-semibold text-[#111813] truncate">
                             {row.nombre_completo ?? 'Jugador'}
                           </span>

@@ -66,12 +66,7 @@ const StandingsRow = React.memo<StandingsRowProps>(({ p, idx, clasificadosPorGru
    </div>
   </td>
   <td className={`px-4 py-4 sticky left-12 z-10 shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)] ${isClassified ? 'bg-emerald-50 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}`}>
-   <div className="flex items-center gap-3">
-    <div className="size-8 rounded-full border-2 border-white shadow-sm bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold uppercase">
-     {String(p.name || 'Jugador').split(' ').filter(Boolean).slice(0, 2).map((chunk: string) => chunk[0]).join('') || 'J'}
-    </div>
-    <span className="text-sm font-semibold">{p.name}</span>
-   </div>
+   <span className="text-sm font-semibold">{p.name}</span>
   </td>
   <td className="px-3 py-4 text-center text-sm">{p.pj}</td>
   <td className="px-3 py-4 text-center text-sm font-bold">{p.pts}</td>
@@ -750,7 +745,7 @@ const Standings: React.FC = () => {
  <thead className="bg-slate-50 ">
  <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
  <th className="px-4 py-3 sticky left-0 z-20 bg-slate-50 w-12 text-center">Pos</th>
- <th className="px-4 py-3 sticky left-12 z-20 bg-slate-50 min-w-[160px] shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)]">Jugador</th>
+ <th className="px-4 py-3 sticky left-12 z-20 bg-slate-50 min-w-[220px] shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)]">Jugador</th>
  <th className="px-3 py-3 text-center">PJ</th>
  <th className="px-3 py-3 text-center">Pts</th>
  <th className="px-3 py-3 text-center" title="Sets ganados − sets perdidos">Dif.S</th>
