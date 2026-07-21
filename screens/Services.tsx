@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useServicios, ServicioConStats } from '../hooks/useServicios';
 import { useRequireAuth } from '../hooks/useRequireAuth';
 
-// Cambiá esto a true cuando el directorio tenga suficientes proveedores
-const DIRECTORIO_ACTIVO = false;
-
-const CATEGORIAS = ['Todos', 'Plomería', 'Electricidad', 'Pintura', 'Jardinería', 'Tutorías', 'Otros'];
+const CATEGORIAS = ['Todos', 'Plomería', 'Electricidad', 'Gasista', 'Pintura', 'Jardinería', 'Tutorías', 'Deportes', 'Servicios Digitales', 'Otros'];
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -194,44 +191,6 @@ const Services: React.FC = () => {
   const hayBusqueda = busqueda.trim().length > 0;
 
   const handleRecomendar = () => navigate('/recomendar-profesional');
-
-  if (!DIRECTORIO_ACTIVO) {
-    return (
-      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto no-scrollbar">
-        <header className="fixed top-0 w-full z-50 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 relative flex items-center px-5 h-16">
-          <button
-            onClick={() => navigate(-1)}
-            className="absolute left-5 hover:opacity-80 transition-opacity active:scale-95 text-secondary"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <h1 className="w-full text-center font-display font-bold text-base text-secondary">
-            Directorio de Servicios
-          </h1>
-        </header>
-        <main className="min-h-full flex flex-col items-center justify-center px-8 text-center pt-16 pb-28">
-          <span
-            className="material-symbols-outlined text-7xl text-primary mb-6"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            groups
-          </span>
-          <h2 className="font-display font-black text-xl text-secondary mb-3 max-w-[300px]">
-            Estamos armando la red de profesionales del barrio
-          </h2>
-          <p className="text-sm text-gray-500 mb-8 max-w-[280px] leading-relaxed">
-            Cada recomendación nos acerca a un directorio de confianza. ¿Conocés a alguien que merezca estar acá?
-          </p>
-          <button
-            onClick={handleRecomendar}
-            className="px-8 py-3.5 bg-primary text-secondary font-bold text-sm rounded-xl shadow-sm hover:opacity-90 transition-all active:scale-95"
-          >
-            Recomendar un profesional
-          </button>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-y-auto no-scrollbar">
