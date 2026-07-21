@@ -253,6 +253,9 @@ export type Database = {
           confirmado_automaticamente: boolean
           confirmado_por: string | null
           created_at: string | null
+          equipo_ganador_id: string | null
+          equipo1_id: string | null
+          equipo2_id: string | null
           es_wo: boolean
           estado: string | null
           estado_coordinacion: string
@@ -289,6 +292,9 @@ export type Database = {
           confirmado_automaticamente?: boolean
           confirmado_por?: string | null
           created_at?: string | null
+          equipo_ganador_id?: string | null
+          equipo1_id?: string | null
+          equipo2_id?: string | null
           es_wo?: boolean
           estado?: string | null
           estado_coordinacion?: string
@@ -325,6 +331,9 @@ export type Database = {
           confirmado_automaticamente?: boolean
           confirmado_por?: string | null
           created_at?: string | null
+          equipo_ganador_id?: string | null
+          equipo1_id?: string | null
+          equipo2_id?: string | null
           es_wo?: boolean
           estado?: string | null
           estado_coordinacion?: string
@@ -382,6 +391,27 @@ export type Database = {
             columns: ["confirmado_por"]
             isOneToOne: false
             referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partidos_equipo_ganador_id_fkey"
+            columns: ["equipo_ganador_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partidos_equipo1_id_fkey"
+            columns: ["equipo1_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partidos_equipo2_id_fkey"
+            columns: ["equipo2_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
             referencedColumns: ["id"]
           },
           {
@@ -689,6 +719,7 @@ export type Database = {
           max_participantes_por_grupo: number | null
           max_participantes_total: number | null
           min_participantes_por_grupo: number | null
+          modalidad: string
           numero_grupos: number | null
           pendientes_revision: number
           torneo_id: number
@@ -710,6 +741,7 @@ export type Database = {
           max_participantes_por_grupo?: number | null
           max_participantes_total?: number | null
           min_participantes_por_grupo?: number | null
+          modalidad?: string
           numero_grupos?: number | null
           pendientes_revision?: number
           torneo_id: number
@@ -731,6 +763,7 @@ export type Database = {
           max_participantes_por_grupo?: number | null
           max_participantes_total?: number | null
           min_participantes_por_grupo?: number | null
+          modalidad?: string
           numero_grupos?: number | null
           pendientes_revision?: number
           torneo_id?: number
@@ -762,6 +795,118 @@ export type Database = {
             foreignKeyName: "torneo_configuracion_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: true
+            referencedRelation: "v_admin_llaves_playoffs"
+            referencedColumns: ["torneo_id"]
+          },
+        ]
+      }
+      torneo_equipos: {
+        Row: {
+          categoria: string
+          creado_por: string | null
+          created_at: string
+          grupo: string | null
+          id: string
+          jugador1_id: string
+          jugador2_id: string
+          partidos_jugados: number
+          puntos: number
+          sets_ganados: number
+          sets_perdidos: number
+          torneo_id: number
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          creado_por?: string | null
+          created_at?: string
+          grupo?: string | null
+          id?: string
+          jugador1_id: string
+          jugador2_id: string
+          partidos_jugados?: number
+          puntos?: number
+          sets_ganados?: number
+          sets_perdidos?: number
+          torneo_id: number
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          creado_por?: string | null
+          created_at?: string
+          grupo?: string | null
+          id?: string
+          jugador1_id?: string
+          jugador2_id?: string
+          partidos_jugados?: number
+          puntos?: number
+          sets_ganados?: number
+          sets_perdidos?: number
+          torneo_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "torneo_equipos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_jugador1_id_fkey"
+            columns: ["jugador1_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_jugador1_id_fkey"
+            columns: ["jugador1_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_jugador2_id_fkey"
+            columns: ["jugador2_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_jugador2_id_fkey"
+            columns: ["jugador2_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: false
+            referencedRelation: "torneos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_grupos_posiciones"
+            referencedColumns: ["torneo_id"]
+          },
+          {
+            foreignKeyName: "torneo_equipos_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: false
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -1006,6 +1151,9 @@ export type Database = {
           cargado_en: string | null
           cargado_por_perfil_id: string | null
           categoria: string | null
+          equipo_ganador_id: string | null
+          equipo1_id: string | null
+          equipo2_id: string | null
           es_wo: boolean
           external_match_key: string | null
           fecha_registro: string | null
@@ -1035,6 +1183,9 @@ export type Database = {
           cargado_en?: string | null
           cargado_por_perfil_id?: string | null
           categoria?: string | null
+          equipo_ganador_id?: string | null
+          equipo1_id?: string | null
+          equipo2_id?: string | null
           es_wo?: boolean
           external_match_key?: string | null
           fecha_registro?: string | null
@@ -1064,6 +1215,9 @@ export type Database = {
           cargado_en?: string | null
           cargado_por_perfil_id?: string | null
           categoria?: string | null
+          equipo_ganador_id?: string | null
+          equipo1_id?: string | null
+          equipo2_id?: string | null
           es_wo?: boolean
           external_match_key?: string | null
           fecha_registro?: string | null
@@ -1090,6 +1244,27 @@ export type Database = {
           torneo_titulo?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "torneo_partidos_historial_equipo_ganador_id_fkey"
+            columns: ["equipo_ganador_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_partidos_historial_equipo1_id_fkey"
+            columns: ["equipo1_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_partidos_historial_equipo2_id_fkey"
+            columns: ["equipo2_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "torneo_partidos_historial_ganador_id_fkey"
             columns: ["ganador_id"]
@@ -1188,7 +1363,10 @@ export type Database = {
           categoria: string
           confirmado_automaticamente: boolean
           created_at: string | null
+          debe_confirmar_equipo_id: string | null
           debe_confirmar_por: string | null
+          equipo1_id: string | null
+          equipo2_id: string | null
           estado: string | null
           fecha_propuesta: string
           fecha_respuesta: string | null
@@ -1215,7 +1393,10 @@ export type Database = {
           categoria?: string
           confirmado_automaticamente?: boolean
           created_at?: string | null
+          debe_confirmar_equipo_id?: string | null
           debe_confirmar_por?: string | null
+          equipo1_id?: string | null
+          equipo2_id?: string | null
           estado?: string | null
           fecha_propuesta: string
           fecha_respuesta?: string | null
@@ -1242,7 +1423,10 @@ export type Database = {
           categoria?: string
           confirmado_automaticamente?: boolean
           created_at?: string | null
+          debe_confirmar_equipo_id?: string | null
           debe_confirmar_por?: string | null
+          equipo1_id?: string | null
+          equipo2_id?: string | null
           estado?: string | null
           fecha_propuesta?: string
           fecha_respuesta?: string | null
@@ -1267,6 +1451,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "torneo_propuestas_partido_debe_confirmar_equipo_id_fkey"
+            columns: ["debe_confirmar_equipo_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "torneo_propuestas_partido_debe_confirmar_por_fkey"
             columns: ["debe_confirmar_por"]
             isOneToOne: false
@@ -1278,6 +1469,20 @@ export type Database = {
             columns: ["debe_confirmar_por"]
             isOneToOne: false
             referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_propuestas_partido_equipo1_id_fkey"
+            columns: ["equipo1_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_propuestas_partido_equipo2_id_fkey"
+            columns: ["equipo2_id"]
+            isOneToOne: false
+            referencedRelation: "torneo_equipos"
             referencedColumns: ["id"]
           },
           {
@@ -1796,6 +2001,10 @@ export type Database = {
         Args: { p_automatico?: boolean; p_partido_id: string }
         Returns: string
       }
+      _confirmar_resultado_equipo_core: {
+        Args: { p_automatico?: boolean; p_partido_id: string }
+        Returns: string
+      }
       add_users_to_tournament_group: {
         Args: {
           p_grupo: string
@@ -1823,9 +2032,17 @@ export type Database = {
         Args: { p_ganador_id: string; p_partido_id: string }
         Returns: string
       }
+      admin_marcar_wo_equipo: {
+        Args: { p_equipo_ganador_id: string; p_partido_id: string }
+        Returns: string
+      }
       admin_resetear_disputa: {
         Args: { p_motivo?: string; p_partido_id: string }
         Returns: string
+      }
+      auto_confirmar_resultados_equipos_vencidos: {
+        Args: never
+        Returns: number
       }
       auto_confirmar_resultados_vencidos: { Args: never; Returns: number }
       calcular_stage_name: {
@@ -1840,6 +2057,15 @@ export type Database = {
         Args: { p_horario: string; p_partido_id: string }
         Returns: Json
       }
+      crear_equipo_dobles: {
+        Args: {
+          p_categoria: string
+          p_jugador1_id: string
+          p_jugador2_id: string
+          p_torneo_id: number
+        }
+        Returns: string
+      }
       debug_stage_names: {
         Args: { p_torneo_id: number }
         Returns: {
@@ -1850,6 +2076,7 @@ export type Database = {
           stage_name_calculado: string
         }[]
       }
+      eliminar_equipo_dobles: { Args: { p_equipo_id: string }; Returns: string }
       enviar_resultado_seguro: {
         Args: {
           p_partido_id: string
@@ -1863,13 +2090,48 @@ export type Database = {
         }
         Returns: string
       }
+      enviar_resultado_seguro_equipo: {
+        Args: {
+          p_partido_id: string
+          p_set1_j1: number
+          p_set1_j2: number
+          p_set2_j1: number
+          p_set2_j2: number
+          p_set3_j1: number
+          p_set3_j2: number
+          p_user_id: string
+        }
+        Returns: string
+      }
+      equipo_clasifica_en_fase_grupos: {
+        Args: { p_categoria: string; p_equipo_id: string; p_torneo_id: number }
+        Returns: boolean
+      }
       generar_fixture_round_robin_grupo: {
+        Args: { p_categoria: string; p_grupo: string; p_torneo_id: number }
+        Returns: number
+      }
+      generar_fixture_round_robin_grupo_equipos: {
         Args: { p_categoria: string; p_grupo: string; p_torneo_id: number }
         Returns: number
       }
       generar_playoffs_al_finalizar_grupos: {
         Args: { p_categoria?: string; p_grupo?: string; p_torneo_id: number }
         Returns: undefined
+      }
+      generar_playoffs_eliminacion_directa_equipos_torneo: {
+        Args: {
+          p_categoria?: string
+          p_grupo_base?: string
+          p_torneo_id: number
+        }
+        Returns: {
+          clasificados_totales: number
+          grupo_playoffs: string
+          grupos_fuente: number
+          out_categoria: string
+          partidos_creados: number
+        }[]
       }
       generar_playoffs_eliminacion_directa_torneo: {
         Args: {
@@ -1926,6 +2188,10 @@ export type Database = {
         Args: { p_perfil_id: string }
         Returns: Json
       }
+      obtener_estado_equipo_torneo: {
+        Args: { p_perfil_id: string; p_torneo_id: number }
+        Returns: Json
+      }
       obtener_estado_jugador_torneo: {
         Args: { p_perfil_id: string; p_torneo_id: number }
         Returns: Json
@@ -1977,6 +2243,21 @@ export type Database = {
         Returns: string
       }
       set_coordinacion_manual: { Args: { p_partido_id: string }; Returns: Json }
+      sortear_grupos_y_fixture_equipos_torneo: {
+        Args: {
+          p_categoria?: string
+          p_grupo_base?: string
+          p_torneo_id: number
+        }
+        Returns: {
+          categoria: string
+          equipos_sorteados: number
+          grupo_base: string
+          grupos_creados: number
+          max_participantes_por_grupo: number
+          partidos_creados: number
+        }[]
+      }
       sortear_grupos_y_fixture_torneo: {
         Args: {
           p_categoria?: string
@@ -2006,6 +2287,10 @@ export type Database = {
         Returns: string
       }
       validar_resultado_seguro: {
+        Args: { p_accion: string; p_partido_id: string; p_user_id: string }
+        Returns: string
+      }
+      validar_resultado_seguro_equipo: {
         Args: { p_accion: string; p_partido_id: string; p_user_id: string }
         Returns: string
       }

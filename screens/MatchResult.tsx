@@ -25,6 +25,8 @@ type MatchContext = {
  estado: string;
  jugador1_id: string;
  jugador2_id: string;
+ equipo1_id: string | null;
+ equipo2_id: string | null;
  resultado: string | null;
  set1_j1: number | null;
  set1_j2: number | null;
@@ -61,6 +63,7 @@ type ProposalData = {
  sets_json_j2: Json | null;
  ultimo_cargado_por: string | null;
  debe_confirmar_por: string | null;
+ debe_confirmar_equipo_id: string | null;
 };
 
 type TournamentStats = {
@@ -76,6 +79,26 @@ const emptyScores: ScoreState = {
  set1: { player1: 0, player2: 0 },
  set2: { player1: 0, player2: 0 },
  set3: { player1: 0, player2: 0 },
+};
+
+// Para nombres de pareja de dobles ("Juan / Ana") usa la inicial de cada integrante;
+// para un nombre individual, mantiene el comportamiento previo (2 primeras iniciales).
+const getCardInitials = (name: string): string => {
+ const raw = String(name || 'Jugador');
+ if (raw.includes('/')) {
+ return raw
+ .split('/')
+ .map((part) => part.trim()[0] || '')
+ .filter(Boolean)
+ .slice(0, 2)
+ .join('') || 'J';
+ }
+ return raw
+ .split(' ')
+ .filter(Boolean)
+ .slice(0, 2)
+ .map((chunk) => chunk[0])
+ .join('') || 'J';
 };
 
 const parseProposalSets = (raw: unknown): ProposalSets | null => {
@@ -118,6 +141,9 @@ const MatchResult: React.FC = () => {
  const [hasOwnProposal, setHasOwnProposal] = useState(false);
  const [lastSubmittedBy, setLastSubmittedBy] = useState<string | null>(null);
  const [mustConfirmBy, setMustConfirmBy] = useState<string | null>(null);
+ const [modalidad, setModalidad] = useState<'singles' | 'dobles'>('singles');
+ const [myEquipoId, setMyEquipoId] = useState<string | null>(null);
+ const [mustConfirmEquipoId, setMustConfirmEquipoId] = useState<string | null>(null);
  const [enrolledCount, setEnrolledCount] = useState(0);
  const [blockReason, setBlockReason] = useState<string | null>(null);
  const [tournamentStatus, setTournamentStatus] = useState<string>('RECRUITING');
@@ -170,35 +196,48 @@ const MatchResult: React.FC = () => {
  return null;
  }, [set1Winner, set2Winner, scores.set3, isMatchFinishedByTwoSets, isDrawInSets]);
 
+ // En dobles, la "identidad" para determinar de que lado (jugador1/jugador2)
+ // esta el usuario es su equipo, no su perfil_id individual.
+ const myScopeId = modalidad === 'dobles' ? myEquipoId : currentUserId;
+
  const isParticipant = useMemo(() => {
- if (!currentUserId || !partido) return false;
+ if (!partido) return false;
+ if (modalidad === 'dobles') {
+ if (!myEquipoId) return false;
+ const eid = myEquipoId.toLowerCase();
+ return [partido.equipo1_id, partido.equipo2_id]
+ .filter(Boolean)
+ .map((id) => String(id).toLowerCase())
+ .includes(eid);
+ }
+ if (!currentUserId) return false;
  const uid = currentUserId.toLowerCase();
  return [partido.jugador1_id, partido.jugador2_id]
  .filter(Boolean)
  .map((id) => String(id).toLowerCase())
  .includes(uid);
- }, [currentUserId, partido]);
+ }, [currentUserId, myEquipoId, modalidad, partido]);
 
  // Helper to order players: current user first, then opponent
  // This ensures the current user is always on the left/top in UI
  const orderedPlayers = useMemo(() => {
- if (!currentUserId || !players[0]?.perfil_id || !players[1]?.perfil_id) {
+ if (!myScopeId || !players[0]?.perfil_id || !players[1]?.perfil_id) {
  return players; // Default order if we can't determine
  }
  // Check if current user is player 1
- const isUserPlayer1 = String(players[0].perfil_id).toLowerCase() === String(currentUserId).toLowerCase();
+ const isUserPlayer1 = String(players[0].perfil_id).toLowerCase() === String(myScopeId).toLowerCase();
  if (isUserPlayer1) {
  return [players[0], players[1]]; // Current user is already first
  }
  // Current user is player 2, swap order
  return [players[1], players[0]];
- }, [currentUserId, players]);
+ }, [myScopeId, players]);
 
  // Determine if current user is player 1 (for score mapping)
  const isCurrentUserPlayer1 = useMemo(() => {
- if (!currentUserId || !players[0]?.perfil_id) return true; // Default
- return String(players[0].perfil_id).toLowerCase() === String(currentUserId).toLowerCase();
- }, [currentUserId, players]);
+ if (!myScopeId || !players[0]?.perfil_id) return true; // Default
+ return String(players[0].perfil_id).toLowerCase() === String(myScopeId).toLowerCase();
+ }, [myScopeId, players]);
 
  // Map match winner (1 or 2 referring to original players) to orderedPlayers index (0 or 1)
  // If user is player 1 and matchWinner is 1 -> winner is at orderedPlayers[0]
@@ -213,11 +252,15 @@ const MatchResult: React.FC = () => {
  return matchWinner === 1 ? 1 : 0;
  }
  }, [matchWinner, isCurrentUserPlayer1]);
- // mustConfirmBy comes from the DB and is the canonical authority on who must confirm a result.
+ // mustConfirmBy/mustConfirmEquipoId vienen de la DB y son la autoridad canonica sobre quien debe confirmar.
  const isMustConfirm = useMemo(() => {
+ if (modalidad === 'dobles') {
+ if (!mustConfirmEquipoId || !myEquipoId) return false;
+ return String(mustConfirmEquipoId).toLowerCase() === String(myEquipoId).toLowerCase();
+ }
  if (!mustConfirmBy || !currentUserId) return false;
  return String(mustConfirmBy).toLowerCase() === String(currentUserId).toLowerCase();
- }, [mustConfirmBy, currentUserId]);
+ }, [mustConfirmBy, mustConfirmEquipoId, myEquipoId, currentUserId, modalidad]);
  const isWaitingValidation = partido?.estado === 'esperando_validacion';
  const isScoreInputLocked = useMemo(() => isWaitingValidation || isSubmitting || loadingMatch || !isParticipant, [isWaitingValidation, isSubmitting, loadingMatch, isParticipant]);
  const canConfirm = useMemo(() => matchWinner !== null && Boolean(partido?.id) && isParticipant && !blockReason && !isWaitingValidation, [matchWinner, partido?.id, isParticipant, blockReason, isWaitingValidation]);
@@ -362,6 +405,225 @@ const MatchResult: React.FC = () => {
  }, []);
 
  useEffect(() => {
+ // Carga de contexto para torneos de DOBLES: espejo de loadMatchContext (singles),
+ // resolviendo scope/partido/propuesta via torneo_equipos en vez de torneo_jugadores.
+ const loadMatchContextDobles = async () => {
+ const { data: equipoRows } = await supabase
+ .from('torneo_equipos')
+ .select('id, categoria, grupo')
+ .eq('torneo_id', tournament.id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .limit(1);
+
+ const equipoRow = Array.isArray(equipoRows) ? equipoRows[0] : null;
+ if (!equipoRow?.id) {
+ setPartido(null);
+ setBlockReason('No tenés un equipo de dobles formado en este torneo todavía. Consultá con el organizador.');
+ return;
+ }
+
+ const myEquipoIdLocal = String(equipoRow.id);
+ setMyEquipoId(myEquipoIdLocal);
+
+ const categoria = String(equipoRow.categoria || tournament.subtitle || 'General');
+ const grupo = equipoRow.grupo ? String(equipoRow.grupo) : null;
+
+ let statusQuery: any = supabase
+ .from('torneo_estado')
+ .select('estado, categoria, grupo')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria);
+ if (grupo) statusQuery = statusQuery.eq('grupo', grupo);
+
+ const { data: statusRows, error: statusError } = await statusQuery.limit(1);
+ const statusRow = Array.isArray(statusRows) ? statusRows[0] : null;
+ if (statusError) throw statusError;
+
+ const normalizedStatus = String(statusRow?.estado || 'RECRUITING').trim().toUpperCase();
+ setTournamentStatus(normalizedStatus);
+
+ if (normalizedStatus === 'FINALIZADO') {
+ const { data: playoffsStatusRows } = await supabase
+ .from('torneo_estado')
+ .select('estado, grupo')
+ .eq('torneo_id', tournament.id)
+ .neq('estado', 'FINALIZADO')
+ .like('grupo', '%_PLAYOFFS')
+ .limit(1);
+
+ const playoffsActive = playoffsStatusRows && playoffsStatusRows.length > 0;
+ if (!playoffsActive) {
+ setPartido(null);
+ setBlockReason('Este torneo ya finalizo. La carga de resultados esta cerrada y disponible solo para consulta.');
+ return;
+ }
+ const playoffsStatus = String(playoffsStatusRows![0].estado || 'LOCKED').trim().toUpperCase();
+ setTournamentStatus(playoffsStatus);
+ }
+
+ let equiposCategoriaQuery: any = supabase
+ .from('torneo_equipos')
+ .select('id')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria);
+ if (grupo) equiposCategoriaQuery = equiposCategoriaQuery.eq('grupo', grupo);
+
+ const { data: equiposCategoria, error: equiposCategoriaError } = await equiposCategoriaQuery;
+ if (equiposCategoriaError) throw equiposCategoriaError;
+ const equiposCount = (equiposCategoria || []).length;
+ setEnrolledCount(equiposCount);
+
+ if (equiposCount < 2) {
+ setPartido(null);
+ setSubmitError(null);
+ setBlockReason(`Aun no se puede cargar resultados: hay ${equiposCount} pareja(s) inscripta(s) y se necesitan al menos 2.`);
+ return;
+ }
+
+ const partidoColumns = 'id, jornada, estado, equipo1_id, equipo2_id, resultado, set1_j1, set1_j2, set2_j1, set2_j2, set3_j1, set3_j2, bracket_tipo, stage_name, ronda, confirmado_automaticamente, es_wo';
+ let partidoQuery: any;
+
+ if (selectedPartidoId) {
+ partidoQuery = supabase.from('partidos').select(partidoColumns).eq('id', selectedPartidoId).limit(1);
+ } else {
+ partidoQuery = supabase.from('partidos').select(partidoColumns)
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria);
+ if (grupo) partidoQuery = partidoQuery.eq('grupo', grupo);
+ partidoQuery = partidoQuery
+ .or(`equipo1_id.eq.${myEquipoIdLocal},equipo2_id.eq.${myEquipoIdLocal}`)
+ .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
+ .order('jornada', { ascending: true })
+ .limit(1);
+ }
+
+ const { data: partidoRows, error: partidoError } = await partidoQuery;
+ if (partidoError) throw partidoError;
+ let targetPartido = Array.isArray(partidoRows) ? partidoRows[0] : null;
+
+ if (!targetPartido && grupo && !selectedPartidoId) {
+ const { data: bracketRows, error: bracketError } = await supabase
+ .from('partidos')
+ .select(partidoColumns)
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', categoria)
+ .eq('bracket_tipo', 'eliminacion_directa')
+ .or(`equipo1_id.eq.${myEquipoIdLocal},equipo2_id.eq.${myEquipoIdLocal}`)
+ .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
+ .order('jornada', { ascending: true })
+ .limit(1);
+ if (bracketError) throw bracketError;
+ targetPartido = Array.isArray(bracketRows) ? bracketRows[0] : null;
+ }
+
+ if (!targetPartido) {
+ setSubmitError(null);
+ if (sessionExpired) return;
+
+ const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
+ supabase
+ .from('partidos')
+ .select('id', { count: 'exact', head: true })
+ .eq('torneo_id', tournament.id)
+ .eq('bracket_tipo', 'eliminacion_directa'),
+ supabase
+ .from('partidos')
+ .select('id', { count: 'exact', head: true })
+ .eq('torneo_id', tournament.id)
+ .eq('bracket_tipo', 'eliminacion_directa')
+ .or(`equipo1_id.eq.${myEquipoIdLocal},equipo2_id.eq.${myEquipoIdLocal}`),
+ ]);
+ if ((bracketCount ?? 0) > 0 && (userBracketCount ?? 0) === 0) {
+ setPlayoffsActiveNoMatch(true);
+ } else {
+ setBlockReason('Todavia no hay un partido generado para esta jornada.');
+ }
+ return;
+ }
+
+ setPartido({
+ id: String(targetPartido.id),
+ jornada: Number(targetPartido.jornada || 1),
+ estado: String(targetPartido.estado || 'programado'),
+ jugador1_id: '',
+ jugador2_id: '',
+ equipo1_id: targetPartido.equipo1_id ? String(targetPartido.equipo1_id) : null,
+ equipo2_id: targetPartido.equipo2_id ? String(targetPartido.equipo2_id) : null,
+ resultado: targetPartido.resultado || null,
+ set1_j1: targetPartido.set1_j1 != null ? Number(targetPartido.set1_j1) : null,
+ set1_j2: targetPartido.set1_j2 != null ? Number(targetPartido.set1_j2) : null,
+ set2_j1: targetPartido.set2_j1 != null ? Number(targetPartido.set2_j1) : null,
+ set2_j2: targetPartido.set2_j2 != null ? Number(targetPartido.set2_j2) : null,
+ set3_j1: targetPartido.set3_j1 != null ? Number(targetPartido.set3_j1) : null,
+ set3_j2: targetPartido.set3_j2 != null ? Number(targetPartido.set3_j2) : null,
+ bracket_tipo: targetPartido.bracket_tipo || null,
+ stage_name: targetPartido.stage_name || null,
+ ronda: targetPartido.ronda != null ? Number(targetPartido.ronda) : null,
+ confirmado_automaticamente: Boolean(targetPartido.confirmado_automaticamente),
+ es_wo: Boolean(targetPartido.es_wo),
+ });
+
+ const equipoIds = [targetPartido.equipo1_id, targetPartido.equipo2_id].filter(Boolean);
+ const { data: equiposPartido, error: equiposPartidoError } = await supabase
+ .from('torneo_equipos')
+ .select('id, jugador1_id, jugador2_id, puntos, partidos_jugados, sets_ganados')
+ .in('id', equipoIds.length > 0 ? equipoIds : ['00000000-0000-0000-0000-000000000000']);
+ if (equiposPartidoError) throw equiposPartidoError;
+
+ const equipoById = Object.fromEntries((equiposPartido || []).map((row: any) => [row.id, row]));
+ const allJugadorIds = (equiposPartido || []).flatMap((row: any) => [row.jugador1_id, row.jugador2_id]).filter(Boolean);
+
+ const { data: perfilesEquipos, error: perfilesEquiposError } = await supabase
+ .from('perfiles')
+ .select('id, nombre_completo')
+ .in('id', allJugadorIds.length > 0 ? allJugadorIds : ['00000000-0000-0000-0000-000000000000']);
+ if (perfilesEquiposError) throw perfilesEquiposError;
+ const nameById = Object.fromEntries((perfilesEquipos || []).map((row: any) => [row.id, row.nombre_completo || 'Jugador']));
+
+ const buildEquipoCard = (equipoId: string | null, fallback: string): PlayerCard => {
+ const equipo: any = equipoId ? equipoById[equipoId] : null;
+ const nombre1 = equipo ? (nameById[equipo.jugador1_id] || 'Jugador') : null;
+ const nombre2 = equipo ? (nameById[equipo.jugador2_id] || 'Jugador') : null;
+ return {
+ id: equipoId || '',
+ perfil_id: equipoId || '',
+ name: equipo ? `${nombre1} / ${nombre2}` : fallback,
+ puntos: Number(equipo?.puntos || 0),
+ partidos_jugados: Number(equipo?.partidos_jugados || 0),
+ sets_ganados: Number(equipo?.sets_ganados || 0),
+ };
+ };
+
+ setPlayers([
+ buildEquipoCard(targetPartido.equipo1_id ? String(targetPartido.equipo1_id) : null, 'Pareja 1'),
+ buildEquipoCard(targetPartido.equipo2_id ? String(targetPartido.equipo2_id) : null, 'Pareja 2'),
+ ]);
+
+ const { data: propuesta } = await supabase
+ .from('torneo_propuestas_partido')
+ .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por, debe_confirmar_equipo_id')
+ .eq('partido_id', targetPartido.id)
+ .maybeSingle();
+
+ if (propuesta) {
+ setProposalState(propuesta.estado || 'idle');
+ setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
+ setMustConfirmEquipoId(propuesta.debe_confirmar_equipo_id ? String(propuesta.debe_confirmar_equipo_id) : null);
+
+ const submittedByCurrentUser = String(propuesta.ultimo_cargado_por || '').toLowerCase() === String(currentUserId).toLowerCase();
+ setHasOwnProposal(submittedByCurrentUser);
+
+ const myLado1 = String(targetPartido.equipo1_id || '') === myEquipoIdLocal;
+ const ownSetsRaw = submittedByCurrentUser ? (myLado1 ? propuesta.sets_json_j1 : propuesta.sets_json_j2) : null;
+ const rivalSetsRaw = myLado1 ? propuesta.sets_json_j2 : propuesta.sets_json_j1;
+
+ const ownSets = parseProposalSets(ownSetsRaw);
+ const rivalSets = parseProposalSets(rivalSetsRaw);
+ if (ownSets) setScores(ownSets);
+ if (rivalSets) setRivalProposalScores(rivalSets);
+ }
+ };
+
  const loadMatchContext = async () => {
  // Don't load until we have a valid currentUserId from Supabase auth
  if (!currentUserId) {
@@ -376,10 +638,30 @@ const MatchResult: React.FC = () => {
  setHasOwnProposal(false);
  setLastSubmittedBy(null);
  setMustConfirmBy(null);
+ setMustConfirmEquipoId(null);
+ setMyEquipoId(null);
 
  try {
  if (!currentUserId) {
  setSubmitError('Hubo un error al identificar tu usuario. Volve a iniciar sesion e intenta nuevamente.');
+ return;
+ }
+
+ let isDoblesTournament = false;
+ try {
+ const { data: configRow } = await supabase
+ .from('torneo_configuracion')
+ .select('modalidad')
+ .eq('torneo_id', tournament.id)
+ .maybeSingle();
+ isDoblesTournament = configRow?.modalidad === 'dobles';
+ } catch {
+ isDoblesTournament = false;
+ }
+ setModalidad(isDoblesTournament ? 'dobles' : 'singles');
+
+ if (isDoblesTournament) {
+ await loadMatchContextDobles();
  return;
  }
 
@@ -616,6 +898,8 @@ const MatchResult: React.FC = () => {
  estado: String(targetPartido.estado || 'programado'),
  jugador1_id: String(targetPartido.jugador1_id),
  jugador2_id: String(targetPartido.jugador2_id),
+ equipo1_id: null,
+ equipo2_id: null,
  resultado: targetPartido.resultado || null,
  set1_j1: targetPartido.set1_j1 != null ? Number(targetPartido.set1_j1) : null,
  set1_j2: targetPartido.set1_j2 != null ? Number(targetPartido.set1_j2) : null,
@@ -743,7 +1027,9 @@ const MatchResult: React.FC = () => {
  throw new Error('No pudimos validar tu sesion (usuario invalido). Volve a iniciar sesion para cargar resultados.');
  }
 
- const { data, error } = await supabase.rpc('enviar_resultado_seguro', {
+ const { data, error } = await supabase.rpc(
+ modalidad === 'dobles' ? 'enviar_resultado_seguro_equipo' : 'enviar_resultado_seguro',
+ {
  p_partido_id: partido.id,
  p_user_id: currentUserId,
  p_set1_j1: scores.set1.player1,
@@ -752,7 +1038,8 @@ const MatchResult: React.FC = () => {
  p_set2_j2: scores.set2.player2,
  p_set3_j1: isDrawInSets ? scores.set3.player1 : null,
  p_set3_j2: isDrawInSets ? scores.set3.player2 : null,
- });
+ }
+ );
 
  if (error) throw error;
 
@@ -798,11 +1085,14 @@ const MatchResult: React.FC = () => {
  setIsSubmitting(true);
  setSubmitError(null);
  try {
- const { data, error } = await supabase.rpc('validar_resultado_seguro', {
+ const { data, error } = await supabase.rpc(
+ modalidad === 'dobles' ? 'validar_resultado_seguro_equipo' : 'validar_resultado_seguro',
+ {
  p_partido_id: partido.id,
  p_user_id: currentUserId,
  p_accion: 'confirmar',
- });
+ }
+ );
  if (error) throw error;
 
  const result = String(data || '');
@@ -826,11 +1116,14 @@ const MatchResult: React.FC = () => {
  setIsSubmitting(true);
  setSubmitError(null);
  try {
- const { data, error } = await supabase.rpc('validar_resultado_seguro', {
+ const { data, error } = await supabase.rpc(
+ modalidad === 'dobles' ? 'validar_resultado_seguro_equipo' : 'validar_resultado_seguro',
+ {
  p_partido_id: partido.id,
  p_user_id: currentUserId,
  p_accion: 'rechazar',
- });
+ }
+ );
  if (error) throw error;
 
  const result = String(data || '');
@@ -941,12 +1234,7 @@ const MatchResult: React.FC = () => {
  <div className="flex items-center justify-between mt-3">
  <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${winnerOrderedIndex === 1 ? 'opacity-40' : ''}`}>
  <div className={`w-16 h-16 rounded-full ring-2 ${winnerOrderedIndex === 0 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase transition-all`}>
- {String(orderedPlayers[0]?.name || 'Jugador')
- .split(' ')
- .filter(Boolean)
- .slice(0, 2)
- .map((chunk) => chunk[0])
- .join('') || 'J'}
+ {getCardInitials(orderedPlayers[0]?.name)}
  </div>
  <span className="text-sm font-bold text-gray-900 ">{orderedPlayers[0].name}</span>
  {winnerOrderedIndex === 0 && <span className="bg-primary/20 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}
@@ -954,12 +1242,7 @@ const MatchResult: React.FC = () => {
  <div className="flex flex-col items-center px-4"><span className="text-xs font-black text-gray-300 italic uppercase">VS</span></div>
  <div className={`flex flex-col items-center gap-2 flex-1 transition-all ${winnerOrderedIndex === 0 ? 'opacity-40' : ''}`}>
  <div className={`w-16 h-16 rounded-full ring-2 ${winnerOrderedIndex === 1 ? 'ring-primary' : 'ring-gray-200'} bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold uppercase`}>
- {String(orderedPlayers[1]?.name || 'Jugador')
- .split(' ')
- .filter(Boolean)
- .slice(0, 2)
- .map((chunk) => chunk[0])
- .join('') || 'J'}
+ {getCardInitials(orderedPlayers[1]?.name)}
  </div>
  <span className="text-sm font-bold text-gray-900 ">{orderedPlayers[1].name}</span>
  {winnerOrderedIndex === 1 && <span className="bg-primary/20 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">GANADOR</span>}

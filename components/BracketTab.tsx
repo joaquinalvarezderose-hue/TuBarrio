@@ -35,16 +35,55 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  const [loading, setLoading] = useState(true);
  const [matches, setMatches] = useState<BracketMatch[]>([]);
  const [error, setError] = useState<string | null>(null);
+ // En dobles, "mi identidad" para resaltar "Mi partido" es mi equipo, no mi perfil_id.
+ const [comparisonId, setComparisonId] = useState<string | undefined>(currentUserId);
 
  // Load bracket matches from Supabase
  useEffect(() => {
  const loadBracketMatches = async () => {
  setLoading(true);
  setError(null);
- 
+
  try {
+ let isDobles = false;
+ try {
+ const { data: configRow } = await supabase
+ .from('torneo_configuracion')
+ .select('modalidad')
+ .eq('torneo_id', torneo_id)
+ .maybeSingle();
+ isDobles = configRow?.modalidad === 'dobles';
+ } catch {
+ isDobles = false;
+ }
+
  // First query: get bracket matches
- const { data: matchesData, error: queryError } = await supabase
+ const { data: matchesData, error: queryError } = isDobles
+ ? await supabase
+ .from('partidos')
+ .select(`
+ id,
+ ronda,
+ posicion_bracket,
+ equipo1_id,
+ equipo2_id,
+ equipo_ganador_id,
+ estado,
+ set1_j1,
+ set1_j2,
+ set2_j1,
+ set2_j2,
+ set3_j1,
+ set3_j2,
+ es_wo,
+ siguiente_partido_id
+ `)
+ .eq('torneo_id', torneo_id)
+ .eq('categoria', categoria)
+ .eq('bracket_tipo', 'eliminacion_directa')
+ .order('ronda', { ascending: true })
+ .order('posicion_bracket', { ascending: true })
+ : await supabase
  .from('partidos')
  .select(`
  id,
@@ -75,10 +114,71 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  }
 
  if (matchesData && matchesData.length > 0) {
+ if (isDobles) {
+ // Reacomoda equipo1_id/equipo2_id/equipo_ganador_id al mismo shape que usa
+ // singles (jugador1_id/jugador2_id/ganador_id) para no duplicar el render de abajo.
+ const rows: any[] = matchesData as any[];
+ const equipoIds = [...new Set([
+ ...rows.map((m) => m.equipo1_id).filter(Boolean),
+ ...rows.map((m) => m.equipo2_id).filter(Boolean),
+ ])];
+
+ let equipos: any[] = [];
+ if (equipoIds.length > 0) {
+ const { data: equiposData, error: equiposError } = await supabase
+ .from('torneo_equipos')
+ .select('id, jugador1_id, jugador2_id')
+ .in('id', equipoIds);
+ if (equiposError) console.error('Equipos query error:', equiposError);
+ equipos = equiposData || [];
+ }
+
+ const jugadorIds = [...new Set(equipos.flatMap((e) => [e.jugador1_id, e.jugador2_id]).filter(Boolean))];
+ let profilesData: any[] = [];
+ if (jugadorIds.length > 0) {
+ const { data, error: profilesError } = await supabase
+ .from('perfiles')
+ .select('id, nombre_completo')
+ .in('id', jugadorIds);
+ if (profilesError) console.error('Profiles query error:', profilesError);
+ profilesData = data || [];
+ }
+ const nameByJugadorId: Record<string, string> = {};
+ profilesData.forEach((p: any) => { nameByJugadorId[p.id] = p.nombre_completo || 'Jugador'; });
+
+ const equipoNameById: Record<string, string> = {};
+ equipos.forEach((e: any) => {
+ equipoNameById[e.id] = `${nameByJugadorId[e.jugador1_id] || 'Jugador'} / ${nameByJugadorId[e.jugador2_id] || 'Jugador'}`;
+ });
+
+ const transformedMatches: BracketMatch[] = rows.map((match) => ({
+ ...match,
+ jugador1_id: match.equipo1_id,
+ jugador2_id: match.equipo2_id,
+ ganador_id: match.equipo_ganador_id,
+ jugador1_nombre: match.equipo1_id ? (equipoNameById[match.equipo1_id] || 'A definir') : 'A definir',
+ jugador2_nombre: match.equipo2_id ? (equipoNameById[match.equipo2_id] || 'A definir') : 'A definir',
+ }));
+ setMatches(transformedMatches);
+
+ // Resolver mi propio equipo para el resaltado "Mi partido"
+ if (currentUserId) {
+ const { data: equipoScopeRows } = await supabase
+ .from('torneo_equipos')
+ .select('id')
+ .eq('torneo_id', torneo_id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .limit(1);
+ const es = Array.isArray(equipoScopeRows) ? equipoScopeRows[0] : null;
+ setComparisonId(es?.id ? String(es.id) : undefined);
+ } else {
+ setComparisonId(undefined);
+ }
+ } else {
  // Get unique player IDs
  const playerIds = [...new Set([
- ...matchesData.map(m => m.jugador1_id).filter(Boolean),
- ...matchesData.map(m => m.jugador2_id).filter(Boolean)
+ ...matchesData.map((m: any) => m.jugador1_id).filter(Boolean),
+ ...matchesData.map((m: any) => m.jugador2_id).filter(Boolean)
  ])];
 
  // Fetch player names
@@ -104,6 +204,8 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  jugador2_nombre: nameMap[match.jugador2_id] || 'A definir',
  }));
  setMatches(transformedMatches);
+ setComparisonId(currentUserId);
+ }
  } else {
  setMatches([]);
  }
@@ -124,7 +226,7 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  };
 
  loadBracketMatches();
- }, [torneo_id, categoria]);
+ }, [torneo_id, categoria, currentUserId]);
 
  // Lookup map for matches by ID (used for bracket connections)
  const matchById = useMemo(() => {
@@ -246,8 +348,8 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  const isFinalized = match.estado === 'finalizado';
  const j1Won = match.ganador_id === match.jugador1_id;
  const j2Won = match.ganador_id === match.jugador2_id;
- const isMyMatch = !isFinalized && currentUserId && (
- match.jugador1_id === currentUserId || match.jugador2_id === currentUserId
+ const isMyMatch = !isFinalized && comparisonId && (
+ match.jugador1_id === comparisonId || match.jugador2_id === comparisonId
  );
 
  // Bracket connection: find the sibling match feeding into the same next match

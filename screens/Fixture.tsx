@@ -166,6 +166,10 @@ const Fixture: React.FC = () => {
  const [selectedGroup, setSelectedGroup] = useState<string>(previewScope?.grupo || '');
  // Grupo propio del usuario (para el próximo partido)
  const [userGroup, setUserGroup] = useState<string>('');
+ const [modalidad, setModalidad] = useState<'singles' | 'dobles'>('singles');
+ // En dobles, myEquipoId reemplaza a currentUserId como "identidad" para
+ // comparaciones de "es mi partido / quien es mi rival" (ver comparisonId).
+ const [myEquipoId, setMyEquipoId] = useState<string>('');
  const isLoadingRef = useRef(false);
  const refreshTimerRef = useRef<number | null>(null);
 
@@ -215,13 +219,40 @@ const Fixture: React.FC = () => {
  setIsLoading(false);
  }
 
+ // Resolver modalidad del torneo (una sola vez, antes de resolver scope)
+ let isDobles = false;
+ try {
+ const { data: configRow } = await supabase
+ .from('torneo_configuracion')
+ .select('modalidad')
+ .eq('torneo_id', parsedTournamentId)
+ .maybeSingle();
+ isDobles = configRow?.modalidad === 'dobles';
+ } catch {
+ isDobles = false;
+ }
+ setModalidad(isDobles ? 'dobles' : 'singles');
+
  // Resolver el grupo propio del usuario
  const uid = userIdRef.current;
  let userOwnGroup = '';
  let resolvedCategory = previewScope?.categoria || String(tournament.subtitle || '').trim();
+ let userOwnEquipoId = '';
 
  if (previewMode) {
  userOwnGroup = previewScope?.grupo || '';
+ } else if (uid && isDobles) {
+ const { data: equipoScopeRows } = await supabase
+ .from('torneo_equipos')
+ .select('id, categoria, grupo')
+ .eq('torneo_id', parsedTournamentId)
+ .or(`jugador1_id.eq.${uid},jugador2_id.eq.${uid}`)
+ .limit(1);
+
+ const es = Array.isArray(equipoScopeRows) ? equipoScopeRows[0] : null;
+ if (es?.categoria) resolvedCategory = String(es.categoria);
+ if (es?.grupo) userOwnGroup = String(es.grupo);
+ if (es?.id) userOwnEquipoId = String(es.id);
  } else if (uid) {
  const { data: playerScopeRows } = await supabase
  .from('torneo_jugadores')
@@ -236,6 +267,7 @@ const Fixture: React.FC = () => {
  }
 
  setUserGroup(userOwnGroup);
+ setMyEquipoId(userOwnEquipoId);
 
  // â"€â"€ 2. Cargar todos los grupos disponibles â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  let groupsQuery: any = supabase
@@ -266,7 +298,14 @@ const Fixture: React.FC = () => {
 
  // â"€â"€ 3. Ver estado del torneo â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  // Cargar estado, partidos, jugadores, historial y propuestas en paralelo
- let partidosQ: any = supabase
+ let partidosQ: any = isDobles
+ ? supabase
+ .from('partidos')
+ .select('id, jornada, estado, resultado, equipo_ganador_id, equipo1_id, equipo2_id, confirmado_automaticamente, es_wo')
+ .eq('torneo_id', parsedTournamentId)
+ .is('bracket_tipo', null)
+ .order('jornada', { ascending: true })
+ : supabase
  .from('partidos')
  .select('id, jornada, estado, resultado, ganador_id, jugador1_id, jugador2_id, confirmado_automaticamente, es_wo')
  .eq('torneo_id', parsedTournamentId)
@@ -275,14 +314,24 @@ const Fixture: React.FC = () => {
  if (resolvedCategory) partidosQ = partidosQ.eq('categoria', resolvedCategory);
  if (effectiveGroup) partidosQ = partidosQ.eq('grupo', effectiveGroup);
 
- let jugadoresQ: any = supabase
+ let jugadoresQ: any = isDobles
+ ? supabase
+ .from('torneo_equipos')
+ .select('id, jugador1_id, jugador2_id, puntos, partidos_jugados, sets_ganados')
+ .eq('torneo_id', parsedTournamentId)
+ : supabase
  .from('torneo_jugadores')
  .select('perfil_id, puntos, partidos_jugados, sets_ganados')
  .eq('torneo_id', parsedTournamentId);
  if (resolvedCategory) jugadoresQ = jugadoresQ.eq('categoria', resolvedCategory);
  if (effectiveGroup) jugadoresQ = jugadoresQ.eq('grupo', effectiveGroup);
 
- let historialQ: any = supabase
+ let historialQ: any = isDobles
+ ? supabase
+ .from('torneo_partidos_historial')
+ .select('partido_id, sets_jugador1, sets_jugador2, equipo_ganador_id, sets_json')
+ .eq('torneo_id', parsedTournamentId)
+ : supabase
  .from('torneo_partidos_historial')
  .select('partido_id, sets_jugador1, sets_jugador2, ganador_perfil_id, sets_json')
  .eq('torneo_id', parsedTournamentId);
@@ -304,10 +353,54 @@ const Fixture: React.FC = () => {
  if (partidosResp.error) throw partidosResp.error;
  if (jugadoresResp.error) throw jugadoresResp.error;
 
- const partidos = Array.isArray(partidosResp.data) ? partidosResp.data : [];
- const jugadores = Array.isArray(jugadoresResp.data) ? jugadoresResp.data : [];
- const historial = Array.isArray(historialResp.data) ? historialResp.data : [];
  const propuestas = Array.isArray(propuestasResp.data) ? propuestasResp.data : [];
+
+ // Para dobles, se "reacomodan" los datos al mismo shape que usa singles
+ // (jugador1_id/jugador2_id/ganador_id/perfil_id) para no duplicar toda la
+ // logica de abajo (armado de rondas, stats, mapeo de partidos): equipo_id
+ // ocupa el lugar de perfil_id, y el nombre mostrado es "Jugador A / Jugador B".
+ let equipoNameById: Record<string, string> = {};
+ let partidos: any[] = Array.isArray(partidosResp.data) ? partidosResp.data : [];
+ let jugadores: any[] = Array.isArray(jugadoresResp.data) ? jugadoresResp.data : [];
+ let historial: any[] = Array.isArray(historialResp.data) ? historialResp.data : [];
+
+ if (isDobles) {
+ partidos = partidos.map((r: any) => ({
+ ...r,
+ jugador1_id: r.equipo1_id,
+ jugador2_id: r.equipo2_id,
+ ganador_id: r.equipo_ganador_id,
+ }));
+ historial = historial.map((r: any) => ({
+ ...r,
+ ganador_perfil_id: r.equipo_ganador_id,
+ }));
+
+ const allJugadorIds = Array.from(new Set(
+ jugadores.flatMap((r: any) => [r.jugador1_id, r.jugador2_id]).filter(Boolean)
+ ));
+ let equipoPerfiles: any[] = [];
+ if (allJugadorIds.length > 0) {
+ const { data: equipoPerfilesData } = await supabase
+ .from('perfiles')
+ .select('id, nombre_completo')
+ .in('id', allJugadorIds);
+ equipoPerfiles = equipoPerfilesData || [];
+ }
+ const nombreByJugadorId = Object.fromEntries(
+ equipoPerfiles.map((p: any) => [p.id, p.nombre_completo || 'Jugador'])
+ );
+ equipoNameById = Object.fromEntries(
+ jugadores.map((r: any) => [r.id, `${nombreByJugadorId[r.jugador1_id] || 'Jugador'} / ${nombreByJugadorId[r.jugador2_id] || 'Jugador'}`])
+ );
+
+ jugadores = jugadores.map((r: any) => ({
+ perfil_id: r.id,
+ puntos: r.puntos,
+ partidos_jugados: r.partidos_jugados,
+ sets_ganados: r.sets_ganados,
+ }));
+ }
 
  // â"€â"€ 8. Perfiles de todos los jugadores en los partidos â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  const profileIds = Array.from(new Set([
@@ -316,7 +409,7 @@ const Fixture: React.FC = () => {
  ].filter(Boolean)));
 
  let perfiles: any[] = [];
- if (profileIds.length > 0) {
+ if (!isDobles && profileIds.length > 0) {
  const { data: perfilesData } = await supabase
  .from('perfiles')
  .select('id, nombre_completo, whatsapp')
@@ -324,10 +417,10 @@ const Fixture: React.FC = () => {
  perfiles = perfilesData || [];
  }
 
- const nameById: Record<string, string> = Object.fromEntries(
- perfiles.map((p: any) => [p.id, p.nombre_completo || 'Jugador'])
- );
- const whatsappById: Record<string, string | null> = Object.fromEntries(
+ const nameById: Record<string, string> = isDobles
+ ? equipoNameById
+ : Object.fromEntries(perfiles.map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+ const whatsappById: Record<string, string | null> = isDobles ? {} : Object.fromEntries(
  perfiles.map((p: any) => [p.id, p.whatsapp ? String(p.whatsapp) : null])
  );
  const jugadorById: Record<string, any> = Object.fromEntries(
@@ -443,17 +536,20 @@ const Fixture: React.FC = () => {
 
  const fechasForTabs = useMemo(() => [...fechas].sort((a, b) => b - a), [fechas]);
 
+ // En dobles, la identidad para "es mi partido / quien es mi rival" es el equipo, no el perfil.
+ const comparisonId = modalidad === 'dobles' ? myEquipoId : currentUserId;
+
  // useNextMatch may not resolve if the RPC/join is unavailable; derive the next match
  // from the already-loaded fixture data so the UI never shows an empty card.
  const myNextMatchInFixture = useMemo(() => {
- if (!currentUserId) return null;
+ if (!comparisonId) return null;
  const pending = matches.find((m) =>
  !m.finalScore &&
  m.estado !== 'finalizado' &&
- [m.p1.perfil_id, m.p2.perfil_id].includes(currentUserId)
+ [m.p1.perfil_id, m.p2.perfil_id].includes(comparisonId)
  );
  if (!pending) return null;
- const rival = pending.p1.perfil_id === currentUserId ? pending.p2 : pending.p1;
+ const rival = pending.p1.perfil_id === comparisonId ? pending.p2 : pending.p1;
  return {
  id: pending.id,
  jornada: pending.jornada,
@@ -461,7 +557,7 @@ const Fixture: React.FC = () => {
  rival_nombre: rival.nombre,
  rival_whatsapp: rival.whatsapp,
  };
- }, [matches, currentUserId]);
+ }, [matches, comparisonId]);
 
  const displayNextMatch = nextMatch || myNextMatchInFixture;
 
@@ -496,6 +592,7 @@ const Fixture: React.FC = () => {
  const channel = supabase
  .channel(`fixture-live-${tournament.id}`)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_jugadores', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
+ .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_equipos', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'partidos', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_partidos_historial', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_propuestas_partido', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
@@ -655,8 +752,8 @@ const Fixture: React.FC = () => {
  {playersStats.map((p, idx) => (
  <div key={`${p.perfil_id}-${idx}`} className="grid grid-cols-[22px_1fr_42px_42px_42px] items-center gap-2 text-sm">
  <span className="font-bold text-[#4a9c40]">{idx + 1}</span>
- <span className={`font-semibold truncate ${p.perfil_id === currentUserId ? 'text-primary' : 'text-[#111813] '}`}>
- {p.nombre}{p.perfil_id === currentUserId ? ' (vos)' : ''}
+ <span className={`font-semibold truncate ${p.perfil_id === comparisonId ? 'text-primary' : 'text-[#111813] '}`}>
+ {p.nombre}{p.perfil_id === comparisonId ? ' (vos)' : ''}
  </span>
  <span className="text-center font-bold">{p.puntos}</span>
  <span className="text-center">{p.partidos_jugados}</span>
@@ -725,7 +822,7 @@ const Fixture: React.FC = () => {
  <MatchCard
  key={match.id}
  match={match}
- currentUserId={currentUserId}
+ currentUserId={comparisonId}
  highlightedMatchId={highlightedMatchId}
  torneoFinalizado={torneoFinalizado}
  tournament={tournament}

@@ -108,6 +108,7 @@ const Standings: React.FC = () => {
  const [clasificadosPorGrupo, setClasificadosPorGrupo] = useState<number>(2);
  const [incluirMejoresTerceros, setIncluirMejoresTerceros] = useState<boolean>(false);
  const [cantidadMejoresTerceros, setCantidadMejoresTerceros] = useState<number>(0);
+ const [modalidad, setModalidad] = useState<'singles' | 'dobles'>('singles');
 
  const savedTournament = localStorage.getItem('active_tournament');
  const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
@@ -117,6 +118,157 @@ const Standings: React.FC = () => {
  });
 
  const initialPlayers: PlayerStats[] = [];
+
+ // Version dobles de la carga de tabla: espejo de loadDbStandings pero
+ // rankeando torneo_equipos en vez de torneo_jugadores (parejas en vez de jugadores).
+ const loadDbStandingsDobles = async (parsedTournamentId: number) => {
+ let currentUserIdLocal = '';
+ let resolvedScope: TournamentScope | null = null;
+
+ if (previewMode) {
+ resolvedScope = { categoria: previewScope!.categoria, grupo: previewScope!.grupo };
+ } else {
+ try {
+ const { data } = await supabase.auth.getUser();
+ currentUserIdLocal = String(data?.user?.id || '');
+ } catch {
+ // ignore
+ }
+ if (!currentUserIdLocal) {
+ try {
+ const appUserRaw = localStorage.getItem('app_user');
+ const appUser = appUserRaw ? JSON.parse(appUserRaw) : null;
+ currentUserIdLocal = String(appUser?.id || '');
+ } catch {
+ // ignore
+ }
+ }
+ if (currentUserIdLocal) setCurrentUserId(currentUserIdLocal);
+
+ if (currentUserIdLocal) {
+ const { data: equipoScopeRows } = await supabase
+ .from('torneo_equipos')
+ .select('id, categoria, grupo')
+ .eq('torneo_id', parsedTournamentId)
+ .or(`jugador1_id.eq.${currentUserIdLocal},jugador2_id.eq.${currentUserIdLocal}`)
+ .limit(1);
+
+ const es = Array.isArray(equipoScopeRows) ? equipoScopeRows[0] : null;
+ if (es?.categoria && es?.grupo) {
+ resolvedScope = { categoria: String(es.categoria), grupo: String(es.grupo) };
+ }
+ }
+ }
+
+ setScope(resolvedScope);
+ const targetCategory = String(resolvedScope?.categoria || tournament.subtitle || '').trim();
+
+ let groupsQuery: any = supabase
+ .from('torneo_estado')
+ .select('grupo, categoria')
+ .eq('torneo_id', parsedTournamentId);
+ if (targetCategory) groupsQuery = groupsQuery.eq('categoria', targetCategory);
+ const { data: groupsRows, error: groupsError } = await groupsQuery;
+ if (!groupsError) {
+ const groups = Array.from(
+ new Set((groupsRows || []).map((row: any) => String(row?.grupo || '').trim()).filter(Boolean))
+ ).sort((a, b) => getGroupOrder(a) - getGroupOrder(b));
+ setAvailableGroups(groups);
+ if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
+ setSelectedGroup(String(resolvedScope.grupo));
+ }
+ }
+
+ const effectiveGroup = selectedGroup || resolvedScope?.grupo || '';
+
+ let equiposQuery: any = supabase
+ .from('torneo_equipos')
+ .select('id, jugador1_id, jugador2_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
+ .eq('torneo_id', parsedTournamentId);
+ if (resolvedScope?.categoria) equiposQuery = equiposQuery.eq('categoria', resolvedScope.categoria);
+ if (effectiveGroup) equiposQuery = equiposQuery.eq('grupo', effectiveGroup);
+
+ const [{ data: equiposData, error: equiposError }, configResp] = await Promise.all([
+ equiposQuery,
+ supabase
+ .from('torneo_configuracion')
+ .select('clasificados_por_grupo, incluir_mejores_terceros, cantidad_mejores_terceros')
+ .eq('torneo_id', parsedTournamentId)
+ .limit(1),
+ ]);
+
+ if (equiposError) throw equiposError;
+
+ const configRows = configResp.data as any[] | null;
+ if (configRows?.[0]?.clasificados_por_grupo) {
+ setClasificadosPorGrupo(Number(configRows[0].clasificados_por_grupo));
+ }
+ setIncluirMejoresTerceros(Boolean(configRows?.[0]?.incluir_mejores_terceros));
+ setCantidadMejoresTerceros(Number(configRows?.[0]?.cantidad_mejores_terceros ?? 0));
+
+ const equipos = Array.isArray(equiposData) ? equiposData : [];
+
+ if (equipos.length === 0) {
+ setDbRows([]);
+ return;
+ }
+
+ const allJugadorIds = Array.from(new Set(
+ equipos.flatMap((r: any) => [r.jugador1_id, r.jugador2_id]).filter(Boolean)
+ ));
+ let perfiles: any[] = [];
+ if (allJugadorIds.length > 0) {
+ const { data: perfilesData, error: perfilesError } = await supabase
+ .from('perfiles')
+ .select('id, nombre_completo')
+ .in('id', allJugadorIds);
+ if (perfilesError) throw perfilesError;
+ perfiles = perfilesData || [];
+ }
+ const nombreByJugadorId = Object.fromEntries(perfiles.map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+
+ const mapped = equipos.map((row: any, idx: number) => ({
+ id: row.id || `equipo-${idx}`,
+ name: `${nombreByJugadorId[row.jugador1_id] || 'Jugador'} / ${nombreByJugadorId[row.jugador2_id] || 'Jugador'}`,
+ pj: Number(row.partidos_jugados || 0),
+ pts: Number(row.puntos || 0),
+ setsWon: Number(row.sets_ganados || 0),
+ setsLost: Number(row.sets_perdidos || 0),
+ gamesWon: 0,
+ gamesLost: 0,
+ matches: [],
+ }));
+
+ setDbRows(mapped);
+ setDbLoadError(null);
+
+ let historyQuery: any = supabase
+ .from('torneo_partidos_historial')
+ .select('categoria, grupo, equipo1_id, equipo2_id, equipo_ganador_id')
+ .eq('torneo_id', parsedTournamentId);
+ if (resolvedScope?.categoria) historyQuery = historyQuery.eq('categoria', resolvedScope.categoria);
+ if (effectiveGroup) historyQuery = historyQuery.eq('grupo', effectiveGroup);
+ const { data: historyRows, error: historyError } = await historyQuery;
+ if (historyError) throw historyError;
+
+ const reshapedHistory: TournamentHistoryRow[] = ((historyRows || []) as any[]).map((row) => ({
+ categoria: row.categoria,
+ grupo: row.grupo,
+ jugador1_perfil_id: row.equipo1_id,
+ jugador2_perfil_id: row.equipo2_id,
+ ganador_perfil_id: row.equipo_ganador_id,
+ puntos_jugador1: null,
+ puntos_jugador2: null,
+ sets_jugador1: null,
+ sets_jugador2: null,
+ }));
+ setRawHistorial(reshapedHistory);
+
+ fixtureCache.set(`standings-${parsedTournamentId}-${selectedGroup}`, {
+ rows: mapped,
+ historial: reshapedHistory,
+ });
+ };
 
  const loadDbStandings = useCallback(async () => {
  try {
@@ -133,6 +285,24 @@ const Standings: React.FC = () => {
  setDbRows(cachedStandings.rows);
  setRawHistorial(cachedStandings.historial);
  setIsLoading(false);
+ }
+
+ let isDobles = false;
+ try {
+ const { data: configRow } = await supabase
+ .from('torneo_configuracion')
+ .select('modalidad')
+ .eq('torneo_id', parsedTournamentId)
+ .maybeSingle();
+ isDobles = configRow?.modalidad === 'dobles';
+ } catch {
+ isDobles = false;
+ }
+ setModalidad(isDobles ? 'dobles' : 'singles');
+
+ if (isDobles) {
+ await loadDbStandingsDobles(parsedTournamentId);
+ return;
  }
 
  let currentUserId = '';
@@ -544,6 +714,13 @@ const Standings: React.FC = () => {
  .on(
  'postgres_changes',
  { event: '*', schema: 'public', table: 'torneo_jugadores', filter: `torneo_id=eq.${tournament.id}` },
+ () => {
+ loadDbStandings();
+ }
+ )
+ .on(
+ 'postgres_changes',
+ { event: '*', schema: 'public', table: 'torneo_equipos', filter: `torneo_id=eq.${tournament.id}` },
  () => {
  loadDbStandings();
  }

@@ -7,6 +7,8 @@ import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
+type UnpairedPlayer = { perfil_id: string; nombre: string; whatsapp: string | null };
+type EquipoRow = { id: string; nombre1: string; nombre2: string; grupo: string | null };
 type RankingRow = {
   categoria: string;
   perfil_id: string;
@@ -31,6 +33,19 @@ const AdminPanel: React.FC = () => {
   const [rankingRows, setRankingRows] = useState<RankingRow[]>([]);
   const [rankingLoading, setRankingLoading] = useState(true);
   const [rankingCategoriaActiva, setRankingCategoriaActiva] = useState<string>('');
+
+  // Armado de parejas de dobles
+  const [activeTorneoModalidad, setActiveTorneoModalidad] = useState<string>('singles');
+  const [pairingCategorias, setPairingCategorias] = useState<string[]>([]);
+  const [pairingCategoria, setPairingCategoria] = useState<string>('');
+  const [unpairedPlayers, setUnpairedPlayers] = useState<UnpairedPlayer[]>([]);
+  const [pairedTeams, setPairedTeams] = useState<EquipoRow[]>([]);
+  const [selectedPlayer1, setSelectedPlayer1] = useState<string>('');
+  const [selectedPlayer2, setSelectedPlayer2] = useState<string>('');
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [pairingMessage, setPairingMessage] = useState<string | null>(null);
+  const [pairingError, setPairingError] = useState<string | null>(null);
+  const [pairingRefreshKey, setPairingRefreshKey] = useState(0);
 
   // Redirect to login once we know for sure there's no server-verified session
   useEffect(() => {
@@ -85,6 +100,172 @@ const AdminPanel: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [perfil, activeTorneo]);
+
+  // Resuelve la modalidad del torneo seleccionado, para mostrar (o no) el armado de parejas
+  useEffect(() => {
+    if (perfil?.rol !== 'admin' || !activeTorneo) {
+      setActiveTorneoModalidad('singles');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('torneo_configuracion')
+        .select('modalidad')
+        .eq('torneo_id', activeTorneo)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.error('[AdminPanel] load modalidad error:', error);
+        setActiveTorneoModalidad('singles');
+        return;
+      }
+      setActiveTorneoModalidad(data?.modalidad === 'dobles' ? 'dobles' : 'singles');
+    })();
+    return () => { cancelled = true; };
+  }, [perfil, activeTorneo]);
+
+  // Categorias con inscriptos aprobados para el torneo (armado de parejas ocurre antes del sorteo,
+  // por eso se lee de inscripciones_torneo y no de v_admin_grupos_posiciones)
+  useEffect(() => {
+    if (perfil?.rol !== 'admin' || !activeTorneo || activeTorneoModalidad !== 'dobles') {
+      setPairingCategorias([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('inscripciones_torneo')
+        .select('categoria')
+        .eq('torneo_id', activeTorneo)
+        .eq('estado', 'pagado_aprobado');
+      if (cancelled) return;
+      if (error) {
+        console.error('[AdminPanel] load categorias inscriptos error:', error);
+        return;
+      }
+      const cats = Array.from(new Set((data ?? []).map((r: any) => String(r.categoria || '').trim()).filter(Boolean))).sort();
+      setPairingCategorias(cats);
+      setPairingCategoria((prev) => (prev && cats.includes(prev) ? prev : cats[0] ?? ''));
+    })();
+    return () => { cancelled = true; };
+  }, [perfil, activeTorneo, activeTorneoModalidad]);
+
+  // Inscriptos sin pareja + parejas ya formadas, para la categoria seleccionada
+  useEffect(() => {
+    if (perfil?.rol !== 'admin' || !activeTorneo || activeTorneoModalidad !== 'dobles' || !pairingCategoria) {
+      setUnpairedPlayers([]);
+      setPairedTeams([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [{ data: inscriptos, error: inscriptosError }, { data: equipos, error: equiposError }] = await Promise.all([
+        supabase
+          .from('inscripciones_torneo')
+          .select('perfil_id')
+          .eq('torneo_id', activeTorneo)
+          .eq('categoria', pairingCategoria)
+          .eq('estado', 'pagado_aprobado'),
+        supabase
+          .from('torneo_equipos')
+          .select('id, jugador1_id, jugador2_id, grupo')
+          .eq('torneo_id', activeTorneo)
+          .eq('categoria', pairingCategoria),
+      ]);
+      if (cancelled) return;
+      if (inscriptosError || equiposError) {
+        console.error('[AdminPanel] load pairing data error:', inscriptosError || equiposError);
+        return;
+      }
+
+      const equiposRows = equipos ?? [];
+      const teamedIds = new Set<string>(equiposRows.flatMap((e: any) => [e.jugador1_id, e.jugador2_id]));
+      const inscriptoIds = Array.from(new Set((inscriptos ?? []).map((r: any) => String(r.perfil_id))));
+      const allNeededIds = Array.from(new Set([
+        ...inscriptoIds,
+        ...equiposRows.flatMap((e: any) => [e.jugador1_id, e.jugador2_id]),
+      ]));
+
+      let perfiles: any[] = [];
+      if (allNeededIds.length > 0) {
+        const { data: perfilesData, error: perfilesError } = await supabase
+          .from('perfiles')
+          .select('id, nombre_completo, whatsapp')
+          .in('id', allNeededIds);
+        if (perfilesError) {
+          console.error('[AdminPanel] load perfiles pairing error:', perfilesError);
+        }
+        perfiles = perfilesData ?? [];
+      }
+      const nameById = Object.fromEntries(perfiles.map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+      const whatsappById = Object.fromEntries(perfiles.map((p: any) => [p.id, p.whatsapp ? String(p.whatsapp) : null]));
+
+      if (cancelled) return;
+      setUnpairedPlayers(
+        inscriptoIds
+          .filter((id) => !teamedIds.has(id))
+          .map((id) => ({ perfil_id: id, nombre: nameById[id] || 'Jugador', whatsapp: whatsappById[id] || null }))
+      );
+      setPairedTeams(
+        equiposRows.map((e: any) => ({
+          id: String(e.id),
+          nombre1: nameById[e.jugador1_id] || 'Jugador',
+          nombre2: nameById[e.jugador2_id] || 'Jugador',
+          grupo: e.grupo ? String(e.grupo) : null,
+        }))
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [perfil, activeTorneo, activeTorneoModalidad, pairingCategoria, pairingRefreshKey]);
+
+  const handleCreateEquipo = async () => {
+    if (!activeTorneo || !pairingCategoria || !selectedPlayer1 || !selectedPlayer2) return;
+    if (selectedPlayer1 === selectedPlayer2) {
+      setPairingError('Elegi dos jugadores distintos.');
+      return;
+    }
+    setPairingLoading(true);
+    setPairingError(null);
+    setPairingMessage(null);
+    try {
+      const { error } = await supabase.rpc('crear_equipo_dobles', {
+        p_torneo_id: activeTorneo,
+        p_categoria: pairingCategoria,
+        p_jugador1_id: selectedPlayer1,
+        p_jugador2_id: selectedPlayer2,
+      });
+      if (error) throw error;
+      setPairingMessage('Pareja creada correctamente.');
+      setSelectedPlayer1('');
+      setSelectedPlayer2('');
+      setPairingRefreshKey((v) => v + 1);
+    } catch (error: any) {
+      setPairingError(error?.message || 'No se pudo crear la pareja.');
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleDeleteEquipo = async (equipoId: string) => {
+    setPairingLoading(true);
+    setPairingError(null);
+    setPairingMessage(null);
+    try {
+      const { data, error } = await supabase.rpc('eliminar_equipo_dobles', { p_equipo_id: equipoId });
+      if (error) throw error;
+      if (data !== 'OK') {
+        setPairingError(String(data) || 'No se pudo deshacer la pareja.');
+        return;
+      }
+      setPairingMessage('Pareja deshecha.');
+      setPairingRefreshKey((v) => v + 1);
+    } catch (error: any) {
+      setPairingError(error?.message || 'No se pudo deshacer la pareja.');
+    } finally {
+      setPairingLoading(false);
+    }
+  };
 
   // Load the global cross-tournament ranking by category (once, independent of the preview selector above)
   useEffect(() => {
@@ -356,6 +537,92 @@ const AdminPanel: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Armar Parejas de Dobles */}
+          {activeTorneoModalidad === 'dobles' && (
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-600 uppercase mb-3">Armar Parejas de Dobles</h3>
+
+              {pairingCategorias.length === 0 ? (
+                <p className="text-sm text-slate-400">No hay inscriptos aprobados todavia para este torneo.</p>
+              ) : (
+                <div className="space-y-4">
+                  <select
+                    value={pairingCategoria}
+                    onChange={(e) => setPairingCategoria(e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                  >
+                    {pairingCategorias.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+
+                  {pairingMessage && <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm font-medium text-emerald-700">{pairingMessage}</div>}
+                  {pairingError && <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-sm font-medium text-red-700">{pairingError}</div>}
+
+                  <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Crear pareja ({unpairedPlayers.length} sin pareja)
+                    </p>
+                    <select
+                      value={selectedPlayer1}
+                      onChange={(e) => setSelectedPlayer1(e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">Jugador 1...</option>
+                      {unpairedPlayers.map((p) => (
+                        <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer2}>
+                          {p.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={selectedPlayer2}
+                      onChange={(e) => setSelectedPlayer2(e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">Jugador 2...</option>
+                      {unpairedPlayers.map((p) => (
+                        <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer1}>
+                          {p.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleCreateEquipo}
+                      disabled={pairingLoading || !selectedPlayer1 || !selectedPlayer2}
+                      className="w-full bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                    >
+                      {pairingLoading ? 'Procesando...' : 'Crear Pareja'}
+                    </button>
+                  </div>
+
+                  {pairedTeams.length > 0 && (
+                    <div className="border border-slate-200 rounded-lg p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
+                        Parejas formadas ({pairedTeams.length})
+                      </p>
+                      <div className="space-y-2">
+                        {pairedTeams.map((t) => (
+                          <div key={t.id} className="flex items-center justify-between gap-3 text-sm border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                            <span className="font-medium text-slate-900">{t.nombre1} / {t.nombre2}</span>
+                            <button
+                              onClick={() => handleDeleteEquipo(t.id)}
+                              disabled={pairingLoading || Boolean(t.grupo)}
+                              title={t.grupo ? 'Ya paso por el sorteo, no se puede deshacer' : 'Deshacer pareja'}
+                              className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              Deshacer
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Rankings por Categoría */}
           <div className="mt-6 pt-6 border-t border-slate-200">

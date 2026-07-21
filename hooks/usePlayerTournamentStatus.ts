@@ -108,8 +108,20 @@ export function usePlayerTournamentStatus(
         return;
       }
 
+      let modalidad = 'singles';
+      try {
+        const { data: configRow } = await supabase
+          .from('torneo_configuracion')
+          .select('modalidad')
+          .eq('torneo_id', parsedTournamentId)
+          .maybeSingle();
+        if (configRow?.modalidad === 'dobles') modalidad = 'dobles';
+      } catch {
+        // si falla la lectura de modalidad, se asume singles (comportamiento actual)
+      }
+
       const { data, error: rpcError } = await supabase.rpc(
-        'obtener_estado_jugador_torneo',
+        modalidad === 'dobles' ? 'obtener_estado_equipo_torneo' : 'obtener_estado_jugador_torneo',
         { p_torneo_id: parsedTournamentId, p_perfil_id: currentUserId }
       );
 

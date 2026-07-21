@@ -49,6 +49,7 @@ type TournamentConfigRow = {
  grupo_base_id: string | null;
  clasificados_por_grupo: number;
  crear_playoffs_eliminacion_directa: boolean;
+ modalidad: string;
 };
 
 type GroupStatusRow = {
@@ -352,7 +353,7 @@ const TournamentPanel: React.FC = () => {
 
  const { data: configRow, error: configError } = await supabase
  .from('torneo_configuracion')
- .select('max_participantes_por_grupo, grupo_base, grupo_base_id, clasificados_por_grupo, crear_playoffs_eliminacion_directa')
+ .select('max_participantes_por_grupo, grupo_base, grupo_base_id, clasificados_por_grupo, crear_playoffs_eliminacion_directa, modalidad')
  .eq('torneo_id', tournament.id)
  .maybeSingle();
 
@@ -363,10 +364,13 @@ const TournamentPanel: React.FC = () => {
  grupo_base_id: configRow.grupo_base_id ? String(configRow.grupo_base_id) : null,
  clasificados_por_grupo: Number(configRow.clasificados_por_grupo || 0),
  crear_playoffs_eliminacion_directa: Boolean(configRow.crear_playoffs_eliminacion_directa),
+ modalidad: configRow.modalidad === 'dobles' ? 'dobles' : 'singles',
  });
  } else {
  setTournamentConfig(null);
  }
+
+ const isDobles = configRow?.modalidad === 'dobles';
 
  // En modo preview, usar el scope pasado en location.state
  if (previewScope) {
@@ -376,7 +380,14 @@ const TournamentPanel: React.FC = () => {
  };
  } else if (currentUserId) {
  const [jugadorScopeRes, perfilRes] = await Promise.all([
- supabase
+ isDobles
+ ? supabase
+ .from('torneo_equipos')
+ .select('categoria, grupo')
+ .eq('torneo_id', tournament.id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .limit(1)
+ : supabase
  .from('torneo_jugadores')
  .select('categoria, grupo')
  .eq('torneo_id', tournament.id)
@@ -476,7 +487,14 @@ const TournamentPanel: React.FC = () => {
  // La carga del próximo partido es manejada por el hook usePlayerTournamentStatus.
  // Aquí solo cargamos la posición en el grupo.
  if (resolvedScope && currentUserId) {
- const { data: tableRows, error: tableError } = await supabase
+ const { data: tableRows, error: tableError } = isDobles
+ ? await supabase
+ .from('torneo_equipos')
+ .select('id, jugador1_id, jugador2_id, puntos, sets_ganados, partidos_jugados')
+ .eq('torneo_id', tournament.id)
+ .eq('categoria', resolvedScope.categoria)
+ .eq('grupo', resolvedScope.grupo)
+ : await supabase
  .from('torneo_jugadores')
  .select('perfil_id, puntos, sets_ganados, partidos_jugados')
  .eq('torneo_id', tournament.id)
@@ -494,7 +512,9 @@ const TournamentPanel: React.FC = () => {
  return Number(a.partidos_jugados || 0) - Number(b.partidos_jugados || 0);
  });
 
- const userIndex = sorted.findIndex((row: any) => String(row.perfil_id) === currentUserId);
+ const userIndex = isDobles
+ ? sorted.findIndex((row: any) => String(row.jugador1_id) === currentUserId || String(row.jugador2_id) === currentUserId)
+ : sorted.findIndex((row: any) => String(row.perfil_id) === currentUserId);
  setGroupSize(sorted.length);
  setGroupPosition(userIndex >= 0 ? userIndex + 1 : null);
  } else {
@@ -564,19 +584,26 @@ const TournamentPanel: React.FC = () => {
  try {
  const categoria = userScope?.categoria || tournament.subtitle || null;
  const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
+ const isDobles = tournamentConfig?.modalidad === 'dobles';
 
- const { data, error } = await supabase.rpc('sortear_grupos_y_fixture_torneo', {
+ const { data, error } = await supabase.rpc(
+ isDobles ? 'sortear_grupos_y_fixture_equipos_torneo' : 'sortear_grupos_y_fixture_torneo',
+ {
  p_torneo_id: Number(tournament.id),
  p_categoria: categoria,
  p_grupo_base: grupoBase,
- });
+ }
+ );
 
  if (error) throw error;
 
- const row = Array.isArray(data) ? data[0] : null;
+ const row: any = Array.isArray(data) ? data[0] : null;
  if (row) {
+ const participantesLabel = isDobles
+ ? `${Number(row.equipos_sorteados || 0)} pareja(s)`
+ : `${Number(row.jugadores_sorteados || 0)} jugador(es)`;
  setAdminMessage(
- `Sorteo realizado: ${Number(row.grupos_creados || 0)} grupo(s), ${Number(row.jugadores_sorteados || 0)} jugador(es), ${Number(row.partidos_creados || 0)} partido(s).`
+ `Sorteo realizado: ${Number(row.grupos_creados || 0)} grupo(s), ${participantesLabel}, ${Number(row.partidos_creados || 0)} partido(s).`
  );
  } else {
  setAdminMessage('Sorteo realizado correctamente.');
@@ -635,16 +662,20 @@ const TournamentPanel: React.FC = () => {
  try {
  const categoria = userScope?.categoria || tournament.subtitle || null;
  const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
+ const isDobles = tournamentConfig?.modalidad === 'dobles';
 
- const { data, error } = await supabase.rpc('generar_playoffs_eliminacion_directa_torneo', {
+ const { data, error } = await supabase.rpc(
+ isDobles ? 'generar_playoffs_eliminacion_directa_equipos_torneo' : 'generar_playoffs_eliminacion_directa_torneo',
+ {
  p_torneo_id: Number(tournament.id),
  p_categoria: categoria,
  p_grupo_base: grupoBase,
- });
+ }
+ );
 
  if (error) throw error;
 
- const row = Array.isArray(data) ? data[0] : null;
+ const row: any = Array.isArray(data) ? data[0] : null;
  if (row) {
  setAdminMessage(
  `Playoffs generado: ${Number(row.clasificados_totales || 0)} clasificado(s), ${Number(row.partidos_creados || 0)} cruce(s).`
