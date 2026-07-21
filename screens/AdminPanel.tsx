@@ -7,6 +7,16 @@ import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
+type RankingRow = {
+  categoria: string;
+  perfil_id: string;
+  nombre_completo: string | null;
+  partidos_jugados: number;
+  victorias: number;
+  derrotas: number;
+  puntos: number;
+  posicion: number;
+};
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +27,10 @@ const AdminPanel: React.FC = () => {
   const [activeTorneo, setActiveTorneo] = useState<number | null>(null);
   const [activeCategoria, setActiveCategoria] = useState<string>('');
   const [previewGrupo, setPreviewGrupo] = useState<string>('');
+
+  const [rankingRows, setRankingRows] = useState<RankingRow[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  const [rankingCategoriaActiva, setRankingCategoriaActiva] = useState<string>('');
 
   // Redirect to login once we know for sure there's no server-verified session
   useEffect(() => {
@@ -71,6 +85,35 @@ const AdminPanel: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [perfil, activeTorneo]);
+
+  // Load the global cross-tournament ranking by category (once, independent of the preview selector above)
+  useEffect(() => {
+    if (perfil?.rol !== 'admin') return;
+    let cancelled = false;
+    (async () => {
+      setRankingLoading(true);
+      const { data, error } = await supabase
+        .from('ranking_categorias_view')
+        .select('*')
+        .order('categoria', { ascending: true })
+        .order('posicion', { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        console.error('[AdminPanel] load ranking error:', error);
+        setRankingLoading(false);
+        return;
+      }
+      const rows = (data ?? []) as RankingRow[];
+      setRankingRows(rows);
+      const cats = Array.from(new Set(rows.map((r) => r.categoria))).filter(Boolean);
+      setRankingCategoriaActiva((prev) => (prev && cats.includes(prev) ? prev : cats[0] ?? ''));
+      setRankingLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [perfil]);
+
+  const rankingCategorias = [...new Set(rankingRows.map((r) => r.categoria))].sort();
+  const rankingRowsActivos = rankingRows.filter((r) => r.categoria === rankingCategoriaActiva);
 
   const categorias = [...new Set(gruposPosiciones.map((g) => g.categoria))].sort();
   const gruposDeCategoria = [...new Set(
@@ -309,6 +352,69 @@ const AdminPanel: React.FC = () => {
                   >
                     Ver Tabla de Posiciones
                   </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Rankings por Categoría */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase mb-3">Rankings por Categoría</h3>
+
+            {rankingLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : rankingCategorias.length === 0 ? (
+              <p className="text-sm text-slate-400">Todavía no hay partidos registrados.</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  {rankingCategorias.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setRankingCategoriaActiva(cat)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                        rankingCategoriaActiva === cat
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3rem] items-center px-3 py-2 bg-slate-50 border-b border-slate-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 text-center">#</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Jugador</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 text-center">PJ</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 text-center">V</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 text-center">D</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 text-center">Pts</span>
+                  </div>
+
+                  {rankingRowsActivos.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-6">Sin datos en esta categoría.</p>
+                  ) : (
+                    rankingRowsActivos.map((row, idx) => (
+                      <div
+                        key={row.perfil_id}
+                        className={`grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3rem] items-center px-3 py-2 text-sm ${
+                          idx !== rankingRowsActivos.length - 1 ? 'border-b border-slate-100' : ''
+                        }`}
+                      >
+                        <span className="text-center text-xs font-bold text-slate-500">{row.posicion}</span>
+                        <span className="font-medium text-slate-900 truncate pr-2">{row.nombre_completo ?? 'Jugador'}</span>
+                        <span className="text-center text-slate-600">{row.partidos_jugados}</span>
+                        <span className="text-center text-slate-600">{row.victorias}</span>
+                        <span className="text-center text-slate-600">{row.derrotas}</span>
+                        <span className="text-center font-bold text-emerald-700">{row.puntos}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
