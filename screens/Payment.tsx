@@ -83,7 +83,7 @@ const Payment: React.FC = () => {
         monto: 50000,
         moneda: 'ARS',
         metodo_pago: 'transferencia_alias',
-        categoria: tournament.subtitle || null,
+        categoria: tournament.subtitle || 'General',
         grupo: `TORNEO_${Number(tournament.id)}`,
         alias_destino: aliasDestino,
         whatsapp_destino: whatsappDestino,

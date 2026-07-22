@@ -582,7 +582,7 @@ const TournamentPanel: React.FC = () => {
  setAdminMessage(null);
 
  try {
- const categoria = userScope?.categoria || tournament.subtitle || null;
+ const categoria = userScope?.categoria || tournament.subtitle || 'General';
  const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
  const isDobles = tournamentConfig?.modalidad === 'dobles';
 
@@ -660,7 +660,7 @@ const TournamentPanel: React.FC = () => {
  setAdminMessage(null);
 
  try {
- const categoria = userScope?.categoria || tournament.subtitle || null;
+ const categoria = userScope?.categoria || tournament.subtitle || 'General';
  const grupoBase = tournamentConfig?.grupo_base || `TORNEO_${Number(tournament.id)}`;
  const isDobles = tournamentConfig?.modalidad === 'dobles';
 
