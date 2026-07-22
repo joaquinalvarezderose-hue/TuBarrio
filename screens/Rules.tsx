@@ -151,7 +151,7 @@ const Rules: React.FC = () => {
  <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Si cumplido el plazo de la fecha uno de los jugadores no puede presentarse el día domingo, tendrá W.O. (partido perdido por no presentarse). Aplicará para ambos si ninguno puede presentarse, incluso si llueve o se cancelan canchas por SS.
+ Si cumplido el plazo de la fecha uno de los jugadores no puede presentarse el día domingo, tendrá W.O. (partido perdido por no presentarse). Aplicará para ambos si ninguno puede presentarse, incluso si llueve o se cancelan canchas por SS. <strong className="text-slate-800">Ante un W.O., es obligatorio avisar a la organización.</strong>
  </div>
  </details>
 
@@ -165,7 +165,7 @@ const Rules: React.FC = () => {
  <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Si los jugadores confirman por mensaje de WhatsApp día y horario, y uno finalmente cancela, tendrá W.O. (partido perdido por no presentarse), a menos que ambos accedan a reprogramar. En caso de lluvia o cancelación de cancha por SS, deben reprogramar nuevo día y horario.
+ Si los jugadores confirman por mensaje de WhatsApp día y horario, y uno finalmente cancela, tendrá W.O. (partido perdido por no presentarse), a menos que ambos accedan a reprogramar. En caso de lluvia o cancelación de cancha por SS, deben reprogramar nuevo día y horario. <strong className="text-slate-800">Ante un W.O., es obligatorio avisar a la organización.</strong>
  </div>
  </details>
 
@@ -179,7 +179,7 @@ const Rules: React.FC = () => {
  <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
  </summary>
  <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
- Si hasta el día jueves inclusive no hubo respuesta a los mensajes de WhatsApp, el jugador que no respondió perderá el partido por W.O.
+ Si hasta el día jueves inclusive no hubo respuesta a los mensajes de WhatsApp, el jugador que no respondió perderá el partido por W.O. <strong className="text-slate-800">Ante un W.O., es obligatorio avisar a la organización.</strong>
  </div>
  </details>
 
