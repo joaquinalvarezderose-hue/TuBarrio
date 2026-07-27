@@ -80,6 +80,15 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
           Ranking General
         </h1>
 
+        {/* Aclaración: el puntaje no clasifica a la siguiente fase */}
+        <div className="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 p-3 mb-4 text-sm text-blue-700">
+          <span className="material-symbols-outlined text-base leading-none mt-0.5">info</span>
+          <p>
+            Este puntaje no clasifica para la próxima fase. Sirve para ubicar a los mejores
+            jugadores de cada categoría de cara a los ascensos y descensos.
+          </p>
+        </div>
+
         {/* Estado cargando */}
         {loading && (
           <div className="py-16 text-center">
@@ -214,6 +223,20 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                     <span className="text-xs text-gray-500">W.O. (jugador designado)</span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Explicación del propósito del ranking */}
+            {categorias.length > 0 && (
+              <div className="mt-4 rounded-2xl bg-white border border-gray-100 px-4 py-3 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  ¿Para qué sirve este ranking?
+                </p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Este puntaje no define quién avanza de fase en el torneo. Su objetivo es reflejar
+                  el nivel de cada jugador dentro de su categoría durante la temporada, para definir
+                  los ascensos y descensos entre categorías.
+                </p>
               </div>
             )}
           </>
