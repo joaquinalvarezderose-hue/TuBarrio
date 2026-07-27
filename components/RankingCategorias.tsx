@@ -85,7 +85,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
           <span className="material-symbols-outlined text-base leading-none mt-0.5">info</span>
           <p>
             Este puntaje no clasifica para la próxima fase. Sirve para ubicar a los mejores
-            jugadores de cada categoría de cara a los ascensos y descensos.
+            jugadores de cada categoría.
           </p>
         </div>
 
@@ -234,8 +234,8 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                 </p>
                 <p className="text-xs text-gray-500 leading-relaxed">
                   Este puntaje no define quién avanza de fase en el torneo. Su objetivo es reflejar
-                  el nivel de cada jugador dentro de su categoría durante la temporada, para definir
-                  los ascensos y descensos entre categorías.
+                  el nivel de cada jugador dentro de su categoría durante la temporada, para ubicar
+                  a los mejores jugadores de cada categoría.
                 </p>
               </div>
             )}

@@ -74,7 +74,7 @@ const Rules: React.FC = () => {
  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">2°</span> Diferencia de sets (ganados − perdidos)</li>
  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">3°</span> Sets ganados (total)</li>
  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">4°</span> Resultado directo entre los empatados (H2H)</li>
- <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">5°</span> Promedio de puntos por partido</li>
+ <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">5°</span> Diferencia de games (ganados − perdidos)</li>
  </ol>
  </div>
  </details>

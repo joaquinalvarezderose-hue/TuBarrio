@@ -22,6 +22,9 @@ import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
 import AdminPanel from './screens/AdminPanel';
 import AdminPartidos from './screens/AdminPartidos';
+import OrganizadorPanel from './screens/OrganizadorPanel';
+import OrganizadorTorneoForm from './screens/OrganizadorTorneoForm';
+import OrganizadorTorneoDetail from './screens/OrganizadorTorneoDetail';
 import Ayuda from './screens/Ayuda';
 import TermsAndConditions from './screens/TermsAndConditions';
 import CompleteProfile from './screens/CompleteProfile';
@@ -141,6 +144,10 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           <Route path="/confirmation" element={user ? <Confirmation /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" replace />} />
           <Route path="/admin/partidos" element={user ? <AdminPartidos /> : <Navigate to="/login" replace />} />
+          <Route path="/organizador" element={user ? <OrganizadorPanel /> : <Navigate to="/login" replace />} />
+          <Route path="/organizador/torneos/nuevo" element={user ? <OrganizadorTorneoForm /> : <Navigate to="/login" replace />} />
+          <Route path="/organizador/torneos/:id/editar" element={user ? <OrganizadorTorneoForm /> : <Navigate to="/login" replace />} />
+          <Route path="/organizador/torneos/:id" element={user ? <OrganizadorTorneoDetail /> : <Navigate to="/login" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

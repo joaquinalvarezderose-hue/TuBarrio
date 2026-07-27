@@ -1,5 +1,5 @@
 
-import React, { useMemo, useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { PlayerStats, TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
@@ -19,6 +19,8 @@ type TournamentPlayerRow = {
  partidos_jugados: number | null;
  sets_ganados: number | null;
  sets_perdidos: number | null;
+ games_ganados: number | null;
+ games_perdidos: number | null;
 };
 
 type TournamentMatchRow = {
@@ -39,6 +41,7 @@ type TournamentHistoryRow = {
  puntos_jugador2: number | null;
  sets_jugador1: number | null;
  sets_jugador2: number | null;
+ sets_json?: { p1: number; p2: number }[] | null;
 };
 
 type StandingsRowProps = {
@@ -53,6 +56,8 @@ const StandingsRow = React.memo<StandingsRowProps>(({ p, idx, clasificadosPorGru
  const isThirdPlace = incluirMejoresTerceros && idx === clasificadosPorGrupo;
  const setDiff = p.setsWon - p.setsLost;
  const setDiffLabel = setDiff > 0 ? `+${setDiff}` : String(setDiff);
+ const gamesDiff = p.gamesDiff ?? ((p.gamesWon || 0) - (p.gamesLost || 0));
+ const gamesDiffLabel = gamesDiff > 0 ? `+${gamesDiff}` : String(gamesDiff);
  return (
  <tr className={isClassified ? 'bg-primary/10 ' : isThirdPlace ? 'bg-amber-50 ' : 'bg-white '}>
   <td className={`px-4 py-4 text-center font-bold sticky left-0 z-10 ${isClassified ? 'bg-emerald-50 text-emerald-700' : isThirdPlace ? 'bg-amber-50 text-amber-700' : 'bg-white '}`}>
@@ -74,7 +79,9 @@ const StandingsRow = React.memo<StandingsRowProps>(({ p, idx, clasificadosPorGru
    {setDiffLabel}
   </td>
   <td className="px-3 py-4 text-center text-sm">{p.setsWon}</td>
-  <td className="px-3 py-4 text-center text-sm font-bold text-primary">{p.average}</td>
+  <td className={`px-3 py-4 text-center text-sm font-bold ${gamesDiff > 0 ? 'text-emerald-600 ' : gamesDiff < 0 ? 'text-red-500 ' : 'text-slate-400'}`}>
+   {gamesDiffLabel}
+  </td>
  </tr>
  );
 });
@@ -183,7 +190,7 @@ const Standings: React.FC = () => {
 
  let equiposQuery: any = supabase
  .from('torneo_equipos')
- .select('id, jugador1_id, jugador2_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
+ .select('id, jugador1_id, jugador2_id, puntos, partidos_jugados, sets_ganados, sets_perdidos, games_ganados, games_perdidos')
  .eq('torneo_id', parsedTournamentId);
  if (resolvedScope?.categoria) equiposQuery = equiposQuery.eq('categoria', resolvedScope.categoria);
  if (effectiveGroup) equiposQuery = equiposQuery.eq('grupo', effectiveGroup);
@@ -234,8 +241,8 @@ const Standings: React.FC = () => {
  pts: Number(row.puntos || 0),
  setsWon: Number(row.sets_ganados || 0),
  setsLost: Number(row.sets_perdidos || 0),
- gamesWon: 0,
- gamesLost: 0,
+ gamesWon: Number(row.games_ganados || 0),
+ gamesLost: Number(row.games_perdidos || 0),
  matches: [],
  }));
 
@@ -428,7 +435,7 @@ const Standings: React.FC = () => {
 
  let standingsQuery: any = supabase
  .from('torneo_jugadores')
- .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
+ .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos, games_ganados, games_perdidos')
  .eq('torneo_id', parsedTournamentId);
 
  if (resolvedScope?.categoria) standingsQuery = standingsQuery.eq('categoria', resolvedScope.categoria);
@@ -475,6 +482,9 @@ const Standings: React.FC = () => {
  puntos: Math.max(Number(prev.puntos || 0), Number(row.puntos || 0)),
  partidos_jugados: Math.max(Number(prev.partidos_jugados || 0), Number(row.partidos_jugados || 0)),
  sets_ganados: Math.max(Number(prev.sets_ganados || 0), Number(row.sets_ganados || 0)),
+ sets_perdidos: Math.max(Number(prev.sets_perdidos || 0), Number(row.sets_perdidos || 0)),
+ games_ganados: Math.max(Number(prev.games_ganados || 0), Number(row.games_ganados || 0)),
+ games_perdidos: Math.max(Number(prev.games_perdidos || 0), Number(row.games_perdidos || 0)),
  });
  }
  };
@@ -486,7 +496,7 @@ const Standings: React.FC = () => {
  if (participantIds.length > 0 && uniqueRows.length < participantIds.length) {
  const { data: participantRows, error: participantRowsError } = await supabase
  .from('torneo_jugadores')
- .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
+ .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos, games_ganados, games_perdidos')
  .eq('torneo_id', parsedTournamentId)
  .in('perfil_id', participantIds);
 
@@ -518,6 +528,9 @@ const Standings: React.FC = () => {
  puntos: 0,
  partidos_jugados: 0,
  sets_ganados: 0,
+ sets_perdidos: 0,
+ games_ganados: 0,
+ games_perdidos: 0,
  }));
  mergeRows(seededRows);
  uniqueRows = participantIds.map((perfilId) => rowsByProfile.get(perfilId)).filter(Boolean) as TournamentPlayerRow[];
@@ -550,7 +563,7 @@ const Standings: React.FC = () => {
  if (participantIds.length > 0) {
  const { data: participantRows, error: participantRowsError } = await supabase
  .from('torneo_jugadores')
- .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos')
+ .select('perfil_id, puntos, partidos_jugados, sets_ganados, sets_perdidos, games_ganados, games_perdidos')
  .eq('torneo_id', parsedTournamentId)
  .in('perfil_id', participantIds);
 
@@ -562,13 +575,15 @@ const Standings: React.FC = () => {
  partidos_jugados: 0,
  sets_ganados: 0,
  sets_perdidos: 0,
+ games_ganados: 0,
+ games_perdidos: 0,
  }).filter(Boolean) as TournamentPlayerRow[];
  }
  }
 
  let historyQuery: any = supabase
  .from('torneo_partidos_historial')
- .select('categoria, grupo, jugador1_perfil_id, jugador2_perfil_id, ganador_perfil_id, puntos_jugador1, puntos_jugador2, sets_jugador1, sets_jugador2')
+ .select('categoria, grupo, jugador1_perfil_id, jugador2_perfil_id, ganador_perfil_id, puntos_jugador1, puntos_jugador2, sets_jugador1, sets_jugador2, sets_json')
  .eq('torneo_id', parsedTournamentId);
  if (resolvedScope?.categoria) historyQuery = historyQuery.eq('categoria', resolvedScope.categoria);
  if (effectiveGroup) historyQuery = historyQuery.eq('grupo', effectiveGroup);
@@ -600,6 +615,8 @@ const Standings: React.FC = () => {
  puntosRaw: number | null,
  setsGanadosRaw: number | null,
  setsPerdidosRaw: number | null,
+ gamesGanadosRaw: number,
+ gamesPerdidosRaw: number,
  ) => {
  const perfilId = String(perfilIdRaw || '');
  if (!perfilId) return;
@@ -609,6 +626,8 @@ const Standings: React.FC = () => {
  partidos_jugados: 0,
  sets_ganados: 0,
  sets_perdidos: 0,
+ games_ganados: 0,
+ games_perdidos: 0,
  };
 
  historyAggByProfile.set(perfilId, {
@@ -617,12 +636,17 @@ const Standings: React.FC = () => {
  partidos_jugados: Number(prev.partidos_jugados || 0) + 1,
  sets_ganados: Number(prev.sets_ganados || 0) + Number(setsGanadosRaw || 0),
  sets_perdidos: Number(prev.sets_perdidos || 0) + Number(setsPerdidosRaw || 0),
+ games_ganados: Number(prev.games_ganados || 0) + gamesGanadosRaw,
+ games_perdidos: Number(prev.games_perdidos || 0) + gamesPerdidosRaw,
  });
  };
 
  for (const row of scopedHistoryRows) {
- addHistory(row.jugador1_perfil_id, row.puntos_jugador1, row.sets_jugador1, row.sets_jugador2);
- addHistory(row.jugador2_perfil_id, row.puntos_jugador2, row.sets_jugador2, row.sets_jugador1);
+ const sets = Array.isArray(row.sets_json) ? row.sets_json : [];
+ const gamesJ1 = sets.reduce((sum, s) => sum + Number(s?.p1 || 0), 0);
+ const gamesJ2 = sets.reduce((sum, s) => sum + Number(s?.p2 || 0), 0);
+ addHistory(row.jugador1_perfil_id, row.puntos_jugador1, row.sets_jugador1, row.sets_jugador2, gamesJ1, gamesJ2);
+ addHistory(row.jugador2_perfil_id, row.puntos_jugador2, row.sets_jugador2, row.sets_jugador1, gamesJ2, gamesJ1);
  }
 
  // Guardar historial crudo para H2H en el sort
@@ -669,8 +693,8 @@ const Standings: React.FC = () => {
  pts: Number(row.puntos || 0),
  setsWon: Number(row.sets_ganados || 0),
  setsLost: Number(row.sets_perdidos || 0),
- gamesWon: 0,
- gamesLost: 0,
+ gamesWon: Number(row.games_ganados || 0),
+ gamesLost: Number(row.games_perdidos || 0),
  matches: [],
  }));
 
@@ -769,7 +793,7 @@ const Standings: React.FC = () => {
  return null;
  };
 
- // Orden de desempate: pts → dif.sets → sets ganados → H2H → promedio
+ // Orden de desempate: pts → dif.sets → sets ganados → H2H → dif. games
  const sorted = [...source].sort((a: any, b: any) => {
  if (b.pts !== a.pts) return b.pts - a.pts;
  const diffA = a.setsWon - a.setsLost;
@@ -779,17 +803,17 @@ const Standings: React.FC = () => {
  const h2h = getH2H(a.id, b.id);
  if (h2h === 'A') return -1;
  if (h2h === 'B') return 1;
- const avgA = a.pj > 0 ? a.pts / a.pj : 0;
- const avgB = b.pj > 0 ? b.pts / b.pj : 0;
- return avgB - avgA;
+ const gamesDiffA = (a.gamesWon || 0) - (a.gamesLost || 0);
+ const gamesDiffB = (b.gamesWon || 0) - (b.gamesLost || 0);
+ return gamesDiffB - gamesDiffA;
  });
 
  // Anotar el criterio de desempate aplicado entre cada jugador y el anterior con igual pts
  return sorted.map((p: any, idx: number) => {
- const average = p.pj > 0 ? (p.pts / p.pj).toFixed(2) : '0.00';
- if (idx === 0) return { ...p, average, tiebreakerReason: null as string | null };
+ const gamesDiff = (p.gamesWon || 0) - (p.gamesLost || 0);
+ if (idx === 0) return { ...p, gamesDiff, tiebreakerReason: null as string | null };
  const prev = sorted[idx - 1];
- if (prev.pts !== p.pts) return { ...p, average, tiebreakerReason: null as string | null };
+ if (prev.pts !== p.pts) return { ...p, gamesDiff, tiebreakerReason: null as string | null };
  // Mismo pts — identificar qué criterio los separó
  const diffP = prev.setsWon - prev.setsLost;
  const diffC = p.setsWon - p.setsLost;
@@ -800,11 +824,26 @@ const Standings: React.FC = () => {
  reason = 'Sets Gan.';
  } else {
  const h2h = getH2H(prev.id, p.id);
- reason = h2h ? 'H2H' : 'Promedio';
+ reason = h2h ? 'H2H' : 'Dif. Games';
  }
- return { ...p, average, tiebreakerReason: reason };
+ return { ...p, gamesDiff, tiebreakerReason: reason };
  });
  }, [dbRows, rawHistorial]);
+
+ const tableScrollRef = useRef<HTMLDivElement>(null);
+ const [canScrollRight, setCanScrollRight] = useState(false);
+
+ const updateScrollHint = useCallback(() => {
+ const el = tableScrollRef.current;
+ if (!el) return;
+ setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+ }, []);
+
+ useEffect(() => {
+ updateScrollHint();
+ window.addEventListener('resize', updateScrollHint);
+ return () => window.removeEventListener('resize', updateScrollHint);
+ }, [updateScrollHint, calculatedStandings.length]);
 
  return (
  <div className="relative flex h-full min-h-full w-full flex-col bg-background-light font-display text-slate-900 max-w-4xl mx-auto pb-24 md:pb-12 no-scrollbar overflow-y-auto">
@@ -917,7 +956,11 @@ const Standings: React.FC = () => {
  {dbLoadError}
  </div>
  )}
- <div className="overflow-x-auto no-scrollbar relative">
+ <div
+ ref={tableScrollRef}
+ onScroll={updateScrollHint}
+ className="overflow-x-auto no-scrollbar relative"
+ >
  <table className="w-full border-collapse min-w-[500px]">
  <thead className="bg-slate-50 ">
  <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
@@ -927,7 +970,7 @@ const Standings: React.FC = () => {
  <th className="px-3 py-3 text-center">Pts</th>
  <th className="px-3 py-3 text-center" title="Sets ganados − sets perdidos">Dif.S</th>
  <th className="px-3 py-3 text-center" title="Sets ganados">S.G</th>
- <th className="px-3 py-3 text-center" title="Promedio puntos/partido">Prom</th>
+ <th className="px-3 py-3 text-center" title="Diferencia de games (ganados − perdidos)">Dif.G</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100 ">
@@ -965,6 +1008,14 @@ const Standings: React.FC = () => {
  )}
  </tbody>
  </table>
+ <div
+ aria-hidden="true"
+ className={`pointer-events-none absolute right-0 top-0 bottom-0 w-10 flex items-center justify-end bg-gradient-to-l from-white via-white/80 to-transparent transition-opacity duration-300 ${
+ canScrollRight ? 'opacity-100' : 'opacity-0'
+ }`}
+ >
+ <span className="material-symbols-outlined text-slate-400 text-lg animate-bounce-x">chevron_right</span>
+ </div>
  </div>
 
  <div className="flex items-center gap-2 px-4 pt-3 pb-1">

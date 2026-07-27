@@ -28,7 +28,7 @@ export const TIEBREAKER_CRITERIA = [
   '2° Diferencia de sets (ganados − perdidos)',
   '3° Sets ganados (total)',
   '4° Resultado directo (H2H)',
-  '5° Promedio puntos/partido',
+  '5° Diferencia de games (ganados − perdidos)',
 ] as const;
 
 export const calculateStandings = (players: PlayerStats[], results: MatchScore[]) => {
@@ -127,10 +127,10 @@ export const calculateStandings = (players: PlayerStats[], results: MatchScore[]
     if (h2h === a.id) return -1;
     if (h2h === b.id) return 1;
 
-    // 5° Promedio puntos/partido
-    const avgA = a.pj > 0 ? a.pts / a.pj : 0;
-    const avgB = b.pj > 0 ? b.pts / b.pj : 0;
-    return avgB - avgA;
+    // 5° Diferencia de games (ganados − perdidos)
+    const gamesDiffA = a.gamesWon - a.gamesLost;
+    const gamesDiffB = b.gamesWon - b.gamesLost;
+    return gamesDiffB - gamesDiffA;
   });
 };
 

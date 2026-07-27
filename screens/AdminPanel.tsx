@@ -47,6 +47,13 @@ const AdminPanel: React.FC = () => {
   const [pairingError, setPairingError] = useState<string | null>(null);
   const [pairingRefreshKey, setPairingRefreshKey] = useState(0);
 
+  // Gestion de organizadores (asignar/revocar el rol organizador)
+  const [orgSearch, setOrgSearch] = useState('');
+  const [orgResults, setOrgResults] = useState<{ id: string; nombre_completo: string | null; email: string | null; rol: string | null }[]>([]);
+  const [orgSearching, setOrgSearching] = useState(false);
+  const [orgFeedback, setOrgFeedback] = useState<string | null>(null);
+  const [orgBusyId, setOrgBusyId] = useState<string | null>(null);
+
   // Redirect to login once we know for sure there's no server-verified session
   useEffect(() => {
     if (!loading && !authUser) {
@@ -380,6 +387,46 @@ const AdminPanel: React.FC = () => {
     navigate(destino, { state: { tournament, previewScope } });
   };
 
+  const buscarUsuarios = async () => {
+    const term = orgSearch.trim();
+    if (!term) {
+      setOrgResults([]);
+      return;
+    }
+    setOrgSearching(true);
+    setOrgFeedback(null);
+    const { data, error } = await supabase
+      .from('perfiles')
+      .select('id, nombre_completo, email, rol')
+      .or(`nombre_completo.ilike.%${term}%,email.ilike.%${term}%`)
+      .limit(10);
+    setOrgSearching(false);
+    if (error) {
+      console.error('[AdminPanel] buscarUsuarios error:', error);
+      setOrgFeedback('No se pudo buscar usuarios.');
+      return;
+    }
+    setOrgResults((data ?? []) as typeof orgResults);
+  };
+
+  const toggleOrganizador = async (perfilId: string, activar: boolean) => {
+    setOrgBusyId(perfilId);
+    setOrgFeedback(null);
+    const { error } = await supabase.rpc('asignar_rol_organizador', {
+      p_perfil_id: perfilId,
+      p_activar: activar,
+    });
+    setOrgBusyId(null);
+    if (error) {
+      setOrgFeedback(`Error: ${error.message}`);
+      return;
+    }
+    setOrgFeedback(activar ? 'Rol organizador asignado.' : 'Rol organizador revocado.');
+    setOrgResults((prev) => prev.map((u) => (
+      u.id === perfilId ? { ...u, rol: activar ? 'organizador' : 'jugador' } : u
+    )));
+  };
+
   // ADMIN PANEL - User is admin
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
@@ -457,6 +504,77 @@ const AdminPanel: React.FC = () => {
             >
               Gestionar Partidos (W.O.)
             </button>
+            <button
+              onClick={() => navigate('/organizador')}
+              className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              Mis Torneos (crear / administrar)
+            </button>
+          </div>
+
+          {/* Gestion de organizadores */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase mb-1">Organizadores</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Un organizador puede crear y administrar sus propios torneos (partidos, sorteos, inscripciones),
+              pero no puede designar otros administradores ni tocar torneos ajenos.
+            </p>
+
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={orgSearch}
+                onChange={(e) => setOrgSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && buscarUsuarios()}
+                placeholder="Buscar por nombre o email"
+                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm"
+              />
+              <button
+                onClick={buscarUsuarios}
+                disabled={orgSearching}
+                className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold px-4 rounded-lg disabled:opacity-50"
+              >
+                Buscar
+              </button>
+            </div>
+
+            {orgFeedback && (
+              <p className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-2 mb-3">
+                {orgFeedback}
+              </p>
+            )}
+
+            {orgResults.length > 0 && (
+              <div className="space-y-2">
+                {orgResults.map((u) => (
+                  <div key={u.id} className="border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 text-sm truncate">{u.nombre_completo || 'Sin nombre'}</p>
+                      <p className="text-xs text-slate-500 truncate">{u.email} · rol: {u.rol || 'jugador'}</p>
+                    </div>
+                    {u.rol === 'admin' ? (
+                      <span className="text-xs text-slate-400 shrink-0">admin</span>
+                    ) : u.rol === 'organizador' ? (
+                      <button
+                        onClick={() => toggleOrganizador(u.id, false)}
+                        disabled={orgBusyId === u.id}
+                        className="shrink-0 text-xs font-bold text-red-600 border border-red-200 rounded-lg px-3 py-2 disabled:opacity-50"
+                      >
+                        Quitar organizador
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => toggleOrganizador(u.id, true)}
+                        disabled={orgBusyId === u.id}
+                        className="shrink-0 text-xs font-bold text-white bg-emerald-600 rounded-lg px-3 py-2 disabled:opacity-50"
+                      >
+                        Hacer organizador
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Vista Previa */}

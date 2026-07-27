@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@keyframes bounce-x {
+ 0%, 100% { transform: translateX(0); }
+ 50% { transform: translateX(4px); }
+}
+
 @theme {
  /* === Colores del proyecto === */
  --color-primary: #13ec49;
@@ -84,6 +89,10 @@
  }
  .no-scrollbar::-webkit-scrollbar {
   display: none;
+ }
+ /* Rebote horizontal para el hint de "scrolleá para ver más" */
+ .animate-bounce-x {
+  animation: bounce-x 1.2s ease-in-out infinite;
  }
  /* Focus glow igual al mockup */
  .focus-glow:focus {

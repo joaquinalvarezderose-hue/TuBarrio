@@ -805,6 +805,8 @@ export type Database = {
           categoria: string
           creado_por: string | null
           created_at: string
+          games_ganados: number
+          games_perdidos: number
           grupo: string | null
           id: string
           jugador1_id: string
@@ -820,6 +822,8 @@ export type Database = {
           categoria: string
           creado_por?: string | null
           created_at?: string
+          games_ganados?: number
+          games_perdidos?: number
           grupo?: string | null
           id?: string
           jugador1_id: string
@@ -835,6 +839,8 @@ export type Database = {
           categoria?: string
           creado_por?: string | null
           created_at?: string
+          games_ganados?: number
+          games_perdidos?: number
           grupo?: string | null
           id?: string
           jugador1_id?: string
@@ -1072,6 +1078,8 @@ export type Database = {
         Row: {
           categoria: string | null
           created_at: string | null
+          games_ganados: number
+          games_perdidos: number
           grupo: string | null
           id: string
           partidos_jugados: number | null
@@ -1085,6 +1093,8 @@ export type Database = {
         Insert: {
           categoria?: string | null
           created_at?: string | null
+          games_ganados?: number
+          games_perdidos?: number
           grupo?: string | null
           id?: string
           partidos_jugados?: number | null
@@ -1098,6 +1108,8 @@ export type Database = {
         Update: {
           categoria?: string | null
           created_at?: string | null
+          games_ganados?: number
+          games_perdidos?: number
           grupo?: string | null
           id?: string
           partidos_jugados?: number | null
@@ -1582,6 +1594,8 @@ export type Database = {
         Row: {
           activo: boolean
           alias_pago: string | null
+          cancelado: boolean
+          creado_por: string | null
           created_at: string | null
           fecha_fin: string | null
           fecha_inicio: string | null
@@ -1595,6 +1609,8 @@ export type Database = {
         Insert: {
           activo?: boolean
           alias_pago?: string | null
+          cancelado?: boolean
+          creado_por?: string | null
           created_at?: string | null
           fecha_fin?: string | null
           fecha_inicio?: string | null
@@ -1608,6 +1624,8 @@ export type Database = {
         Update: {
           activo?: boolean
           alias_pago?: string | null
+          cancelado?: boolean
+          creado_por?: string | null
           created_at?: string | null
           fecha_fin?: string | null
           fecha_inicio?: string | null
@@ -1618,7 +1636,22 @@ export type Database = {
           updated_at?: string | null
           whatsapp_pago?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "torneos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       valoraciones_servicios: {
         Row: {
@@ -2005,6 +2038,25 @@ export type Database = {
         Args: { p_automatico?: boolean; p_partido_id: string }
         Returns: string
       }
+      actualizar_configuracion_torneo: {
+        Args: {
+          p_cantidad_mejores_terceros?: number
+          p_clasificados_por_grupo?: number
+          p_crear_playoffs_eliminacion_directa?: boolean
+          p_fecha_fin?: string
+          p_fecha_inicio?: string
+          p_imagen_url?: string
+          p_incluir_mejores_terceros?: boolean
+          p_max_participantes_por_grupo?: number
+          p_max_participantes_total?: number
+          p_min_participantes_por_grupo?: number
+          p_numero_grupos?: number
+          p_subtitulo?: string
+          p_titulo?: string
+          p_torneo_id: number
+        }
+        Returns: undefined
+      }
       add_users_to_tournament_group: {
         Args: {
           p_grupo: string
@@ -2040,6 +2092,14 @@ export type Database = {
         Args: { p_motivo?: string; p_partido_id: string }
         Returns: string
       }
+      archivar_torneo: {
+        Args: { p_activo: boolean; p_cancelado?: boolean; p_torneo_id: number }
+        Returns: undefined
+      }
+      asignar_rol_organizador: {
+        Args: { p_activar: boolean; p_perfil_id: string }
+        Returns: undefined
+      }
       auto_confirmar_resultados_equipos_vencidos: {
         Args: never
         Returns: number
@@ -2065,6 +2125,25 @@ export type Database = {
           p_torneo_id: number
         }
         Returns: string
+      }
+      crear_torneo: {
+        Args: {
+          p_cantidad_mejores_terceros?: number
+          p_clasificados_por_grupo?: number
+          p_crear_playoffs_eliminacion_directa?: boolean
+          p_fecha_fin?: string
+          p_fecha_inicio?: string
+          p_imagen_url?: string
+          p_incluir_mejores_terceros?: boolean
+          p_max_participantes_por_grupo?: number
+          p_max_participantes_total?: number
+          p_min_participantes_por_grupo?: number
+          p_modalidad?: string
+          p_numero_grupos?: number
+          p_subtitulo?: string
+          p_titulo: string
+        }
+        Returns: number
       }
       debug_stage_names: {
         Args: { p_torneo_id: number }
@@ -2180,6 +2259,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      is_organizador: { Args: never; Returns: boolean }
       jugador_clasifica_en_fase_grupos: {
         Args: { p_categoria: string; p_perfil_id: string; p_torneo_id: number }
         Returns: boolean
@@ -2195,6 +2275,10 @@ export type Database = {
       obtener_estado_jugador_torneo: {
         Args: { p_perfil_id: string; p_torneo_id: number }
         Returns: Json
+      }
+      puede_administrar_torneo: {
+        Args: { p_torneo_id: number }
+        Returns: boolean
       }
       registrar_participante_y_sortear_si_lleno: {
         Args: {
