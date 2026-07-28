@@ -194,7 +194,6 @@ const TournamentDetails: React.FC = () => {
  <div className="px-5 pb-8">
  <h3 className="text-lg font-bold leading-tight text-gray-900 mb-4 flex items-center gap-2">
  Requisitos
- <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">OBLIGATORIO</span>
  </h3>
  <div className="flex flex-col gap-3">
  <div className="flex items-center gap-4 rounded-xl bg-white p-4 border border-gray-100">
