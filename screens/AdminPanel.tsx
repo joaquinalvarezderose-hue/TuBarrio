@@ -510,6 +510,12 @@ const AdminPanel: React.FC = () => {
             >
               Mis Torneos (crear / administrar)
             </button>
+            <button
+              onClick={() => navigate('/golf/canchas')}
+              className="w-full mt-2 bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              Canchas de Golf (alta de hoyos)
+            </button>
           </div>
 
           {/* Gestion de organizadores */}

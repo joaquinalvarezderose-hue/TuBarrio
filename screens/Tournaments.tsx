@@ -46,6 +46,7 @@ type Torneo = {
  activo: boolean;
  alias_pago: string | null;
  whatsapp_pago: string | null;
+ deporte?: string;
 };
 
 type TorneoHistorialItem = {
@@ -152,7 +153,7 @@ const Tournaments: React.FC = () => {
  // Cargar inscripciones aprobadas/pendientes con datos del torneo en un solo query
  const { data: inscripcionesData, error: inscripcionesError } = await supabase
  .from('inscripciones_torneo')
- .select('torneo_id, estado, torneos(id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo)')
+ .select('torneo_id, estado, torneos(id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, deporte)')
  .eq('perfil_id', authUserId)
  .in('estado', ['pendiente_revision', 'pagado_aprobado']);
 
@@ -291,7 +292,7 @@ const jugadorIds = (jugadoresData || [])
  try {
  const { data, error } = await supabase
  .from('torneos')
- .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago')
+ .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago, deporte')
  .order('id', { ascending: true });
  if (error) throw error;
  const activos = ((data || []) as Torneo[]).filter((t) => t.activo !== false);
@@ -438,7 +439,10 @@ const jugadorIds = (jugadoresData || [])
  image: t.imagen_url || DEFAULT_TOURNAMENT_IMAGE,
  date: TOURNAMENT_SEASON_LABEL,
  alias_pago: t.alias_pago,
+ deporte: t.deporte || 'tenis',
  });
+
+ const isGolf = (t: Torneo) => (t.deporte || 'tenis') === 'golf';
 
  // Combinar torneos propios: primero los cargados directamente desde inscripciones,
  // luego completar con los de la lista general si hay IDs que no estén cubiertos
@@ -614,7 +618,8 @@ const jugadorIds = (jugadoresData || [])
  key={t.id}
  onClick={() => {
  if (canOpenPanel) {
- navigate('/tournament-panel', { state: { tournament: toNavTorneo(t) } });
+ const navTorneo = toNavTorneo(t);
+ navigate(isGolf(t) ? '/golf/panel' : '/tournament-panel', { state: { tournament: navTorneo } });
  }
  }}
  className={`bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 transition-all group ${canOpenPanel ? 'hover:scale-[1.01] hover:shadow-md cursor-pointer' : 'opacity-75 cursor-not-allowed'}`}

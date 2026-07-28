@@ -29,6 +29,14 @@ import Ayuda from './screens/Ayuda';
 import TermsAndConditions from './screens/TermsAndConditions';
 import CompleteProfile from './screens/CompleteProfile';
 import CoordinarPartido from './screens/CoordinarPartido';
+import GolfCanchaForm from './screens/golf/GolfCanchaForm';
+import GolfTorneoForm from './screens/golf/GolfTorneoForm';
+import GolfPanel from './screens/golf/GolfPanel';
+import GolfTeeTimes from './screens/golf/GolfTeeTimes';
+import GolfScorecard from './screens/golf/GolfScorecard';
+import GolfLeaderboard from './screens/golf/GolfLeaderboard';
+import GolfHoleInfo from './screens/golf/GolfHoleInfo';
+import GolfRules from './screens/golf/GolfRules';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import Welcome from './screens/Welcome';
@@ -148,6 +156,16 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           <Route path="/organizador/torneos/nuevo" element={user ? <OrganizadorTorneoForm /> : <Navigate to="/login" replace />} />
           <Route path="/organizador/torneos/:id/editar" element={user ? <OrganizadorTorneoForm /> : <Navigate to="/login" replace />} />
           <Route path="/organizador/torneos/:id" element={user ? <OrganizadorTorneoDetail /> : <Navigate to="/login" replace />} />
+
+          {/* Modulo de Golf */}
+          <Route path="/golf/canchas" element={user ? <GolfCanchaForm /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/organizador/nuevo" element={user ? <GolfTorneoForm /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/panel" element={user ? <GolfPanel /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/tee-times" element={user ? <GolfTeeTimes /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/scorecard" element={user ? <GolfScorecard /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/leaderboard" element={user ? <GolfLeaderboard /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/hoyo" element={user ? <GolfHoleInfo /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/rules" element={user ? <GolfRules /> : <Navigate to="/login" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

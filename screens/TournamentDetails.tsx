@@ -21,6 +21,9 @@ const TournamentDetails: React.FC = () => {
  subtitle: "Singles Damas y Caballeros",
  date: "Julio a Septiembre"
  };
+ const isGolf = String(tournament.deporte || 'tenis') === 'golf';
+ const panelPath = isGolf ? '/golf/panel' : '/tournament-panel';
+ const rulesPath = isGolf ? '/golf/rules' : '/rules';
 
  useEffect(() => {
  const checkRegistration = async () => {
@@ -164,7 +167,7 @@ const TournamentDetails: React.FC = () => {
  <p className="relative z-10 text-gray-900 text-base font-bold leading-snug">Del 1° al 4°</p>
  </div>
  <button
- onClick={() => navigate('/rules')}
+ onClick={() => navigate(rulesPath)}
  className="flex items-center justify-between gap-2 rounded-2xl p-3 bg-white border border-gray-100 shadow-sm relative overflow-hidden group text-left w-full active:scale-[0.98] transition-transform"
  >
  <div className="absolute -right-4 -top-4 size-16 rounded-full bg-[#6dec13]/10 group-hover:bg-[#6dec13]/20 transition-colors"></div>
@@ -225,10 +228,10 @@ const TournamentDetails: React.FC = () => {
  </div>
  </div>
  <button
- onClick={() => navigate('/tournament-panel', { state: { tournament } })}
+ onClick={() => navigate(panelPath, { state: { tournament } })}
  className="w-full bg-secondary hover:bg-secondary/90 active:scale-[0.98] transition-all text-white font-black text-lg h-14 rounded-xl shadow-lg flex items-center justify-center gap-2"
  >
- <span className="material-symbols-outlined font-black">sports_tennis</span>
+ <span className="material-symbols-outlined font-black">{isGolf ? 'golf_course' : 'sports_tennis'}</span>
  <span>Ir a mi Panel</span>
  </button>
  </div>
@@ -242,7 +245,7 @@ const TournamentDetails: React.FC = () => {
  </div>
  </div>
  <button
- onClick={() => navigate('/tournament-panel', { state: { tournament } })}
+ onClick={() => navigate(panelPath, { state: { tournament } })}
  className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] transition-all text-white font-black text-lg h-14 rounded-xl shadow-lg flex items-center justify-center gap-2"
  >
  <span className="material-symbols-outlined font-black">tune</span>
