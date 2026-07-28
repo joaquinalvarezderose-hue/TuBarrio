@@ -1856,6 +1856,7 @@ export type Database = {
           imagen_url: string | null
           precio_expensas: number
           precio_transferencia: number
+          premios: string
           subtitulo: string | null
           titulo: string
           updated_at: string | null
@@ -1874,6 +1875,7 @@ export type Database = {
           imagen_url?: string | null
           precio_expensas?: number
           precio_transferencia?: number
+          premios?: string
           subtitulo?: string | null
           titulo: string
           updated_at?: string | null
@@ -1892,6 +1894,7 @@ export type Database = {
           imagen_url?: string | null
           precio_expensas?: number
           precio_transferencia?: number
+          premios?: string
           subtitulo?: string | null
           titulo?: string
           updated_at?: string | null
@@ -2314,6 +2317,7 @@ export type Database = {
           p_numero_grupos?: number
           p_precio_expensas?: number
           p_precio_transferencia?: number
+          p_premios?: string
           p_subtitulo?: string
           p_titulo?: string
           p_torneo_id: number
@@ -2444,6 +2448,7 @@ export type Database = {
           p_numero_grupos?: number
           p_precio_expensas?: number
           p_precio_transferencia?: number
+          p_premios?: string
           p_subtitulo?: string
           p_titulo: string
         }

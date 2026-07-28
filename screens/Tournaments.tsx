@@ -48,6 +48,7 @@ type Torneo = {
  whatsapp_pago: string | null;
  precio_expensas?: number | null;
  precio_transferencia?: number | null;
+ premios?: string | null;
  deporte?: string;
 };
 
@@ -294,7 +295,7 @@ const jugadorIds = (jugadoresData || [])
  try {
  const { data, error } = await supabase
  .from('torneos')
- .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago, precio_expensas, precio_transferencia, deporte')
+ .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago, precio_expensas, precio_transferencia, premios, deporte')
  .order('id', { ascending: true });
  if (error) throw error;
  const activos = ((data || []) as Torneo[]).filter((t) => t.activo !== false);
@@ -443,6 +444,7 @@ const jugadorIds = (jugadoresData || [])
  alias_pago: t.alias_pago,
  precio_expensas: t.precio_expensas,
  precio_transferencia: t.precio_transferencia,
+ premios: t.premios,
  deporte: t.deporte || 'tenis',
  });
 

@@ -32,6 +32,7 @@ const TournamentDetails: React.FC = () => {
  const montoTransferir = Number(tournament.precio_transferencia ?? 45000);
  const costoInscripcion = montoExpensas + montoTransferir;
  const formatMonto = (n: number) => `$${n.toLocaleString('es-AR')}`;
+ const premios = tournament.premios || 'Del 1° al 4°';
 
  useEffect(() => {
  const checkRegistration = async () => {
@@ -172,7 +173,7 @@ const TournamentDetails: React.FC = () => {
  <span className="material-symbols-outlined text-[18px]">emoji_events</span>
  <span className="text-sm font-medium">Premios</span>
  </div>
- <p className="relative z-10 text-gray-900 text-base font-bold leading-snug">Del 1° al 4°</p>
+ <p className="relative z-10 text-gray-900 text-base font-bold leading-snug">{premios}</p>
  </div>
  <button
  onClick={() => navigate(rulesPath)}

@@ -21,6 +21,7 @@ interface FormState {
   cantidad_mejores_terceros: string;
   precio_expensas: string;
   precio_transferencia: string;
+  premios: string;
 }
 
 const emptyForm: FormState = {
@@ -40,6 +41,7 @@ const emptyForm: FormState = {
   cantidad_mejores_terceros: '',
   precio_expensas: '5000',
   precio_transferencia: '45000',
+  premios: 'Del 1° al 4°',
 };
 
 const toIntOrNull = (v: string): number | null => {
@@ -95,6 +97,7 @@ const OrganizadorTorneoForm: React.FC = () => {
         cantidad_mejores_terceros: config?.cantidad_mejores_terceros != null ? String(config.cantidad_mejores_terceros) : '',
         precio_expensas: torneo.precio_expensas != null ? String(torneo.precio_expensas) : '5000',
         precio_transferencia: torneo.precio_transferencia != null ? String(torneo.precio_transferencia) : '45000',
+        premios: torneo.premios ?? 'Del 1° al 4°',
       });
     })();
     return () => { cancelled = true; };
@@ -124,6 +127,7 @@ const OrganizadorTorneoForm: React.FC = () => {
       p_cantidad_mejores_terceros: toIntOrNull(form.cantidad_mejores_terceros),
       p_precio_expensas: toNumberOrNull(form.precio_expensas),
       p_precio_transferencia: toNumberOrNull(form.precio_transferencia),
+      p_premios: form.premios.trim() || null,
     };
 
     if (isEditing && id) {
@@ -292,6 +296,17 @@ const OrganizadorTorneoForm: React.FC = () => {
               (toNumberOrNull(form.precio_expensas) ?? 0) + (toNumberOrNull(form.precio_transferencia) ?? 0)
             ).toLocaleString('es-AR')}
           </p>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-500">Premios</label>
+            <input
+              type="text"
+              value={form.premios}
+              onChange={(e) => update('premios', e.target.value)}
+              placeholder="Ej: Del 1° al 4°"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1"
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
