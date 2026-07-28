@@ -5,6 +5,7 @@ import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 import Logo from '../components/Logo';
 import { useRequireAuth } from '../hooks/useRequireAuth';
+import { formatTournamentDate } from '../utils/tournamentDate';
 
 const TournamentDetails: React.FC = () => {
  const navigate = useNavigate();
@@ -19,7 +20,7 @@ const TournamentDetails: React.FC = () => {
  id: 1,
  title: "Abierto de Tenis TuBarrio",
  subtitle: "Singles Damas y Caballeros",
- date: "Julio a Septiembre"
+ date: formatTournamentDate(null, null)
  };
  const isGolf = String(tournament.deporte || 'tenis') === 'golf';
  const panelPath = isGolf ? '/golf/panel' : '/tournament-panel';
@@ -124,7 +125,7 @@ const TournamentDetails: React.FC = () => {
  </div>
  <div className="flex flex-1 flex-col py-2 pb-6">
  <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">FECHAS DEL TORNEO</p>
- <p className="text-gray-900 text-lg font-medium leading-normal">Julio a Septiembre</p>
+ <p className="text-gray-900 text-lg font-medium leading-normal">{tournament.date}</p>
  </div>
 
  <div className="flex flex-col items-center gap-1">

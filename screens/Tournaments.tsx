@@ -6,6 +6,7 @@ import Logo from '../components/Logo';
 import RankingCategorias from '../components/RankingCategorias';
 import SponsorBanner from '../components/SponsorBanner';
 import { SkeletonImageCard } from '../components/Skeleton';
+import { formatTournamentDate } from '../utils/tournamentDate';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -31,7 +32,6 @@ const STATUS_PRIORITY: Record<string, number> = {
 };
 
 const getStatusPriority = (status?: string) => STATUS_PRIORITY[normalizeStatus(status)] ?? 0;
-const TOURNAMENT_SEASON_LABEL = 'Julio a Septiembre';
 
 const isTournamentOpenForSignup = (status?: string) => OPEN_SIGNUP_STATUSES.has(normalizeStatus(status));
 const isTournamentReadyForPanel = (status?: string) => PANEL_READY_STATUSES.has(normalizeStatus(status));
@@ -439,7 +439,7 @@ const jugadorIds = (jugadoresData || [])
  title: t.titulo,
  subtitle: t.subtitulo,
  image: t.imagen_url || DEFAULT_TOURNAMENT_IMAGE,
- date: TOURNAMENT_SEASON_LABEL,
+ date: formatTournamentDate(t.fecha_inicio, t.fecha_fin),
  alias_pago: t.alias_pago,
  precio_expensas: t.precio_expensas,
  precio_transferencia: t.precio_transferencia,
@@ -542,7 +542,7 @@ const jugadorIds = (jugadoresData || [])
  <div className="flex items-center gap-2 text-secondary-text text-sm">
  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
  <span>
- {TOURNAMENT_SEASON_LABEL}
+ {formatTournamentDate(tournament.fecha_inicio, tournament.fecha_fin)}
  </span>
  </div>
  </div>

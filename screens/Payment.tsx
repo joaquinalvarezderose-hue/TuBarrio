@@ -4,8 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 import { toWhatsAppLink } from '../utils/whatsapp';
-
-const TOURNAMENT_SEASON_LABEL = 'Julio a Septiembre';
+import { formatTournamentDate } from '../utils/tournamentDate';
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +15,7 @@ const Payment: React.FC = () => {
     id: 1,
     title: "Barrio Tennis Open",
     subtitle: "Inscripción Individual • Caballeros",
-    date: "Sáb, 24 Oct • 9:00 AM"
+    date: formatTournamentDate(null, null)
   };
 
   const aliasDestino = tournament.alias_pago ?? 'torneo.canton';
@@ -172,7 +171,7 @@ const Payment: React.FC = () => {
             <div className="flex flex-col justify-center">
               <h2 className="text-[#111813] font-black text-lg leading-tight">{tournament.title}</h2>
               <p className="text-gray-500 text-sm mt-1 font-bold">{tournament.subtitle}</p>
-              <p className="text-gray-400 text-[11px] mt-0.5 font-bold uppercase tracking-tighter opacity-80">{TOURNAMENT_SEASON_LABEL}</p>
+              <p className="text-gray-400 text-[11px] mt-0.5 font-bold uppercase tracking-tighter opacity-80">{tournament.date}</p>
             </div>
           </div>
         <section className="mb-2 md:max-w-xl">

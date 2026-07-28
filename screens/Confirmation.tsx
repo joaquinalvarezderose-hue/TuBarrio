@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
+import { formatTournamentDate } from '../utils/tournamentDate';
 
 const Confirmation: React.FC = () => {
   const navigate = useNavigate();
@@ -10,16 +11,14 @@ const Confirmation: React.FC = () => {
     id: 1, 
     title: "Abierto de Tenis TuBarrio",
     subtitle: "Singles Caballeros",
-    date: "Sáb, 24 Oct • 09:00 AM"
+    date: formatTournamentDate(null, null)
   };
   const enrollmentStatus = location.state?.enrollmentStatus || 'pendiente_revision';
 
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };
-  const seasonLabel = "Julio a Septiembre";
-
   const handleShareWhatsapp = () => {
-    const message = `Hola! Me inscribi en ${tournament.title} (${tournament.subtitle}) - temporada ${seasonLabel}. Sumate en TuBarrio.`;
+    const message = `Hola! Me inscribi en ${tournament.title} (${tournament.subtitle}) - temporada ${tournament.date}. Sumate en TuBarrio.`;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -99,7 +98,7 @@ const Confirmation: React.FC = () => {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Temporada</span>
-                    <span className="text-sm font-black text-secondary">{seasonLabel}</span>
+                    <span className="text-sm font-black text-secondary">{tournament.date}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
