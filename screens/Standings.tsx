@@ -831,15 +831,12 @@ const Standings: React.FC = () => {
  }, [dbRows, rawHistorial]);
 
  const tableScrollRef = useRef<HTMLDivElement>(null);
- const theadRef = useRef<HTMLTableSectionElement>(null);
  const [canScrollRight, setCanScrollRight] = useState(false);
- const [headerHeight, setHeaderHeight] = useState(0);
 
  const updateScrollHint = useCallback(() => {
  const el = tableScrollRef.current;
  if (!el) return;
  setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
- setHeaderHeight(theadRef.current?.getBoundingClientRect().height || 0);
  }, []);
 
  useEffect(() => {
@@ -962,10 +959,10 @@ const Standings: React.FC = () => {
  <div
  ref={tableScrollRef}
  onScroll={updateScrollHint}
- className="overflow-x-auto no-scrollbar relative"
+ className="overflow-x-auto no-scrollbar relative flex"
  >
- <table className="w-full border-collapse min-w-[500px]">
- <thead ref={theadRef} className="bg-slate-50 ">
+ <table className="w-full border-collapse min-w-[500px] shrink-0">
+ <thead className="bg-slate-50 ">
  <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
  <th className="px-4 py-3 sticky left-0 z-20 bg-slate-50 w-12 text-center">Pos</th>
  <th className="px-4 py-3 sticky left-12 z-20 bg-slate-50 min-w-[220px] shadow-[8px_0_10px_-10px_rgba(0,0,0,0.35)]">Jugador</th>
@@ -1011,16 +1008,16 @@ const Standings: React.FC = () => {
  )}
  </tbody>
  </table>
- {/* Hint de scroll horizontal: solo se superpone al header (bg-slate-50 uniforme)
- para no ensuciar filas con fondo de color (clasificado/tercero) */}
+ {/* Hint de scroll horizontal: sticky (no absolute) para que se mantenga pegado
+ al borde derecho del viewport mientras se scrollea, y solo se despegue al
+ llegar al final real de la tabla (contenedor flex para que herede la altura) */}
  <div
  aria-hidden="true"
- style={{ height: headerHeight || undefined }}
- className={`pointer-events-none absolute right-0 top-0 w-8 flex items-center justify-end bg-gradient-to-l from-slate-50 to-transparent transition-opacity duration-300 ${
+ className={`sticky right-0 shrink-0 pointer-events-none w-10 flex items-center justify-end bg-gradient-to-l from-white via-white/80 to-transparent transition-opacity duration-300 ${
  canScrollRight ? 'opacity-100' : 'opacity-0'
  }`}
  >
- <span className="material-symbols-outlined text-base text-slate-400 animate-bounce-x">chevron_right</span>
+ <span className="material-symbols-outlined text-lg text-slate-400 animate-bounce-x">chevron_right</span>
  </div>
  </div>
 
