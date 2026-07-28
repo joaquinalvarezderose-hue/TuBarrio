@@ -22,6 +22,13 @@ const Payment: React.FC = () => {
   const aliasDestino = tournament.alias_pago ?? 'torneo.canton';
   const whatsappDestino = '+54 9 11 6421-9155';
 
+  // Fallback solo para el caso de que el torneo llegue sin estos campos
+  // (ej: flujo de intent/deep link que no selecciona todas las columnas).
+  const montoExpensas = Number(tournament.precio_expensas ?? 5000);
+  const montoTransferir = Number(tournament.precio_transferencia ?? 45000);
+  const costoInscripcion = montoExpensas + montoTransferir;
+  const formatMonto = (n: number) => `$${n.toLocaleString('es-AR')}`;
+
   const handleManualPaymentSubmit = async () => {
     setError(null);
     setLoading(true);
@@ -80,7 +87,7 @@ const Payment: React.FC = () => {
         torneo_id: Number(tournament.id),
         perfil_id: perfilId,
         estado: 'pendiente_revision',
-        monto: 50000,
+        monto: costoInscripcion,
         moneda: 'ARS',
         metodo_pago: 'transferencia_alias',
         categoria: tournament.subtitle || 'General',
@@ -173,16 +180,16 @@ const Payment: React.FC = () => {
           <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Costo de Inscripción</span>
-              <span className="text-[#111813] font-black">$50.000</span>
+              <span className="text-[#111813] font-black">{formatMonto(costoInscripcion)}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Expensas del barrio</span>
-              <span className="text-[#111813] font-black">$5.000</span>
+              <span className="text-[#111813] font-black">{formatMonto(montoExpensas)}</span>
             </div>
             <div className="h-px bg-gray-100 my-1"></div>
             <div className="flex justify-between items-center">
               <span className="text-[#111813] font-black text-lg tracking-tight">Total a transferir</span>
-              <span className="text-[#111813] font-black text-2xl tracking-tighter">$45.000</span>
+              <span className="text-[#111813] font-black text-2xl tracking-tighter">{formatMonto(montoTransferir)}</span>
             </div>
           </div>
         </section>
@@ -242,7 +249,7 @@ const Payment: React.FC = () => {
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 items-start">
                 <span className="material-symbols-outlined text-amber-500 text-xl mt-0.5">warning</span>
                 <p className="text-sm text-[#111813] font-bold leading-snug">
-                  El costo total es $50.000, pero <span className="text-amber-700">transferí solo $45.000</span>. Los $5.000 restantes se cobran por expensas del barrio.
+                  El costo total es {formatMonto(costoInscripcion)}, pero <span className="text-amber-700">transferí solo {formatMonto(montoTransferir)}</span>. Los {formatMonto(montoExpensas)} restantes se cobran por expensas del barrio.
                 </p>
               </div>
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex gap-2 items-start">

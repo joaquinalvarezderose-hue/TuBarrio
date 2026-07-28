@@ -19,6 +19,8 @@ interface FormState {
   crear_playoffs_eliminacion_directa: boolean;
   incluir_mejores_terceros: boolean;
   cantidad_mejores_terceros: string;
+  precio_expensas: string;
+  precio_transferencia: string;
 }
 
 const emptyForm: FormState = {
@@ -36,10 +38,17 @@ const emptyForm: FormState = {
   crear_playoffs_eliminacion_directa: false,
   incluir_mejores_terceros: false,
   cantidad_mejores_terceros: '',
+  precio_expensas: '5000',
+  precio_transferencia: '45000',
 };
 
 const toIntOrNull = (v: string): number | null => {
   const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+};
+
+const toNumberOrNull = (v: string): number | null => {
+  const n = parseFloat(v);
   return Number.isFinite(n) ? n : null;
 };
 
@@ -84,6 +93,8 @@ const OrganizadorTorneoForm: React.FC = () => {
         crear_playoffs_eliminacion_directa: !!config?.crear_playoffs_eliminacion_directa,
         incluir_mejores_terceros: !!config?.incluir_mejores_terceros,
         cantidad_mejores_terceros: config?.cantidad_mejores_terceros != null ? String(config.cantidad_mejores_terceros) : '',
+        precio_expensas: torneo.precio_expensas != null ? String(torneo.precio_expensas) : '5000',
+        precio_transferencia: torneo.precio_transferencia != null ? String(torneo.precio_transferencia) : '45000',
       });
     })();
     return () => { cancelled = true; };
@@ -111,6 +122,8 @@ const OrganizadorTorneoForm: React.FC = () => {
       p_crear_playoffs_eliminacion_directa: form.crear_playoffs_eliminacion_directa,
       p_incluir_mejores_terceros: form.incluir_mejores_terceros,
       p_cantidad_mejores_terceros: toIntOrNull(form.cantidad_mejores_terceros),
+      p_precio_expensas: toNumberOrNull(form.precio_expensas),
+      p_precio_transferencia: toNumberOrNull(form.precio_transferencia),
     };
 
     if (isEditing && id) {
@@ -249,6 +262,36 @@ const OrganizadorTorneoForm: React.FC = () => {
               </select>
             </div>
           )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-slate-600 uppercase">Pago de inscripcion</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Precio expensas ($)</label>
+              <input
+                type="number" min={0} step="0.01"
+                value={form.precio_expensas}
+                onChange={(e) => update('precio_expensas', e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500">Precio a transferir ($)</label>
+              <input
+                type="number" min={0} step="0.01"
+                value={form.precio_transferencia}
+                onChange={(e) => update('precio_transferencia', e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-slate-400">
+            Costo total de inscripcion: ${(
+              (toNumberOrNull(form.precio_expensas) ?? 0) + (toNumberOrNull(form.precio_transferencia) ?? 0)
+            ).toLocaleString('es-AR')}
+          </p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">

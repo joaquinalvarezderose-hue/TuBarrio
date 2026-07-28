@@ -1854,6 +1854,8 @@ export type Database = {
           fecha_inicio: string | null
           id: number
           imagen_url: string | null
+          precio_expensas: number
+          precio_transferencia: number
           subtitulo: string | null
           titulo: string
           updated_at: string | null
@@ -1870,6 +1872,8 @@ export type Database = {
           fecha_inicio?: string | null
           id?: number
           imagen_url?: string | null
+          precio_expensas?: number
+          precio_transferencia?: number
           subtitulo?: string | null
           titulo: string
           updated_at?: string | null
@@ -1886,6 +1890,8 @@ export type Database = {
           fecha_inicio?: string | null
           id?: number
           imagen_url?: string | null
+          precio_expensas?: number
+          precio_transferencia?: number
           subtitulo?: string | null
           titulo?: string
           updated_at?: string | null
@@ -2306,6 +2312,8 @@ export type Database = {
           p_max_participantes_total?: number
           p_min_participantes_por_grupo?: number
           p_numero_grupos?: number
+          p_precio_expensas?: number
+          p_precio_transferencia?: number
           p_subtitulo?: string
           p_titulo?: string
           p_torneo_id: number
@@ -2434,6 +2442,8 @@ export type Database = {
           p_min_participantes_por_grupo?: number
           p_modalidad?: string
           p_numero_grupos?: number
+          p_precio_expensas?: number
+          p_precio_transferencia?: number
           p_subtitulo?: string
           p_titulo: string
         }
