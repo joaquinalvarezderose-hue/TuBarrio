@@ -10,6 +10,8 @@ type Franja = 'mañana' | 'tarde' | 'noche';
 type Slot = { dia: number; franja: Franja };
 type EstadoCoord = 'pendiente' | 'pactado' | 'manual';
 
+type Participante = { id: string; nombre: string; whatsapp: string | null };
+
 type CoordinarPartidoState = {
   partido: {
     id: string;
@@ -23,6 +25,11 @@ type CoordinarPartidoState = {
   rivalNombre: string;
   rivalWhatsapp: string | null;
   myWhatsapp: string | null;
+  // Solo presentes cuando el partido es de dobles (ver CoordinarPartidoDobles más abajo).
+  equipo1_id?: string;
+  equipo2_id?: string;
+  companero?: Participante | null;
+  rivales?: Participante[];
 };
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -43,6 +50,21 @@ function findAllOverlaps(slotsJ1: Slot[], slotsJ2: Slot[]): Slot[] {
     for (const { id: franja } of FRANJAS) {
       if (slotsJ1.some(s => s.dia === dia && s.franja === franja) &&
           slotsJ2.some(s => s.dia === dia && s.franja === franja)) {
+        result.push({ dia, franja });
+      }
+    }
+  }
+  return result;
+}
+
+// Generalización N-aria de findAllOverlaps, usada solo por el flujo de dobles
+// (CoordinarPartidoDobles): una franja cuenta como coincidencia únicamente si
+// los 4 participantes la marcaron disponible.
+function findCommonSlotsN(slotsList: Slot[][]): Slot[] {
+  const result: Slot[] = [];
+  for (let dia = 0; dia <= 6; dia++) {
+    for (const { id: franja } of FRANJAS) {
+      if (slotsList.every(slots => slots.some(s => s.dia === dia && s.franja === franja))) {
         result.push({ dia, franja });
       }
     }
@@ -128,9 +150,9 @@ const DisponibilidadGrid: React.FC<DisponibilidadGridProps> = ({ slots, editable
   </div>
 );
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+// ─── Componente principal (singles) ────────────────────────────────────────
 
-const CoordinarPartido: React.FC = () => {
+const CoordinarPartidoSingles: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as CoordinarPartidoState | null;
@@ -637,6 +659,506 @@ const CoordinarPartido: React.FC = () => {
       </main>
     </div>
   );
+};
+
+// ─── Componente principal (dobles) ─────────────────────────────────────────
+// Espejo de CoordinarPartidoSingles pero para 4 participantes (yo, mi
+// compañero, 2 rivales). Una franja solo cuenta como coincidencia si los 4
+// la marcaron disponible. No reutiliza ni modifica el estado/lógica de
+// CoordinarPartidoSingles.
+
+const CoordinarPartidoDobles: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as CoordinarPartidoState | null;
+
+  const [currentUserId, setCurrentUserId] = useState('');
+
+  const [mySlots, setMySlots] = useState<Slot[]>([]);
+  const [mySubmitted, setMySubmitted] = useState(false);
+  const [othersSlots, setOthersSlots] = useState<Record<string, Slot[]>>({});
+  const [othersSubmitted, setOthersSubmitted] = useState<Record<string, boolean>>({});
+
+  const [editingSlots, setEditingSlots] = useState<Slot[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [estadoCoord, setEstadoCoord] = useState<EstadoCoord>('pendiente');
+  const [horarioPactado, setHorarioPactado] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const companero = state?.companero ?? null;
+  const rivales = state?.rivales ?? [];
+  const rival1 = rivales[0] ?? null;
+  const rival2 = rivales[1] ?? null;
+
+  const otherParticipants = useMemo<Participante[]>(
+    () => [companero, rival1, rival2].filter((p): p is Participante => !!p?.id),
+    [companero, rival1, rival2],
+  );
+
+  const allSubmitted = mySubmitted && otherParticipants.every(p => othersSubmitted[p.id]);
+
+  const overlaps = useMemo<Slot[]>(() => {
+    if (!allSubmitted) return [];
+    return findCommonSlotsN([mySlots, ...otherParticipants.map(p => othersSlots[p.id] ?? [])]);
+  }, [mySlots, othersSlots, allSubmitted, otherParticipants]);
+
+  const faltantes = useMemo(() => {
+    const nombres: string[] = [];
+    if (!mySubmitted) nombres.push('vos');
+    for (const p of otherParticipants) {
+      if (!othersSubmitted[p.id]) nombres.push(p.nombre.split(' ')[0]);
+    }
+    return nombres;
+  }, [mySubmitted, otherParticipants, othersSubmitted]);
+
+  // ── Cargar datos ───────────────────────────────────────────────────────────
+
+  const fetchData = useCallback(async (userId: string) => {
+    if (!state?.partido?.id) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [matchRes, dispRes] = await Promise.all([
+        supabase
+          .from('partidos')
+          .select('estado_coordinacion, horario_pactado')
+          .eq('id', state.partido.id)
+          .maybeSingle(),
+        supabase
+          .from('partido_disponibilidad')
+          .select('perfil_id, slots')
+          .eq('partido_id', state.partido.id),
+      ]);
+
+      if (matchRes.data) {
+        setEstadoCoord((matchRes.data as any).estado_coordinacion ?? 'pendiente');
+        setHorarioPactado((matchRes.data as any).horario_pactado ?? null);
+      }
+
+      const rows = (dispRes.data ?? []) as { perfil_id: string; slots: Slot[] }[];
+      const byId = new Map(rows.map(r => [r.perfil_id, r.slots ?? []]));
+
+      const myRow = byId.get(userId);
+      if (myRow) {
+        setMySlots(myRow);
+        setMySubmitted(true);
+        setIsEditing(false);
+      } else {
+        setMySlots([]);
+        setMySubmitted(false);
+        setIsEditing(true);
+      }
+
+      const nextOthersSlots: Record<string, Slot[]> = {};
+      const nextOthersSubmitted: Record<string, boolean> = {};
+      for (const p of otherParticipants) {
+        const row = byId.get(p.id);
+        nextOthersSlots[p.id] = row ?? [];
+        nextOthersSubmitted[p.id] = !!row;
+      }
+      setOthersSlots(nextOthersSlots);
+      setOthersSubmitted(nextOthersSubmitted);
+    } catch {
+      setError('No se pudo cargar la información del partido.');
+    } finally {
+      setLoading(false);
+    }
+  }, [state?.partido?.id, otherParticipants]);
+
+  // ── Init: resolver userId ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const init = async () => {
+      let uid = '';
+      try {
+        const { data } = await supabase.auth.getUser();
+        uid = data?.user?.id ?? '';
+      } catch { /* ignorar */ }
+
+      if (!uid) {
+        try {
+          const stored = localStorage.getItem('app_user');
+          uid = stored ? (JSON.parse(stored)?.id ?? '') : '';
+        } catch { /* ignorar */ }
+      }
+
+      setCurrentUserId(uid);
+      if (uid) fetchData(uid);
+    };
+    init();
+  }, [fetchData]);
+
+  // ── Toggle slot en el editor ───────────────────────────────────────────────
+
+  const handleToggle = useCallback((dia: number, franja: Franja) => {
+    setEditingSlots(prev => {
+      const exists = prev.some(s => s.dia === dia && s.franja === franja);
+      if (exists) return prev.filter(s => !(s.dia === dia && s.franja === franja));
+      return [...prev, { dia, franja }];
+    });
+  }, []);
+
+  const startEditing = () => {
+    setEditingSlots(mySubmitted ? [...mySlots] : []);
+    setIsEditing(true);
+  };
+
+  // ── Guardar disponibilidad (upsert) ───────────────────────────────────────
+
+  const handleSave = async () => {
+    if (!currentUserId || !state?.partido?.id) return;
+    if (editingSlots.length === 0) {
+      setError('Seleccioná al menos una franja horaria.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const { error: upsertErr } = await supabase
+        .from('partido_disponibilidad')
+        .upsert(
+          { partido_id: state.partido.id, perfil_id: currentUserId, slots: editingSlots },
+          { onConflict: 'partido_id,perfil_id' },
+        );
+      if (upsertErr) throw upsertErr;
+      await fetchData(currentUserId);
+    } catch (err: any) {
+      setError(err?.message ?? 'No se pudo guardar la disponibilidad.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Coordinar por WhatsApp con un rival puntual ───────────────────────────
+
+  const handleManual = async (rival: Participante | null, msg?: string) => {
+    if (state?.partido?.id) {
+      supabase.rpc('set_coordinacion_manual_equipo', { p_partido_id: state.partido.id }).then(() => {
+        setEstadoCoord('manual');
+      });
+    }
+    const link = toWhatsAppLink(rival?.whatsapp ?? null);
+    if (link) {
+      const url = msg ? `${link}?text=${encodeURIComponent(msg)}` : link;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // ─── Guard ────────────────────────────────────────────────────────────────
+
+  if (!state?.partido?.id) return <Navigate to="/tournament-panel" replace />;
+
+  const rivalesNombre = [rival1?.nombre, rival2?.nombre].filter(Boolean).join(' / ') || 'Rivales';
+
+  const pactadoFranja = horarioPactado
+    ? (() => {
+        const d = new Date(horarioPactado);
+        const hora = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        const fecha = d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+        return { hora, fecha };
+      })()
+    : null;
+
+  const otrosRivales: Participante[] = [rival1, rival2].filter((r): r is Participante => !!r);
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  return (
+    <div className="min-h-screen bg-[#f6f8f6] flex flex-col">
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#f6f8f6]/90 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-3xl mx-auto px-4 md:px-8 py-4 flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="size-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[#111813]" style={{ fontSize: 22 }}>arrow_back_ios</span>
+        </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base md:text-lg font-bold text-[#111813] font-[Lexend]">Coordinar Partido</h1>
+          <p className="text-xs md:text-sm text-gray-500 font-medium truncate">vs. {rivalesNombre}</p>
+        </div>
+        {estadoCoord === 'pendiente' && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold uppercase tracking-wide shrink-0">
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>schedule</span>
+            Pendiente
+          </span>
+        )}
+        {estadoCoord === 'pactado' && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-[#0eb538] text-[10px] font-bold uppercase tracking-wide shrink-0">
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>
+            Confirmado
+          </span>
+        )}
+        {estadoCoord === 'manual' && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[10px] font-bold uppercase tracking-wide shrink-0">
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>chat</span>
+            Manual
+          </span>
+        )}
+        </div>
+      </header>
+
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 md:px-8 py-5 md:py-8 space-y-4 pb-10">
+
+        {loading ? (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gray-200" />
+              <Skeleton className="h-4 w-40 mb-4" />
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 21 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </div>
+        ) : (
+          <>
+            {/* ── Estado PACTADO ──────────────────────────────────────────── */}
+            {estadoCoord === 'pactado' && pactadoFranja && (
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-[#13ec49]" />
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-[#13ec49]" style={{ fontSize: 28 }}>event_available</span>
+                  <div>
+                    <p className="text-xs font-bold text-[#13ec49] uppercase tracking-wider">¡Horario confirmado!</p>
+                    <h2 className="text-lg font-black text-[#111813] font-[Lexend] capitalize">{pactadoFranja.fecha}</h2>
+                    <p className="text-sm font-bold text-[#4a9c40]">{pactadoFranja.hora}</p>
+                  </div>
+                </div>
+
+                {/* WhatsApp links con los rivales — solo visibles en estado pactado */}
+                <div className="space-y-2.5">
+                  {otrosRivales.map(r => toWhatsAppLink(r.whatsapp) && (
+                    <a
+                      key={r.id}
+                      href={toWhatsAppLink(r.whatsapp)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#25D366] text-white font-bold text-sm shadow-md active:scale-[0.98] transition-all"
+                    >
+                      <WhatsAppIcon />
+                      WhatsApp de {r.nombre.split(' ')[0]}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Mi disponibilidad ───────────────────────────────────────── */}
+            {estadoCoord !== 'pactado' && (
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-[#13ec49]" />
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-[#111813] text-sm">Mi disponibilidad</h3>
+                  {mySubmitted && !isEditing && (
+                    <button
+                      onClick={startEditing}
+                      className="text-xs font-bold text-[#4a9c40] underline underline-offset-2"
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
+
+                {isEditing ? (
+                  <>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Seleccioná los días y franjas en que podés jugar. El partido dura 2 horas dentro de cada franja.
+                    </p>
+                    <DisponibilidadGrid
+                      slots={editingSlots}
+                      editable
+                      onToggle={handleToggle}
+                    />
+                    {error && (
+                      <p className="mt-3 text-xs text-red-500 font-medium">{error}</p>
+                    )}
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || editingSlots.length === 0}
+                      className="mt-4 w-full py-3 rounded-xl bg-[#13ec49] text-[#111813] font-bold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
+                    >
+                      {saving ? 'Guardando…' : 'Guardar disponibilidad'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <DisponibilidadGrid slots={mySlots} editable={false} />
+                    <p className="text-xs text-gray-400 mt-2 text-center">
+                      {mySlots.length} franja{mySlots.length !== 1 ? 's' : ''} seleccionada{mySlots.length !== 1 ? 's' : ''}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Disponibilidad del compañero y de los rivales ───────────── */}
+            {estadoCoord !== 'pactado' && mySubmitted && !isEditing && otherParticipants.map(p => (
+              <div key={p.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-gray-200" />
+                <h3 className="font-bold text-[#111813] text-sm mb-3">
+                  Disponibilidad de {p.nombre.split(' ')[0]}
+                  {companero?.id === p.id && (
+                    <span className="ml-1.5 text-[10px] font-bold text-sky-600 uppercase tracking-wide align-middle">Compañero/a</span>
+                  )}
+                </h3>
+                {othersSubmitted[p.id] ? (
+                  <DisponibilidadGrid slots={othersSlots[p.id] ?? []} editable={false} />
+                ) : (
+                  <div className="flex items-start gap-3 py-2">
+                    <span className="material-symbols-outlined text-amber-400 shrink-0" style={{ fontSize: 20 }}>hourglass_empty</span>
+                    <p className="text-sm text-gray-500">Todavía no cargó su disponibilidad.</p>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* ── Resultado del algoritmo (requiere a los 4) ──────────────── */}
+            {estadoCoord === 'pendiente' && mySubmitted && !isEditing && !allSubmitted && (
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex gap-3">
+                <span className="material-symbols-outlined text-blue-400 shrink-0" style={{ fontSize: 20 }}>info</span>
+                <p className="text-xs text-blue-700">
+                  Todavía faltan cargar disponibilidad: {faltantes.join(', ')}. Cuando los 4 la carguen, verán las franjas en que coinciden todos.
+                </p>
+              </div>
+            )}
+
+            {estadoCoord === 'pendiente' && allSubmitted && (
+              overlaps.length > 0 ? (
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-[#13ec49]" />
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="material-symbols-outlined text-[#13ec49]" style={{ fontSize: 24 }}>event_available</span>
+                    <h3 className="font-bold text-[#111813]">¡Franjas en común encontradas!</h3>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Coinciden los 4 en {overlaps.length} franja{overlaps.length !== 1 ? 's' : ''}. Acordá con tus rivales por WhatsApp el horario exacto.
+                  </p>
+
+                  <div className="flex flex-col gap-2 mb-5">
+                    {overlaps.map(slot => {
+                      const f = FRANJAS.find(fr => fr.id === slot.franja)!;
+                      return (
+                        <div key={`${slot.dia}-${slot.franja}`} className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+                          <span className="material-symbols-outlined text-[#4a9c40]" style={{ fontSize: 18 }}>schedule</span>
+                          <div>
+                            <p className="text-sm font-bold text-[#111813]">{DIAS_SEMANA[slot.dia]}</p>
+                            <p className="text-xs text-[#4a9c40]">{f.label} · {f.rango}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {error && <p className="mb-3 text-xs text-red-500 font-medium">{error}</p>}
+
+                  <div className="space-y-2.5">
+                    {otrosRivales.map(r => (
+                      <button
+                        key={r.id}
+                        onClick={() => handleManual(r, buildWhatsAppMessage(r.nombre, state.torneo.title, overlaps))}
+                        disabled={!toWhatsAppLink(r.whatsapp)}
+                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm shadow-md active:scale-[0.98] transition-all ${
+                          toWhatsAppLink(r.whatsapp)
+                            ? 'bg-[#25D366] text-white'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <WhatsAppIcon className="size-5 fill-current" />
+                        Coordinar con {r.nombre.split(' ')[0]} por WhatsApp
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                  <div className="flex items-start gap-2">
+                    <span className="material-symbols-outlined text-amber-500 shrink-0" style={{ fontSize: 20 }}>search_off</span>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">No hay franjas en común entre los 4.</p>
+                      <p className="text-xs text-amber-600 mt-1">
+                        Agreguen más disponibilidad o coordinen directamente por WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={startEditing}
+                    className="mt-3 text-sm font-bold text-[#4a9c40] underline underline-offset-2"
+                  >
+                    Editar mis horarios
+                  </button>
+                </div>
+              )
+            )}
+
+            {/* ── Tip inicial (yo todavía no envié) ────────────────────────── */}
+            {estadoCoord === 'pendiente' && !mySubmitted && (
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex gap-3">
+                <span className="material-symbols-outlined text-blue-400 shrink-0" style={{ fontSize: 20 }}>info</span>
+                <p className="text-xs text-blue-700">
+                  Cargá tu disponibilidad. Cuando los 4 integrantes del partido hagan lo mismo, verán todas las franjas en que coinciden para coordinar el partido.
+                </p>
+              </div>
+            )}
+
+            {/* ── Botones manuales por rival (visible cuando no hay overlaps aún) ── */}
+            {!(estadoCoord === 'pendiente' && allSubmitted && overlaps.length > 0) && (
+              <div className="pt-1 border-t border-gray-100">
+                <p className="text-xs text-gray-400 text-center mb-3">¿Prefieren coordinar directamente?</p>
+                <div className="space-y-2.5">
+                  {otrosRivales.map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => handleManual(r)}
+                      disabled={!toWhatsAppLink(r.whatsapp)}
+                      className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm active:scale-[0.98] transition-all ${
+                        toWhatsAppLink(r.whatsapp)
+                          ? 'border-[#25D366] bg-white text-[#25D366] hover:bg-[#25D366]/5'
+                          : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <WhatsAppIcon className="size-4 fill-current" />
+                      {toWhatsAppLink(r.whatsapp)
+                        ? `Coordinar con ${r.nombre.split(' ')[0]} por WhatsApp`
+                        : `${r.nombre.split(' ')[0]} sin WhatsApp registrado`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
+  );
+};
+
+// ─── Wrapper: elige el flujo singles o dobles según el state recibido ──────
+// No altera CoordinarPartidoSingles: solo decide, antes de montar nada, cuál
+// de los dos componentes renderizar.
+
+const CoordinarPartido: React.FC = () => {
+  const location = useLocation();
+  const state = location.state as CoordinarPartidoState | null;
+
+  const isDobles = !!(
+    state?.equipo1_id &&
+    state?.equipo2_id &&
+    state?.companero &&
+    Array.isArray(state?.rivales) &&
+    state.rivales.length === 2
+  );
+
+  return isDobles ? <CoordinarPartidoDobles /> : <CoordinarPartidoSingles />;
 };
 
 export default CoordinarPartido;

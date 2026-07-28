@@ -19,6 +19,12 @@ export type PlayerTournamentStats = {
   win_rate: number;
 };
 
+export type PlayerTournamentRivalJugador = {
+  id: string | null;
+  nombre: string | null;
+  whatsapp: string | null;
+};
+
 export type PlayerTournamentNextMatch = {
   id: string;
   jornada: number;
@@ -34,6 +40,13 @@ export type PlayerTournamentNextMatch = {
   rival_id: string;
   rival_nombre: string;
   rival_whatsapp: string | null;
+  // Solo presentes en torneos de dobles (obtener_estado_equipo_torneo).
+  equipo1_id?: string;
+  equipo2_id?: string;
+  rival_equipo_id?: string;
+  rival_jugadores?: PlayerTournamentRivalJugador[];
+  mi_equipo_id?: string;
+  companero?: PlayerTournamentRivalJugador;
 };
 
 export type PlayerTournamentStatus = {

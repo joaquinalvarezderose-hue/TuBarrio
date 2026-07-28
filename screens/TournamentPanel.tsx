@@ -1333,7 +1333,10 @@ const TournamentPanel: React.FC = () => {
  <div className="flex flex-col gap-3">
  {nextMatch ? (
  <button
- onClick={() => navigate('/coordinar-partido', {
+ onClick={() => {
+ const nextMatchDobles = nextMatch as any;
+ const isDoblesMatch = tournamentConfig?.modalidad === 'dobles' && !!nextMatchDobles?.equipo1_id && !!nextMatchDobles?.equipo2_id;
+ navigate('/coordinar-partido', {
  state: {
  partido: {
  id: nextMatch.id,
@@ -1347,8 +1350,15 @@ const TournamentPanel: React.FC = () => {
  rivalNombre: nextMatch.rival_nombre,
  rivalWhatsapp: nextMatch.rival_whatsapp ?? null,
  myWhatsapp,
+ ...(isDoblesMatch ? {
+ equipo1_id: nextMatchDobles.equipo1_id,
+ equipo2_id: nextMatchDobles.equipo2_id,
+ companero: nextMatchDobles.companero ?? null,
+ rivales: nextMatchDobles.rival_jugadores ?? [],
+ } : {}),
  },
- })}
+ });
+ }}
  className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#4a9c40] text-white font-bold shadow-md hover:bg-[#3d8b33] active:scale-[0.98] transition-all"
  >
  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>event_available</span>

@@ -2327,6 +2327,7 @@ export type Database = {
         Returns: string
       }
       set_coordinacion_manual: { Args: { p_partido_id: string }; Returns: Json }
+      set_coordinacion_manual_equipo: { Args: { p_partido_id: string }; Returns: Json }
       sortear_grupos_y_fixture_equipos_torneo: {
         Args: {
           p_categoria?: string
