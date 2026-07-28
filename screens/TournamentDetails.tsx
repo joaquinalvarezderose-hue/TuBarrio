@@ -25,6 +25,13 @@ const TournamentDetails: React.FC = () => {
  const panelPath = isGolf ? '/golf/panel' : '/tournament-panel';
  const rulesPath = isGolf ? '/golf/rules' : '/rules';
 
+ // Fallback solo para el caso de que el torneo llegue sin estos campos
+ // (ej: flujo de intent/deep link que no selecciona todas las columnas).
+ const montoExpensas = Number(tournament.precio_expensas ?? 5000);
+ const montoTransferir = Number(tournament.precio_transferencia ?? 45000);
+ const costoInscripcion = montoExpensas + montoTransferir;
+ const formatMonto = (n: number) => `$${n.toLocaleString('es-AR')}`;
+
  useEffect(() => {
  const checkRegistration = async () => {
  const { data: authData } = await supabase.auth.getUser();
@@ -153,9 +160,9 @@ const TournamentDetails: React.FC = () => {
  <span className="material-symbols-outlined text-[20px]">payments</span>
  <span className="text-sm font-medium">Inscripción</span>
  </div>
- <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">$45.000</p>
- <p className="relative z-10 text-gray-500 text-xs font-medium">+ $5.000 por expensas</p>
- <p className="relative z-10 text-gray-400 text-[10px] font-medium mt-0.5">Total: $50.000</p>
+ <p className="relative z-10 text-gray-900 text-3xl font-bold leading-tight">{formatMonto(montoTransferir)}</p>
+ <p className="relative z-10 text-gray-500 text-xs font-medium">+ {formatMonto(montoExpensas)} por expensas</p>
+ <p className="relative z-10 text-gray-400 text-[10px] font-medium mt-0.5">Total: {formatMonto(costoInscripcion)}</p>
  </div>
  <div className="flex flex-col gap-4 flex-1 min-w-[140px]">
  <div className="flex flex-col gap-1 rounded-2xl p-3 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
