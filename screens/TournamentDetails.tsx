@@ -191,25 +191,6 @@ const TournamentDetails: React.FC = () => {
  </div>
  </div>
 
- <div className="px-5 pb-8">
- <h3 className="text-lg font-bold leading-tight text-gray-900 mb-4 flex items-center gap-2">
- Requisitos
- </h3>
- <div className="flex flex-col gap-3">
- <div className="flex items-center gap-4 rounded-xl bg-white p-4 border border-gray-100">
- <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#6dec13]/20 text-green-700">
- <span className="material-symbols-outlined">verified_user</span>
- </div>
- <div className="flex flex-col">
- <p className="text-sm font-bold text-gray-900">Pertenecer al Barrio El Canton</p>
- <p className="text-xs text-gray-500">Es el único requisito obligatorio para participar.</p>
- </div>
- <div className="ml-auto">
- <span className="material-symbols-outlined text-green-500 text-[20px] filled">check_circle</span>
- </div>
- </div>
- </div>
- </div>
  </div>
  );
 
