@@ -26,7 +26,7 @@ export type Database = {
         Insert: {
           cantidad_hoyos?: number
           created_at?: string
-          id?: number
+          id?: never
           nombre: string
           ubicacion?: string | null
           updated_at?: string
@@ -34,7 +34,7 @@ export type Database = {
         Update: {
           cantidad_hoyos?: number
           created_at?: string
-          id?: number
+          id?: never
           nombre?: string
           ubicacion?: string | null
           updated_at?: string
@@ -61,7 +61,7 @@ export type Database = {
           categoria_dificultad?: string | null
           created_at?: string
           estrategia_sugerida?: string | null
-          id?: number
+          id?: never
           indice_dificultad: number
           mapa_coords?: Json | null
           mapa_url?: string | null
@@ -75,7 +75,7 @@ export type Database = {
           categoria_dificultad?: string | null
           created_at?: string
           estrategia_sugerida?: string | null
-          id?: number
+          id?: never
           indice_dificultad?: number
           mapa_coords?: Json | null
           mapa_url?: string | null
@@ -704,10 +704,12 @@ export type Database = {
           cancha_id: number
           created_at: string
           estado: string
-          fecha: string
-          hora_salida: string
+          fecha: string | null
+          flight_numero: number | null
+          hora_salida: string | null
           id: string
           jugador_id: string
+          numero_ronda: number
           torneo_id: number
           updated_at: string
         }
@@ -715,10 +717,12 @@ export type Database = {
           cancha_id: number
           created_at?: string
           estado?: string
-          fecha: string
-          hora_salida: string
+          fecha?: string | null
+          flight_numero?: number | null
+          hora_salida?: string | null
           id?: string
           jugador_id: string
+          numero_ronda?: number
           torneo_id: number
           updated_at?: string
         }
@@ -726,10 +730,12 @@ export type Database = {
           cancha_id?: number
           created_at?: string
           estado?: string
-          fecha?: string
-          hora_salida?: string
+          fecha?: string | null
+          flight_numero?: number | null
+          hora_salida?: string | null
           id?: string
           jugador_id?: string
+          numero_ronda?: number
           torneo_id?: number
           updated_at?: string
         }
@@ -761,6 +767,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "torneos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rondas_golf_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_grupos_posiciones"
+            referencedColumns: ["torneo_id"]
+          },
+          {
+            foreignKeyName: "rondas_golf_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_llaves_playoffs"
+            referencedColumns: ["torneo_id"]
           },
         ]
       }
@@ -810,10 +830,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "scorecard_cargado_por_fkey"
+            columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_publicos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "scorecard_confirmado_por_fkey"
             columns: ["confirmado_por"]
             isOneToOne: false
             referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorecard_confirmado_por_fkey"
+            columns: ["confirmado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_publicos"
             referencedColumns: ["id"]
           },
           {
@@ -1212,28 +1246,34 @@ export type Database = {
       torneo_golf_config: {
         Row: {
           cancha_id: number
+          cantidad_rondas: number
           created_at: string
           criterio_desempate: string
           reglas_texto: string | null
           sistema_handicap: string
+          tamano_flight: number
           torneo_id: number
           updated_at: string
         }
         Insert: {
           cancha_id: number
+          cantidad_rondas?: number
           created_at?: string
           criterio_desempate?: string
           reglas_texto?: string | null
           sistema_handicap?: string
+          tamano_flight?: number
           torneo_id: number
           updated_at?: string
         }
         Update: {
           cancha_id?: number
+          cantidad_rondas?: number
           created_at?: string
           criterio_desempate?: string
           reglas_texto?: string | null
           sistema_handicap?: string
+          tamano_flight?: number
           torneo_id?: number
           updated_at?: string
         }
@@ -1251,6 +1291,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "torneos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torneo_golf_config_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_grupos_posiciones"
+            referencedColumns: ["torneo_id"]
+          },
+          {
+            foreignKeyName: "torneo_golf_config_torneo_id_fkey"
+            columns: ["torneo_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_llaves_playoffs"
+            referencedColumns: ["torneo_id"]
           },
         ]
       }
@@ -2311,6 +2365,7 @@ export type Database = {
         Args: { p_automatico?: boolean; p_partido_id: string }
         Returns: string
       }
+      _validar_mapa_coords: { Args: { v: Json }; Returns: boolean }
       actualizar_configuracion_torneo: {
         Args: {
           p_cantidad_mejores_terceros?: number
@@ -2335,9 +2390,11 @@ export type Database = {
       }
       actualizar_reglas_golf: {
         Args: {
+          p_cantidad_rondas?: number
           p_criterio_desempate?: string
           p_reglas_texto?: string
           p_sistema_handicap?: string
+          p_tamano_flight?: number
           p_torneo_id: number
         }
         Returns: undefined
@@ -2385,23 +2442,17 @@ export type Database = {
         Args: { p_activar: boolean; p_perfil_id: string }
         Returns: undefined
       }
-      asignar_tee_time: {
-        Args: {
-          p_cancha_id: number
-          p_fecha: string
-          p_hora_salida: string
-          p_jugador_ids: string[]
-          p_torneo_id: number
-        }
-        Returns: Database["public"]["Tables"]["rondas_golf"]["Row"][]
-      }
       auto_confirmar_resultados_equipos_vencidos: {
         Args: never
         Returns: number
       }
       auto_confirmar_resultados_vencidos: { Args: never; Returns: number }
       calcular_golpes_netos: {
-        Args: { p_golpes_brutos: number; p_handicap: number; p_indice_dificultad: number }
+        Args: {
+          p_golpes_brutos: number
+          p_handicap: number
+          p_indice_dificultad: number
+        }
         Returns: number
       }
       calcular_stage_name: {
@@ -2413,23 +2464,54 @@ export type Database = {
         Returns: string
       }
       cargar_hoyo_scorecard: {
-        Args: {
-          p_golpes_brutos: number
-          p_hoyo_id: number
-          p_ronda_id: string
+        Args: { p_golpes_brutos: number; p_hoyo_id: number; p_ronda_id: string }
+        Returns: {
+          cargado_por: string | null
+          confirmado_por: string | null
+          created_at: string
+          estado: string
+          golpes_brutos: number | null
+          golpes_netos: number | null
+          hoyo_id: number
+          id: string
+          ronda_id: string
+          updated_at: string
         }
-        Returns: Database["public"]["Tables"]["scorecard"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "scorecard"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       confirmar_horario_partido: {
         Args: { p_horario: string; p_partido_id: string }
         Returns: Json
       }
-      confirmar_hoyo_scorecard: {
-        Args: { p_accion: string; p_scorecard_id: string }
-        Returns: Database["public"]["Tables"]["scorecard"]["Row"]
+      confirmar_scorecard_ronda: {
+        Args: { p_accion: string; p_ronda_id: string }
+        Returns: {
+          cancha_id: number
+          created_at: string
+          estado: string
+          fecha: string | null
+          flight_numero: number | null
+          hora_salida: string | null
+          id: string
+          jugador_id: string
+          numero_ronda: number
+          torneo_id: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rondas_golf"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       crear_cancha_con_hoyos: {
-        Args: { p_hoyos: Json; p_nombre: string; p_ubicacion?: string }
+        Args: { p_hoyos: Json; p_nombre: string; p_ubicacion: string }
         Returns: number
       }
       crear_equipo_dobles: {
@@ -2463,22 +2545,41 @@ export type Database = {
         }
         Returns: number
       }
-      crear_torneo_golf: {
-        Args: {
-          p_alias_pago?: string
-          p_cancha_id?: number
-          p_criterio_desempate?: string
-          p_fecha_fin?: string
-          p_fecha_inicio?: string
-          p_imagen_url?: string
-          p_reglas_texto?: string
-          p_sistema_handicap?: string
-          p_subtitulo?: string
-          p_titulo: string
-          p_whatsapp_pago?: string
-        }
-        Returns: number
-      }
+      crear_torneo_golf:
+        | {
+            Args: {
+              p_alias_pago?: string
+              p_cancha_id?: number
+              p_criterio_desempate?: string
+              p_fecha_fin?: string
+              p_fecha_inicio?: string
+              p_imagen_url?: string
+              p_reglas_texto?: string
+              p_sistema_handicap?: string
+              p_subtitulo?: string
+              p_titulo: string
+              p_whatsapp_pago?: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_alias_pago?: string
+              p_cancha_id?: number
+              p_cantidad_rondas?: number
+              p_criterio_desempate?: string
+              p_fecha_fin?: string
+              p_fecha_inicio?: string
+              p_imagen_url?: string
+              p_reglas_texto?: string
+              p_sistema_handicap?: string
+              p_subtitulo?: string
+              p_tamano_flight?: number
+              p_titulo: string
+              p_whatsapp_pago?: string
+            }
+            Returns: number
+          }
       debug_stage_names: {
         Args: { p_torneo_id: number }
         Returns: {
@@ -2578,10 +2679,7 @@ export type Database = {
           torneo_id: number
         }[]
       }
-      iniciar_torneo_golf: {
-        Args: { p_torneo_id: number }
-        Returns: undefined
-      }
+      iniciar_torneo_golf: { Args: { p_torneo_id: number }; Returns: undefined }
       iniciar_torneo_manual: {
         Args: {
           p_categoria: string
@@ -2681,7 +2779,18 @@ export type Database = {
         Returns: string
       }
       set_coordinacion_manual: { Args: { p_partido_id: string }; Returns: Json }
-      set_coordinacion_manual_equipo: { Args: { p_partido_id: string }; Returns: Json }
+      set_coordinacion_manual_equipo: {
+        Args: { p_partido_id: string }
+        Returns: Json
+      }
+      sortear_flights_golf: {
+        Args: { p_numero_ronda?: number; p_torneo_id: number }
+        Returns: {
+          flights_creados: number
+          jugadores_sorteados: number
+          numero_ronda: number
+        }[]
+      }
       sortear_grupos_y_fixture_equipos_torneo: {
         Args: {
           p_categoria?: string

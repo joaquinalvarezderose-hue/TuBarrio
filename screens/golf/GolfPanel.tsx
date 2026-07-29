@@ -125,20 +125,20 @@ const GolfPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Proxima salida */}
+        {/* Flight asignado */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
           <h2 className="text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-[#4a9c40]">golf_course</span>
-            Proxima Salida
+            Tu Flight
           </h2>
           {loadingRound ? (
             <Skeleton className="h-16 w-full" />
           ) : !round ? (
-            <p className="text-sm text-slate-500">Todavia no tenes un tee time asignado para este torneo.</p>
+            <p className="text-sm text-slate-500">Todavia no fuiste sorteado en ningun flight de este torneo.</p>
           ) : (
             <div>
-              <p className="font-bold text-[#111813]">{round.fecha} · {round.horaSalida.slice(0, 5)} hs</p>
-              <p className="text-sm text-slate-500 mb-3">{round.canchaNombre || 'Cancha a confirmar'}</p>
+              <p className="font-bold text-[#111813]">Ronda {round.numeroRonda}{round.flightNumero != null ? ` · Flight ${round.flightNumero}` : ''}</p>
+              <p className="text-sm text-slate-500 mb-3">{round.canchaNombre || 'Cancha a confirmar'} · Coordiná el horario de salida con tus compañeros.</p>
               {round.companeros.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-bold text-slate-400 uppercase">Companeros de flight</p>
@@ -184,8 +184,8 @@ const GolfPanel: React.FC = () => {
             <h2 className="text-sm font-bold uppercase text-slate-500">Organizador</h2>
             {actionMessage && <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">{actionMessage}</div>}
             {actionError && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">{actionError}</div>}
-            <button onClick={() => goTo('/golf/tee-times')} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl transition">
-              Asignar Tee Times
+            <button onClick={() => goTo('/golf/flights')} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl transition">
+              Sortear Flights
             </button>
             <div className="grid grid-cols-2 gap-3">
               <button disabled={actionBusy} onClick={handleIniciar} className="bg-[#4a9c40] hover:bg-[#3d8b33] disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition">

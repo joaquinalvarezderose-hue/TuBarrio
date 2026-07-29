@@ -11,6 +11,14 @@ type Hoyo = {
   indice_dificultad: number;
 };
 
+type MiRonda = {
+  id: string;
+  numero_ronda: number;
+  flight_numero: number | null;
+  cancha_id: number;
+  estado: string;
+};
+
 type RondaOption = {
   id: string;
   jugador_id: string;
@@ -27,10 +35,12 @@ type ScorecardRow = {
   cargado_por: string | null;
 };
 
-type PendienteRow = ScorecardRow & {
-  numero_hoyo: number;
-  ronda_jugador_nombre: string;
-  cargado_por_nombre: string;
+type TarjetaPendiente = {
+  ronda_id: string;
+  nombre_completo: string;
+  hoyos_cargados: number;
+  golpes_brutos_total: number;
+  golpes_netos_total: number;
 };
 
 const calcularNetosPreview = (brutos: number, handicap: number | null, indice: number): number => {
@@ -47,11 +57,13 @@ const GolfScorecard: React.FC = () => {
 
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [misRondas, setMisRondas] = useState<MiRonda[]>([]);
+  const [numeroRondaSel, setNumeroRondaSel] = useState<number | null>(null);
   const [hoyos, setHoyos] = useState<Hoyo[]>([]);
   const [rondaOptions, setRondaOptions] = useState<RondaOption[]>([]);
   const [selectedRondaId, setSelectedRondaId] = useState<string>('');
   const [scorecardByHoyo, setScorecardByHoyo] = useState<Record<number, ScorecardRow>>({});
-  const [pendientes, setPendientes] = useState<PendienteRow[]>([]);
+  const [pendientes, setPendientes] = useState<TarjetaPendiente[]>([]);
   const [holeIdx, setHoleIdx] = useState(0);
   const [golpesInput, setGolpesInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -73,32 +85,40 @@ const GolfScorecard: React.FC = () => {
     if (!tournament?.id || !currentUserId) return;
     setLoading(true);
 
-    const { data: misRondas } = await supabase
+    const { data: misRondasData } = await supabase
       .from('rondas_golf')
-      .select('id, cancha_id, fecha, hora_salida')
+      .select('id, numero_ronda, flight_numero, cancha_id, estado')
       .eq('torneo_id', tournament.id)
       .eq('jugador_id', currentUserId)
-      .maybeSingle();
+      .order('numero_ronda', { ascending: true });
 
-    if (!misRondas) {
+    const rondas = (misRondasData || []) as MiRonda[];
+    setMisRondas(rondas);
+
+    if (rondas.length === 0) {
       setRondaOptions([]);
       setHoyos([]);
+      setPendientes([]);
       setLoading(false);
       return;
     }
 
+    const rondaActiva = rondas.find((r) => r.numero_ronda === numeroRondaSel) || rondas[rondas.length - 1];
+    if (numeroRondaSel === null) setNumeroRondaSel(rondaActiva.numero_ronda);
+
     const [{ data: flightRondas }, { data: hoyosData }] = await Promise.all([
-      supabase
-        .from('rondas_golf')
-        .select('id, jugador_id, perfiles:jugador_id(nombre_completo, handicap)')
-        .eq('torneo_id', tournament.id)
-        .eq('cancha_id', misRondas.cancha_id)
-        .eq('fecha', misRondas.fecha)
-        .eq('hora_salida', misRondas.hora_salida),
+      rondaActiva.flight_numero != null
+        ? supabase
+            .from('rondas_golf')
+            .select('id, jugador_id, perfiles:jugador_id(nombre_completo, handicap)')
+            .eq('torneo_id', tournament.id)
+            .eq('numero_ronda', rondaActiva.numero_ronda)
+            .eq('flight_numero', rondaActiva.flight_numero)
+        : Promise.resolve({ data: [] as any[] }),
       supabase
         .from('hoyos')
         .select('id, numero_hoyo, par, yardas, indice_dificultad')
-        .eq('cancha_id', misRondas.cancha_id)
+        .eq('cancha_id', rondaActiva.cancha_id)
         .order('numero_hoyo', { ascending: true }),
     ]);
 
@@ -114,43 +134,46 @@ const GolfScorecard: React.FC = () => {
 
     setRondaOptions(options);
     setHoyos((hoyosData || []) as Hoyo[]);
-    setSelectedRondaId((prev) => prev || String(misRondas.id));
+    setSelectedRondaId((prev) => (options.some((o) => o.id === prev) ? prev : rondaActiva.id));
 
-    const rondaIds = options.map((o) => o.id);
-    const { data: pendientesData } = await supabase
-      .from('scorecard')
-      .select('id, hoyo_id, golpes_brutos, golpes_netos, estado, cargado_por, ronda_id, rondas_golf:ronda_id(jugador_id, perfiles:jugador_id(nombre_completo)), hoyos:hoyo_id(numero_hoyo)')
-      .in('ronda_id', rondaIds.length ? rondaIds : ['00000000-0000-0000-0000-000000000000'])
-      .eq('estado', 'pendiente')
-      .not('cargado_por', 'is', null)
-      .neq('cargado_por', currentUserId);
+    const totalHoyos = (hoyosData || []).length;
+    const companerosIds = options.filter((o) => o.jugador_id !== currentUserId).map((o) => o.id);
 
-    const cargadorIds = Array.from(new Set((pendientesData || []).map((r: any) => r.cargado_por).filter(Boolean)));
-    let cargadorNombres: Record<string, string> = {};
-    if (cargadorIds.length) {
-      const { data: perfilesData } = await supabase.from('perfiles').select('id, nombre_completo').in('id', cargadorIds);
-      cargadorNombres = Object.fromEntries((perfilesData || []).map((p: any) => [p.id, p.nombre_completo]));
+    if (companerosIds.length > 0) {
+      const { data: scorecardData } = await supabase
+        .from('scorecard')
+        .select('ronda_id, golpes_brutos, golpes_netos')
+        .in('ronda_id', companerosIds);
+
+      const porRonda: Record<string, { cargados: number; brutos: number; netos: number }> = {};
+      (scorecardData || []).forEach((s: any) => {
+        const acc = porRonda[s.ronda_id] || { cargados: 0, brutos: 0, netos: 0 };
+        if (s.golpes_brutos != null) {
+          acc.cargados += 1;
+          acc.brutos += s.golpes_brutos;
+          acc.netos += s.golpes_netos ?? 0;
+        }
+        porRonda[s.ronda_id] = acc;
+      });
+
+      setPendientes(
+        options
+          .filter((o) => o.jugador_id !== currentUserId)
+          .map((o) => ({
+            ronda_id: o.id,
+            nombre_completo: o.nombre_completo,
+            hoyos_cargados: porRonda[o.id]?.cargados || 0,
+            golpes_brutos_total: porRonda[o.id]?.brutos || 0,
+            golpes_netos_total: porRonda[o.id]?.netos || 0,
+          }))
+          .filter((p) => totalHoyos > 0 && p.hoyos_cargados >= totalHoyos)
+      );
+    } else {
+      setPendientes([]);
     }
 
-    setPendientes(
-      (pendientesData || []).map((r: any) => {
-        const rondaJugadorPerfil = Array.isArray(r.rondas_golf?.perfiles) ? r.rondas_golf.perfiles[0] : r.rondas_golf?.perfiles;
-        return {
-          id: r.id,
-          hoyo_id: r.hoyo_id,
-          golpes_brutos: r.golpes_brutos,
-          golpes_netos: r.golpes_netos,
-          estado: r.estado,
-          cargado_por: r.cargado_por,
-          numero_hoyo: r.hoyos?.numero_hoyo ?? 0,
-          ronda_jugador_nombre: rondaJugadorPerfil?.nombre_completo || 'Jugador',
-          cargado_por_nombre: cargadorNombres[r.cargado_por] || 'Companero',
-        };
-      })
-    );
-
     setLoading(false);
-  }, [tournament?.id, currentUserId]);
+  }, [tournament?.id, currentUserId, numeroRondaSel]);
 
   useEffect(() => {
     loadAll();
@@ -169,6 +192,7 @@ const GolfScorecard: React.FC = () => {
     })();
   }, [selectedRondaId]);
 
+  const rondaActiva = misRondas.find((r) => r.numero_ronda === numeroRondaSel);
   const selectedRonda = rondaOptions.find((r) => r.id === selectedRondaId);
   const hoyoActual = hoyos[holeIdx];
   const scorecardActual = hoyoActual ? scorecardByHoyo[hoyoActual.id] : undefined;
@@ -201,7 +225,7 @@ const GolfScorecard: React.FC = () => {
         p_golpes_brutos: brutos,
       });
       if (error) throw error;
-      setMessage(`Hoyo ${hoyoActual.numero_hoyo} cargado. Esperando confirmacion de un companero.`);
+      setMessage(`Hoyo ${hoyoActual.numero_hoyo} cargado.`);
       const { data } = await supabase
         .from('scorecard')
         .select('id, hoyo_id, golpes_brutos, golpes_netos, estado, cargado_por')
@@ -217,16 +241,16 @@ const GolfScorecard: React.FC = () => {
     }
   };
 
-  const handleConfirmar = async (scorecardId: string, accion: 'confirmar' | 'rechazar') => {
+  const handleConfirmarTarjeta = async (rondaId: string, accion: 'confirmar' | 'rechazar') => {
     setErrorMsg(null);
     setMessage(null);
     try {
-      const { error } = await supabase.rpc('confirmar_hoyo_scorecard', {
-        p_scorecard_id: scorecardId,
+      const { error } = await supabase.rpc('confirmar_scorecard_ronda', {
+        p_ronda_id: rondaId,
         p_accion: accion,
       });
       if (error) throw error;
-      setMessage(accion === 'confirmar' ? 'Hoyo confirmado.' : 'Hoyo rechazado, debera cargarse de nuevo.');
+      setMessage(accion === 'confirmar' ? 'Tarjeta confirmada.' : 'Tarjeta rechazada, debera cargarse de nuevo.');
       await loadAll();
     } catch (err: any) {
       setErrorMsg(err?.message || 'No se pudo procesar la confirmacion.');
@@ -254,14 +278,35 @@ const GolfScorecard: React.FC = () => {
       <div className="p-4 space-y-5">
         {loading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
-        ) : rondaOptions.length === 0 ? (
+        ) : misRondas.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-sm text-slate-500">
-            Todavia no tenes un tee time asignado en este torneo.
+            Todavia no fuiste sorteado en ningun flight de este torneo.
           </div>
         ) : (
           <>
             {errorMsg && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">{errorMsg}</div>}
             {message && <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">{message}</div>}
+
+            {misRondas.length > 1 && (
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase">Ronda</label>
+                <select
+                  value={numeroRondaSel ?? ''}
+                  onChange={(e) => setNumeroRondaSel(Number(e.target.value))}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1"
+                >
+                  {misRondas.map((r) => (
+                    <option key={r.numero_ronda} value={r.numero_ronda}>Ronda {r.numero_ronda}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {rondaActiva?.estado === 'finalizada' && (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">
+                Tu tarjeta de esta ronda ya fue confirmada.
+              </div>
+            )}
 
             {rondaOptions.length > 1 && (
               <div>
@@ -273,7 +318,7 @@ const GolfScorecard: React.FC = () => {
                 >
                   {rondaOptions.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.id === rondaOptions.find((x) => x.jugador_id === currentUserId)?.id ? `${r.nombre_completo} (vos)` : r.nombre_completo}
+                      {r.jugador_id === currentUserId ? `${r.nombre_completo} (vos)` : r.nombre_completo}
                     </option>
                   ))}
                 </select>
@@ -313,7 +358,7 @@ const GolfScorecard: React.FC = () => {
                   <>
                     {scorecardActual?.estado === 'pendiente' && (
                       <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                        Cargado, esperando confirmacion de un companero de flight.
+                        Cargado. Cuando esten los 18 hoyos, un companero de flight confirma la tarjeta completa.
                       </p>
                     )}
                     <div className="flex items-center gap-3">
@@ -343,19 +388,19 @@ const GolfScorecard: React.FC = () => {
 
             {pendientes.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-                <h2 className="text-sm font-bold uppercase text-slate-500 mb-3">Pendientes de tu confirmacion</h2>
+                <h2 className="text-sm font-bold uppercase text-slate-500 mb-3">Tarjetas completas de tu flight, pendientes de confirmacion</h2>
                 <div className="space-y-2">
                   {pendientes.map((p) => (
-                    <div key={p.id} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                    <div key={p.ronda_id} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                       <p className="text-sm font-semibold text-slate-800">
-                        Hoyo {p.numero_hoyo} · {p.ronda_jugador_nombre} · {p.golpes_brutos} golpes ({p.golpes_netos} netos)
+                        {p.nombre_completo} · {p.golpes_brutos_total} golpes ({p.golpes_netos_total} netos)
                       </p>
-                      <p className="text-xs text-slate-500 mb-2">Cargado por {p.cargado_por_nombre}</p>
+                      <p className="text-xs text-slate-500 mb-2">{p.hoyos_cargados} de {hoyos.length} hoyos cargados</p>
                       <div className="flex gap-2">
-                        <button onClick={() => handleConfirmar(p.id, 'confirmar')} className="flex-1 bg-[#4a9c40] hover:bg-[#3d8b33] text-white text-sm font-bold py-2 rounded-lg transition">
-                          Confirmar
+                        <button onClick={() => handleConfirmarTarjeta(p.ronda_id, 'confirmar')} className="flex-1 bg-[#4a9c40] hover:bg-[#3d8b33] text-white text-sm font-bold py-2 rounded-lg transition">
+                          Confirmar tarjeta
                         </button>
-                        <button onClick={() => handleConfirmar(p.id, 'rechazar')} className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 rounded-lg transition">
+                        <button onClick={() => handleConfirmarTarjeta(p.ronda_id, 'rechazar')} className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 rounded-lg transition">
                           Rechazar
                         </button>
                       </div>

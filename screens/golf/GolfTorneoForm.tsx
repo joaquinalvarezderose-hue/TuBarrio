@@ -24,6 +24,8 @@ const GolfTorneoForm: React.FC = () => {
   const [sistemaHandicap, setSistemaHandicap] = useState('Course Handicap (stroke index por hoyo)');
   const [criterioDesempate, setCriterioDesempate] = useState('Menor score neto total. En caso de empate, countback de los ultimos 9 hoyos.');
   const [reglasTexto, setReglasTexto] = useState('');
+  const [cantidadRondas, setCantidadRondas] = useState('1');
+  const [tamanoFlight, setTamanoFlight] = useState('4');
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -71,6 +73,8 @@ const GolfTorneoForm: React.FC = () => {
         p_sistema_handicap: sistemaHandicap.trim() || null,
         p_criterio_desempate: criterioDesempate.trim() || null,
         p_reglas_texto: reglasTexto.trim() || null,
+        p_cantidad_rondas: Number(cantidadRondas) || 1,
+        p_tamano_flight: Number(tamanoFlight) || 4,
       });
 
       if (error) throw error;
@@ -153,6 +157,35 @@ const GolfTorneoForm: React.FC = () => {
               </select>
             )}
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+          <h2 className="font-bold text-slate-800">Formato del torneo</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Cantidad de rondas</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={cantidadRondas}
+                onChange={(e) => setCantidadRondas(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Jugadores por flight</label>
+              <input
+                type="number"
+                min={2}
+                max={6}
+                value={tamanoFlight}
+                onChange={(e) => setTamanoFlight(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-slate-500">Los flights se sortean al azar entre los inscriptos aprobados; los jugadores coordinan el horario de salida entre ellos.</p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">

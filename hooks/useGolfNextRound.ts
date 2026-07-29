@@ -14,8 +14,8 @@ export type GolfRound = {
   torneoId: number;
   canchaId: number;
   canchaNombre: string | null;
-  fecha: string;
-  horaSalida: string;
+  numeroRonda: number;
+  flightNumero: number | null;
   estado: string;
   companeros: FlightPartner[];
 };
@@ -23,7 +23,7 @@ export type GolfRound = {
 export type UseGolfNextRoundResult = {
   /** true mientras se esta haciendo la consulta a Supabase */
   loading: boolean;
-  /** Ronda asignada al usuario en este torneo, o null si todavia no tiene tee time */
+  /** Ronda asignada al usuario en este torneo, o null si todavia no fue sorteado en ningun flight */
   round: GolfRound | null;
   /** Mensaje de error en caso de falla, o null si todo esta bien */
   error: string | null;
@@ -77,43 +77,49 @@ export function useGolfNextRound(tournamentId: number | string, enabled: boolean
         return;
       }
 
-      const { data: mine, error: mineError } = await supabase
+      const { data: mias, error: miasError } = await supabase
         .from('rondas_golf')
-        .select('id, torneo_id, cancha_id, fecha, hora_salida, estado, canchas(nombre)')
+        .select('id, torneo_id, cancha_id, numero_ronda, flight_numero, estado, canchas(nombre)')
         .eq('torneo_id', parsedTournamentId)
         .eq('jugador_id', currentUserId)
-        .maybeSingle();
+        .order('numero_ronda', { ascending: false })
+        .limit(1);
 
-      if (mineError) throw mineError;
+      if (miasError) throw miasError;
+
+      const mine = mias?.[0];
 
       if (!mine) {
         setRound(null);
         return;
       }
 
-      const { data: flightRows, error: flightError } = await supabase
-        .from('rondas_golf')
-        .select('jugador_id, perfiles:jugador_id(id, nombre_completo, whatsapp)')
-        .eq('torneo_id', parsedTournamentId)
-        .eq('cancha_id', mine.cancha_id as number)
-        .eq('fecha', mine.fecha as string)
-        .eq('hora_salida', mine.hora_salida as string)
-        .neq('jugador_id', currentUserId);
+      let companeros: FlightPartner[] = [];
 
-      if (flightError) {
-        console.error('[useGolfNextRound] Error cargando companeros de flight:', flightError);
+      if (mine.flight_numero != null) {
+        const { data: flightRows, error: flightError } = await supabase
+          .from('rondas_golf')
+          .select('jugador_id, perfiles:jugador_id(id, nombre_completo, whatsapp)')
+          .eq('torneo_id', parsedTournamentId)
+          .eq('numero_ronda', mine.numero_ronda as number)
+          .eq('flight_numero', mine.flight_numero as number)
+          .neq('jugador_id', currentUserId);
+
+        if (flightError) {
+          console.error('[useGolfNextRound] Error cargando companeros de flight:', flightError);
+        }
+
+        companeros = (flightRows || []).map((row: any) => {
+          const perfil = Array.isArray(row.perfiles) ? row.perfiles[0] : row.perfiles;
+          const whatsapp = perfil?.whatsapp ? String(perfil.whatsapp) : null;
+          return {
+            id: String(perfil?.id ?? row.jugador_id),
+            nombre_completo: String(perfil?.nombre_completo ?? 'Jugador'),
+            whatsapp,
+            whatsappLink: toWhatsAppLink(whatsapp),
+          };
+        });
       }
-
-      const companeros: FlightPartner[] = (flightRows || []).map((row: any) => {
-        const perfil = Array.isArray(row.perfiles) ? row.perfiles[0] : row.perfiles;
-        const whatsapp = perfil?.whatsapp ? String(perfil.whatsapp) : null;
-        return {
-          id: String(perfil?.id ?? row.jugador_id),
-          nombre_completo: String(perfil?.nombre_completo ?? 'Jugador'),
-          whatsapp,
-          whatsappLink: toWhatsAppLink(whatsapp),
-        };
-      });
 
       const canchaRaw = (mine as any).canchas;
       const canchaNombre = Array.isArray(canchaRaw) ? canchaRaw[0]?.nombre ?? null : canchaRaw?.nombre ?? null;
@@ -123,14 +129,14 @@ export function useGolfNextRound(tournamentId: number | string, enabled: boolean
         torneoId: parsedTournamentId,
         canchaId: Number(mine.cancha_id),
         canchaNombre,
-        fecha: String(mine.fecha),
-        horaSalida: String(mine.hora_salida),
+        numeroRonda: Number(mine.numero_ronda ?? 1),
+        flightNumero: mine.flight_numero != null ? Number(mine.flight_numero) : null,
         estado: String(mine.estado ?? 'programada'),
         companeros,
       });
     } catch (err: any) {
       console.error('[useGolfNextRound] Error al cargar la ronda:', err);
-      setError('No pudimos cargar tu proxima salida. Verifica tu conexion.');
+      setError('No pudimos cargar tu proxima ronda. Verifica tu conexion.');
       setRound(null);
     } finally {
       setLoading(false);
