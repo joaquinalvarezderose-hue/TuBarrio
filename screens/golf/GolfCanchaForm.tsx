@@ -260,7 +260,7 @@ const GolfCanchaForm: React.FC = () => {
                       <input
                         value={h.mapa_url}
                         onChange={(e) => updateHoyo(idx, 'mapa_url', e.target.value)}
-                        placeholder="https://..."
+                        placeholder="https://... (.svg, .png o .jpg)"
                         className="w-full min-w-[10rem] border border-slate-200 rounded-md px-2 py-1"
                       />
                     </td>

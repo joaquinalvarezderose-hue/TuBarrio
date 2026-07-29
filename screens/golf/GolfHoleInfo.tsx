@@ -101,7 +101,13 @@ const GolfHoleInfo: React.FC = () => {
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             {hoyo.mapa_url ? (
-              <div className="h-56 w-full bg-slate-100 bg-cover bg-center" style={{ backgroundImage: `url("${hoyo.mapa_url}")` }} />
+              <div className="h-56 w-full bg-slate-100 flex items-center justify-center p-2">
+                <img
+                  src={hoyo.mapa_url}
+                  alt={`Mapa del hoyo ${hoyo.numero_hoyo}`}
+                  className="h-full w-full object-contain"
+                />
+              </div>
             ) : (
               <div className="h-40 w-full bg-[#4a9c40]/10 flex flex-col items-center justify-center gap-2">
                 <span className="material-symbols-outlined text-[#4a9c40] text-5xl">golf_course</span>
