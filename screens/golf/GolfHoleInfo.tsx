@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
+import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
 
 type Hoyo = {
   id: number;
@@ -72,6 +73,7 @@ const GolfHoleInfo: React.FC = () => {
   }, [tournament?.id]);
 
   const hoyo = hoyos[holeIdx];
+  const { url: mapaUrl, loading: mapaLoading } = useGolfMapaUrl(hoyo?.mapa_url);
 
   if (!tournament) {
     return (

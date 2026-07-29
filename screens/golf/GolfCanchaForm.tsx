@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useRequireRole } from '../../hooks/useRequireRole';
 import { Skeleton } from '../../components/Skeleton';
+import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
 
 type HoyoInput = {
   numero_hoyo: number;
   par: number;
   yardas: string;
   indice_dificultad: string;
-  mapa_url: string;
 };
 
 type CanchaRow = {
@@ -19,14 +19,96 @@ type CanchaRow = {
   cantidad_hoyos: number;
 };
 
+type HoyoMapaRow = {
+  id: number;
+  numero_hoyo: number;
+  par: number;
+  mapa_url: string | null;
+};
+
+const ALLOWED_MIME_TYPES = ['image/svg+xml', 'image/png', 'image/jpeg'];
+const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB, igual al limite del bucket
+
 const emptyHoyos = (cantidad: number): HoyoInput[] =>
   Array.from({ length: cantidad }, (_, i) => ({
     numero_hoyo: i + 1,
     par: 4,
     yardas: '',
     indice_dificultad: '',
-    mapa_url: '',
   }));
+
+const HoyoMapaFila: React.FC<{
+  hoyo: HoyoMapaRow;
+  canchaId: number;
+  onUploaded: (hoyoId: number, path: string) => void;
+}> = ({ hoyo, canchaId, onUploaded }) => {
+  const { url: previewUrl, loading: previewLoading } = useGolfMapaUrl(hoyo.mapa_url);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = async (file: File | undefined) => {
+    setError(null);
+    if (!file) return;
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      setError('Formato no soportado. Usa SVG, PNG o JPG.');
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError('El archivo supera los 2 MB permitidos.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'svg';
+      const path = `${canchaId}/${hoyo.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('golf-mapas')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const { error: updateError } = await supabase
+        .from('hoyos')
+        .update({ mapa_url: path })
+        .eq('id', hoyo.id);
+      if (updateError) throw updateError;
+
+      onUploaded(hoyo.id, path);
+    } catch (err: any) {
+      setError(err?.message || 'No se pudo subir el mapa.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+      <div className="w-14 h-14 rounded-md bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+        {previewLoading ? (
+          <Skeleton className="w-full h-full" />
+        ) : previewUrl ? (
+          <img src={previewUrl} alt={`Mapa hoyo ${hoyo.numero_hoyo}`} className="w-full h-full object-contain" />
+        ) : (
+          <span className="material-symbols-outlined text-slate-300">image</span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-slate-800 text-sm">Hoyo {hoyo.numero_hoyo} · Par {hoyo.par}</p>
+        <label className="mt-1 inline-block text-xs font-bold text-[#4a9c40] cursor-pointer">
+          {uploading ? 'Subiendo...' : hoyo.mapa_url ? 'Reemplazar mapa' : 'Subir mapa'}
+          <input
+            type="file"
+            accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => handleFile(e.target.files?.[0])}
+          />
+        </label>
+        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      </div>
+    </div>
+  );
+};
 
 const GolfCanchaForm: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +116,10 @@ const GolfCanchaForm: React.FC = () => {
 
   const [canchas, setCanchas] = useState<CanchaRow[]>([]);
   const [loadingCanchas, setLoadingCanchas] = useState(true);
+
+  const [selectedCanchaId, setSelectedCanchaId] = useState<number | null>(null);
+  const [hoyosMapas, setHoyosMapas] = useState<HoyoMapaRow[]>([]);
+  const [loadingHoyosMapas, setLoadingHoyosMapas] = useState(false);
 
   const [nombre, setNombre] = useState('');
   const [ubicacion, setUbicacion] = useState('');
@@ -58,6 +144,34 @@ const GolfCanchaForm: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [hasAccess]);
+
+  const toggleSelectCancha = (canchaId: number) => {
+    setSelectedCanchaId((prev) => (prev === canchaId ? null : canchaId));
+  };
+
+  useEffect(() => {
+    if (!selectedCanchaId) {
+      setHoyosMapas([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingHoyosMapas(true);
+      const { data, error } = await supabase
+        .from('hoyos')
+        .select('id, numero_hoyo, par, mapa_url')
+        .eq('cancha_id', selectedCanchaId)
+        .order('numero_hoyo', { ascending: true });
+      if (cancelled) return;
+      if (!error) setHoyosMapas((data ?? []) as HoyoMapaRow[]);
+      setLoadingHoyosMapas(false);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedCanchaId]);
+
+  const handleHoyoMapaUploaded = (hoyoId: number, path: string) => {
+    setHoyosMapas((prev) => prev.map((h) => (h.id === hoyoId ? { ...h, mapa_url: path } : h)));
+  };
 
   const updateCantidad = (n: number) => {
     const cantidad = Math.max(1, Math.min(18, n));
@@ -102,7 +216,6 @@ const GolfCanchaForm: React.FC = () => {
         par: h.par,
         yardas: h.yardas ? Number(h.yardas) : null,
         indice_dificultad: Number(h.indice_dificultad),
-        mapa_url: h.mapa_url.trim() || null,
       }));
 
       const { error } = await supabase.rpc('crear_cancha_con_hoyos', {
@@ -159,11 +272,31 @@ const GolfCanchaForm: React.FC = () => {
           ) : (
             <div className="space-y-2">
               {canchas.map((c) => (
-                <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">{c.nombre}</p>
-                    <p className="text-xs text-slate-500">{c.ubicacion || 'Sin ubicacion'} · {c.cantidad_hoyos} hoyos</p>
+                <div key={c.id} className="bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{c.nombre}</p>
+                      <p className="text-xs text-slate-500">{c.ubicacion || 'Sin ubicacion'} · {c.cantidad_hoyos} hoyos</p>
+                    </div>
+                    <button
+                      onClick={() => toggleSelectCancha(c.id)}
+                      className="text-xs font-bold text-[#4a9c40] px-2 py-1 rounded-md hover:bg-emerald-50"
+                    >
+                      {selectedCanchaId === c.id ? 'Cerrar' : 'Mapas de hoyo'}
+                    </button>
                   </div>
+
+                  {selectedCanchaId === c.id && (
+                    <div className="px-3 pb-3 space-y-2">
+                      {loadingHoyosMapas ? (
+                        <Skeleton className="h-12 w-full" />
+                      ) : (
+                        hoyosMapas.map((h) => (
+                          <HoyoMapaFila key={h.id} hoyo={h} canchaId={c.id} onUploaded={handleHoyoMapaUploaded} />
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -172,7 +305,10 @@ const GolfCanchaForm: React.FC = () => {
 
         {/* Alta de cancha */}
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h2 className="font-bold text-slate-800 mb-3">Nueva cancha</h2>
+          <h2 className="font-bold text-slate-800 mb-1">Nueva cancha</h2>
+          <p className="text-xs text-slate-500 mb-3">
+            Los mapas de cada hoyo se suben despues de crear la cancha, desde "Mapas de hoyo" en la lista de arriba.
+          </p>
 
           {message && (
             <div className="mb-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">{message}</div>
@@ -221,7 +357,6 @@ const GolfCanchaForm: React.FC = () => {
                   <th className="py-2 pr-2">Par</th>
                   <th className="py-2 pr-2">Yardas</th>
                   <th className="py-2 pr-2">Indice</th>
-                  <th className="py-2 pr-2">Mapa (URL, opcional)</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,14 +389,6 @@ const GolfCanchaForm: React.FC = () => {
                         value={h.indice_dificultad}
                         onChange={(e) => updateHoyo(idx, 'indice_dificultad', e.target.value)}
                         className="w-16 border border-slate-200 rounded-md px-2 py-1"
-                      />
-                    </td>
-                    <td className="py-1.5 pr-2">
-                      <input
-                        value={h.mapa_url}
-                        onChange={(e) => updateHoyo(idx, 'mapa_url', e.target.value)}
-                        placeholder="https://... (.svg, .png o .jpg)"
-                        className="w-full min-w-[10rem] border border-slate-200 rounded-md px-2 py-1"
                       />
                     </td>
                   </tr>
