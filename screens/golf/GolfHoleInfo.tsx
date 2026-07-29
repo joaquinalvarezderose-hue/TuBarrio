@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
 import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
+import GolfHoleMap, { GolfHoleMapData } from '../../components/golf/GolfHoleMap';
 
 type Hoyo = {
   id: number;
@@ -11,6 +12,16 @@ type Hoyo = {
   yardas: number | null;
   indice_dificultad: number;
   mapa_url: string | null;
+  mapa_coords: Omit<GolfHoleMapData, 'imageUrl'> | null;
+  categoria_dificultad: string | null;
+  estrategia_sugerida: string | null;
+};
+
+const CATEGORIA_STYLES: Record<string, string> = {
+  OPORTUNIDAD: 'bg-emerald-100 text-emerald-700',
+  INTERMEDIO: 'bg-amber-100 text-amber-700',
+  EXIGENTE: 'bg-orange-100 text-orange-700',
+  'MUY EXIGENTE': 'bg-red-100 text-red-700',
 };
 
 const GolfHoleInfo: React.FC = () => {
@@ -51,7 +62,7 @@ const GolfHoleInfo: React.FC = () => {
 
       const { data: hoyosData } = await supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url')
+        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url, mapa_coords, categoria_dificultad, estrategia_sugerida')
         .eq('cancha_id', ronda.cancha_id)
         .order('numero_hoyo', { ascending: true });
 
@@ -102,10 +113,16 @@ const GolfHoleInfo: React.FC = () => {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            {hoyo.mapa_url ? (
+            {hoyo.mapa_url && hoyo.mapa_coords && mapaLoading ? (
+              <Skeleton className="h-56 w-full" />
+            ) : hoyo.mapa_url && hoyo.mapa_coords && mapaUrl ? (
+              <div className="w-full bg-slate-100 p-2">
+                <GolfHoleMap data={{ ...hoyo.mapa_coords, imageUrl: mapaUrl }} />
+              </div>
+            ) : hoyo.mapa_url ? (
               <div className="h-56 w-full bg-slate-100 flex items-center justify-center p-2">
                 <img
-                  src={hoyo.mapa_url}
+                  src={mapaUrl ?? hoyo.mapa_url}
                   alt={`Mapa del hoyo ${hoyo.numero_hoyo}`}
                   className="h-full w-full object-contain"
                 />
@@ -129,6 +146,15 @@ const GolfHoleInfo: React.FC = () => {
                 <div className="text-center">
                   <p className="text-3xl font-black text-[#111813]">Hoyo {hoyo.numero_hoyo}</p>
                   {canchaNombre && <p className="text-xs text-slate-500">{canchaNombre}</p>}
+                  {hoyo.categoria_dificultad && (
+                    <span
+                      className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                        CATEGORIA_STYLES[hoyo.categoria_dificultad] || 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {hoyo.categoria_dificultad}
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={() => setHoleIdx((i) => Math.min(hoyos.length - 1, i + 1))}
@@ -153,6 +179,16 @@ const GolfHoleInfo: React.FC = () => {
                   <p className="text-2xl font-black text-slate-900">{hoyo.indice_dificultad}</p>
                 </div>
               </div>
+
+              {hoyo.estrategia_sugerida && (
+                <div className="mt-4 bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-xl p-4">
+                  <p className="text-xs font-bold text-[#4a9c40] uppercase mb-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">tips_and_updates</span>
+                    Estrategia sugerida
+                  </p>
+                  <p className="text-sm text-slate-700 leading-relaxed">{hoyo.estrategia_sugerida}</p>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -44,9 +44,12 @@ export type Database = {
       hoyos: {
         Row: {
           cancha_id: number
+          categoria_dificultad: string | null
           created_at: string
+          estrategia_sugerida: string | null
           id: number
           indice_dificultad: number
+          mapa_coords: Json | null
           mapa_url: string | null
           numero_hoyo: number
           par: number
@@ -55,9 +58,12 @@ export type Database = {
         }
         Insert: {
           cancha_id: number
+          categoria_dificultad?: string | null
           created_at?: string
+          estrategia_sugerida?: string | null
           id?: number
           indice_dificultad: number
+          mapa_coords?: Json | null
           mapa_url?: string | null
           numero_hoyo: number
           par: number
@@ -66,9 +72,12 @@ export type Database = {
         }
         Update: {
           cancha_id?: number
+          categoria_dificultad?: string | null
           created_at?: string
+          estrategia_sugerida?: string | null
           id?: number
           indice_dificultad?: number
+          mapa_coords?: Json | null
           mapa_url?: string | null
           numero_hoyo?: number
           par?: number
