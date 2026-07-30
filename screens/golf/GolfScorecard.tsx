@@ -342,7 +342,7 @@ const GolfScorecard: React.FC = () => {
 
             {hoyoActual && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="flex items-stretch">
+                <div className="flex items-start">
                   <div className="flex-1 min-w-0 p-5">
                     <div className="flex items-center gap-2 mb-4">
                       <p className="text-2xl font-black text-[#111813] leading-tight whitespace-nowrap">Hoyo {hoyoActual.numero_hoyo}</p>
@@ -444,7 +444,7 @@ const GolfScorecard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className={`relative w-[36%] shrink-0 bg-slate-100 ${hoyoActual.mapa_url ? '' : 'self-start h-40 rounded-bl-2xl'}`}>
+                  <div className="relative w-[36%] shrink-0 bg-slate-100 aspect-[390/844]">
                     {hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaLoading ? (
                       <Skeleton className="h-full w-full" />
                     ) : hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaUrl ? (
