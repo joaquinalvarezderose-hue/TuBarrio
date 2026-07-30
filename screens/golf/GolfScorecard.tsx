@@ -575,6 +575,25 @@ const GolfScorecard: React.FC = () => {
           >
             <span className="material-symbols-outlined text-2xl">close</span>
           </button>
+          <div
+            className="absolute top-4 left-4 z-10 flex gap-3 bg-black/50 text-white rounded-xl px-4 py-2 backdrop-blur-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Par</p>
+              <p className="text-lg font-extrabold tabular-nums">{hoyoActual.par}</p>
+            </div>
+            <div className="w-px bg-white/20" />
+            <div className="text-center">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Índice</p>
+              <p className="text-lg font-extrabold tabular-nums">{hoyoActual.indice_dificultad}</p>
+            </div>
+            <div className="w-px bg-white/20" />
+            <div className="text-center">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Yardas</p>
+              <p className="text-lg font-extrabold tabular-nums">{hoyoActual.yardas ?? '—'}</p>
+            </div>
+          </div>
           <div className="flex-1 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
             {hoyoActual.mapa_coords ? (
               <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} className="w-full" />

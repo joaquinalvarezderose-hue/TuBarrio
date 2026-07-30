@@ -68,7 +68,7 @@ const GolfLeaderboard: React.FC = () => {
         <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="font-black text-slate-900 text-lg">Leaderboard</h1>
+        <h1 className="font-black text-slate-900 text-lg">Tabla de Posiciones</h1>
       </div>
 
       <div className="p-4">
