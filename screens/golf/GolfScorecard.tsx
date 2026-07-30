@@ -342,113 +342,122 @@ const GolfScorecard: React.FC = () => {
 
             {hoyoActual && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                {hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaLoading ? (
-                  <Skeleton className="h-56 w-full" />
-                ) : hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaUrl ? (
-                  <div className="relative w-full bg-slate-100 p-2">
-                    <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} />
-                    <button
-                      onClick={() => setMapaFullscreen(true)}
-                      className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-2 backdrop-blur-sm hover:bg-black/75"
-                      aria-label="Ver mapa completo"
-                    >
-                      <span className="material-symbols-outlined text-lg">fullscreen</span>
-                    </button>
-                  </div>
-                ) : hoyoActual.mapa_url ? (
-                  <div className="relative h-56 w-full bg-slate-100 flex items-center justify-center p-2">
-                    <img
-                      src={mapaUrl ?? hoyoActual.mapa_url}
-                      alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
-                      className="h-full w-full object-contain"
-                    />
-                    <button
-                      onClick={() => setMapaFullscreen(true)}
-                      className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-2 backdrop-blur-sm hover:bg-black/75"
-                      aria-label="Ver mapa completo"
-                    >
-                      <span className="material-symbols-outlined text-lg">fullscreen</span>
-                    </button>
-                  </div>
-                ) : null}
-
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={() => setHoleIdx((i) => Math.max(0, i - 1))}
-                    disabled={holeIdx === 0}
-                    className="p-2 rounded-full bg-slate-100 disabled:opacity-40"
-                  >
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                  <div className="text-center">
-                    <p className="text-3xl font-black text-[#111813]">Hoyo {hoyoActual.numero_hoyo}</p>
-                    <p className="text-xs text-slate-500">Par {hoyoActual.par} · Indice {hoyoActual.indice_dificultad}{hoyoActual.yardas ? ` · ${hoyoActual.yardas} yd` : ''}</p>
-                    {hoyoActual.categoria_dificultad && (
-                      <span
-                        className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                          CATEGORIA_STYLES[hoyoActual.categoria_dificultad] || 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {hoyoActual.categoria_dificultad}
-                      </span>
+                <div className="flex items-stretch">
+                  <div className="relative w-[38%] shrink-0 bg-slate-100">
+                    {hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaLoading ? (
+                      <Skeleton className="h-full w-full" />
+                    ) : hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaUrl ? (
+                      <div className="relative h-full w-full p-1.5">
+                        <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} />
+                        <button
+                          onClick={() => setMapaFullscreen(true)}
+                          className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 backdrop-blur-sm hover:bg-black/75"
+                          aria-label="Ver mapa completo"
+                        >
+                          <span className="material-symbols-outlined text-base">fullscreen</span>
+                        </button>
+                      </div>
+                    ) : hoyoActual.mapa_url ? (
+                      <div className="relative h-full w-full flex items-center justify-center p-1.5">
+                        <img
+                          src={mapaUrl ?? hoyoActual.mapa_url}
+                          alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
+                          className="h-full w-full object-contain"
+                        />
+                        <button
+                          onClick={() => setMapaFullscreen(true)}
+                          className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 backdrop-blur-sm hover:bg-black/75"
+                          aria-label="Ver mapa completo"
+                        >
+                          <span className="material-symbols-outlined text-base">fullscreen</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-full w-full flex flex-col items-center justify-center gap-1 p-3 text-center">
+                        <span className="material-symbols-outlined text-[#4a9c40] text-3xl">golf_course</span>
+                        <p className="text-[10px] text-slate-500">Sin mapa</p>
+                      </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => setHoleIdx((i) => Math.min(hoyos.length - 1, i + 1))}
-                    disabled={holeIdx === hoyos.length - 1}
-                    className="p-2 rounded-full bg-slate-100 disabled:opacity-40"
-                  >
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
-                </div>
 
-                {hoyoActual.estrategia_sugerida && (
-                  <div className="mb-4 bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-xl p-4">
-                    <p className="text-xs font-bold text-[#4a9c40] uppercase mb-1.5 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">tips_and_updates</span>
-                      Estrategia sugerida
-                    </p>
-                    <p className="text-sm text-slate-700 leading-relaxed">{hoyoActual.estrategia_sugerida}</p>
-                  </div>
-                )}
-
-                {scorecardActual?.estado === 'confirmado' ? (
-                  <div className="text-center bg-emerald-50 border border-emerald-200 rounded-xl py-4">
-                    <span className="material-symbols-outlined text-emerald-600 mb-1">check_circle</span>
-                    <p className="font-bold text-emerald-800">Confirmado</p>
-                    <p className="text-sm text-emerald-700">{scorecardActual.golpes_brutos} golpes brutos · {scorecardActual.golpes_netos} netos</p>
-                  </div>
-                ) : (
-                  <>
-                    {scorecardActual?.estado === 'pendiente' && (
-                      <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                        Cargado. Cuando esten los 18 hoyos, un companero de flight confirma la tarjeta completa.
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min={1}
-                        value={golpesInput}
-                        onChange={(e) => setGolpesInput(e.target.value)}
-                        placeholder="Golpes brutos"
-                        className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold text-center"
-                      />
+                  <div className="flex-1 min-w-0 p-4">
+                    <div className="flex items-center justify-between mb-3">
                       <button
-                        onClick={handleSubmitHoyo}
-                        disabled={submitting}
-                        className="bg-[#4a9c40] hover:bg-[#3d8b33] disabled:opacity-50 text-white font-bold px-5 py-3 rounded-xl transition"
+                        onClick={() => setHoleIdx((i) => Math.max(0, i - 1))}
+                        disabled={holeIdx === 0}
+                        className="p-1.5 rounded-full bg-slate-100 disabled:opacity-40 shrink-0"
                       >
-                        Guardar
+                        <span className="material-symbols-outlined text-lg">chevron_left</span>
+                      </button>
+                      <div className="text-center min-w-0">
+                        <p className="text-2xl font-black text-[#111813] leading-tight">Hoyo {hoyoActual.numero_hoyo}</p>
+                        <p className="text-[11px] text-slate-500">Par {hoyoActual.par} · Ind. {hoyoActual.indice_dificultad}{hoyoActual.yardas ? ` · ${hoyoActual.yardas} yd` : ''}</p>
+                        {hoyoActual.categoria_dificultad && (
+                          <span
+                            className={`inline-block mt-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+                              CATEGORIA_STYLES[hoyoActual.categoria_dificultad] || 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {hoyoActual.categoria_dificultad}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setHoleIdx((i) => Math.min(hoyos.length - 1, i + 1))}
+                        disabled={holeIdx === hoyos.length - 1}
+                        className="p-1.5 rounded-full bg-slate-100 disabled:opacity-40 shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-lg">chevron_right</span>
                       </button>
                     </div>
-                    {netoPreview !== null && (
-                      <p className="text-center text-sm text-slate-500 mt-2">Neto estimado: <span className="font-bold text-slate-800">{netoPreview}</span></p>
+
+                    {hoyoActual.estrategia_sugerida && (
+                      <div className="mb-3 bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-xl p-2.5">
+                        <p className="text-[10px] font-bold text-[#4a9c40] uppercase mb-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">tips_and_updates</span>
+                          Estrategia
+                        </p>
+                        <p className="text-xs text-slate-700 leading-relaxed">{hoyoActual.estrategia_sugerida}</p>
+                      </div>
                     )}
-                  </>
-                )}
-              </div>
+
+                    {scorecardActual?.estado === 'confirmado' ? (
+                      <div className="text-center bg-emerald-50 border border-emerald-200 rounded-xl py-3">
+                        <span className="material-symbols-outlined text-emerald-600 mb-1 text-lg">check_circle</span>
+                        <p className="font-bold text-emerald-800 text-sm">Confirmado</p>
+                        <p className="text-xs text-emerald-700">{scorecardActual.golpes_brutos} brutos · {scorecardActual.golpes_netos} netos</p>
+                      </div>
+                    ) : (
+                      <>
+                        {scorecardActual?.estado === 'pendiente' && (
+                          <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-2">
+                            Cargado. Falta confirmar la tarjeta completa.
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={golpesInput}
+                            onChange={(e) => setGolpesInput(e.target.value)}
+                            placeholder="Golpes"
+                            className="w-16 shrink-0 border border-slate-200 rounded-xl px-2 py-2.5 text-base font-bold text-center"
+                          />
+                          <button
+                            onClick={handleSubmitHoyo}
+                            disabled={submitting}
+                            className="flex-1 bg-[#4a9c40] hover:bg-[#3d8b33] disabled:opacity-50 text-white font-bold px-3 py-2.5 rounded-xl transition text-sm"
+                          >
+                            Guardar
+                          </button>
+                        </div>
+                        {netoPreview !== null && (
+                          <p className="text-center text-xs text-slate-500 mt-2">Neto estimado: <span className="font-bold text-slate-800">{netoPreview}</span></p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
