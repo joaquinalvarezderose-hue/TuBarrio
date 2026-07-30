@@ -168,11 +168,7 @@ const GolfPanel: React.FC = () => {
             <span className="material-symbols-outlined text-[#4a9c40] text-2xl">leaderboard</span>
             <span className="text-sm font-bold text-slate-800">Leaderboard</span>
           </button>
-          <button onClick={() => goTo('/golf/hoyo')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition">
-            <span className="material-symbols-outlined text-[#4a9c40] text-2xl">flag</span>
-            <span className="text-sm font-bold text-slate-800">Info del Hoyo</span>
-          </button>
-          <button onClick={() => goTo('/golf/rules')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition">
+          <button onClick={() => goTo('/golf/rules')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition col-span-2">
             <span className="material-symbols-outlined text-[#4a9c40] text-2xl">gavel</span>
             <span className="text-sm font-bold text-slate-800">Reglamento</span>
           </button>

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
+import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
+import GolfHoleMap, { GolfHoleMapData } from '../../components/golf/GolfHoleMap';
 
 type Hoyo = {
   id: number;
@@ -9,6 +11,17 @@ type Hoyo = {
   par: number;
   yardas: number | null;
   indice_dificultad: number;
+  mapa_url: string | null;
+  mapa_coords: Omit<GolfHoleMapData, 'imageUrl'> | null;
+  categoria_dificultad: string | null;
+  estrategia_sugerida: string | null;
+};
+
+const CATEGORIA_STYLES: Record<string, string> = {
+  OPORTUNIDAD: 'bg-emerald-100 text-emerald-700',
+  INTERMEDIO: 'bg-amber-100 text-amber-700',
+  EXIGENTE: 'bg-orange-100 text-orange-700',
+  'MUY EXIGENTE': 'bg-red-100 text-red-700',
 };
 
 type MiRonda = {
@@ -69,6 +82,7 @@ const GolfScorecard: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [mapaFullscreen, setMapaFullscreen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -117,7 +131,7 @@ const GolfScorecard: React.FC = () => {
         : Promise.resolve({ data: [] as any[] }),
       supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, yardas, indice_dificultad')
+        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url, mapa_coords, categoria_dificultad, estrategia_sugerida')
         .eq('cancha_id', rondaActiva.cancha_id)
         .order('numero_hoyo', { ascending: true }),
     ]);
@@ -196,6 +210,7 @@ const GolfScorecard: React.FC = () => {
   const selectedRonda = rondaOptions.find((r) => r.id === selectedRondaId);
   const hoyoActual = hoyos[holeIdx];
   const scorecardActual = hoyoActual ? scorecardByHoyo[hoyoActual.id] : undefined;
+  const { url: mapaUrl, loading: mapaLoading } = useGolfMapaUrl(hoyoActual?.mapa_url);
 
   useEffect(() => {
     setGolpesInput(scorecardActual?.golpes_brutos ? String(scorecardActual.golpes_brutos) : '');
@@ -326,7 +341,38 @@ const GolfScorecard: React.FC = () => {
             )}
 
             {hoyoActual && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                {hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaLoading ? (
+                  <Skeleton className="h-56 w-full" />
+                ) : hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaUrl ? (
+                  <div className="relative w-full bg-slate-100 p-2">
+                    <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} />
+                    <button
+                      onClick={() => setMapaFullscreen(true)}
+                      className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-2 backdrop-blur-sm hover:bg-black/75"
+                      aria-label="Ver mapa completo"
+                    >
+                      <span className="material-symbols-outlined text-lg">fullscreen</span>
+                    </button>
+                  </div>
+                ) : hoyoActual.mapa_url ? (
+                  <div className="relative h-56 w-full bg-slate-100 flex items-center justify-center p-2">
+                    <img
+                      src={mapaUrl ?? hoyoActual.mapa_url}
+                      alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
+                      className="h-full w-full object-contain"
+                    />
+                    <button
+                      onClick={() => setMapaFullscreen(true)}
+                      className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-2 backdrop-blur-sm hover:bg-black/75"
+                      aria-label="Ver mapa completo"
+                    >
+                      <span className="material-symbols-outlined text-lg">fullscreen</span>
+                    </button>
+                  </div>
+                ) : null}
+
+              <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <button
                     onClick={() => setHoleIdx((i) => Math.max(0, i - 1))}
@@ -338,6 +384,15 @@ const GolfScorecard: React.FC = () => {
                   <div className="text-center">
                     <p className="text-3xl font-black text-[#111813]">Hoyo {hoyoActual.numero_hoyo}</p>
                     <p className="text-xs text-slate-500">Par {hoyoActual.par} · Indice {hoyoActual.indice_dificultad}{hoyoActual.yardas ? ` · ${hoyoActual.yardas} yd` : ''}</p>
+                    {hoyoActual.categoria_dificultad && (
+                      <span
+                        className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                          CATEGORIA_STYLES[hoyoActual.categoria_dificultad] || 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {hoyoActual.categoria_dificultad}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => setHoleIdx((i) => Math.min(hoyos.length - 1, i + 1))}
@@ -347,6 +402,16 @@ const GolfScorecard: React.FC = () => {
                     <span className="material-symbols-outlined">chevron_right</span>
                   </button>
                 </div>
+
+                {hoyoActual.estrategia_sugerida && (
+                  <div className="mb-4 bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-xl p-4">
+                    <p className="text-xs font-bold text-[#4a9c40] uppercase mb-1.5 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">tips_and_updates</span>
+                      Estrategia sugerida
+                    </p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{hoyoActual.estrategia_sugerida}</p>
+                  </div>
+                )}
 
                 {scorecardActual?.estado === 'confirmado' ? (
                   <div className="text-center bg-emerald-50 border border-emerald-200 rounded-xl py-4">
@@ -384,6 +449,7 @@ const GolfScorecard: React.FC = () => {
                   </>
                 )}
               </div>
+              </div>
             )}
 
             {pendientes.length > 0 && (
@@ -412,6 +478,32 @@ const GolfScorecard: React.FC = () => {
           </>
         )}
       </div>
+
+      {mapaFullscreen && hoyoActual && mapaUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black flex flex-col"
+          onClick={() => setMapaFullscreen(false)}
+        >
+          <button
+            onClick={() => setMapaFullscreen(false)}
+            className="absolute top-4 right-4 z-10 bg-white/15 text-white rounded-full p-2 backdrop-blur-sm hover:bg-white/25"
+            aria-label="Cerrar mapa"
+          >
+            <span className="material-symbols-outlined text-2xl">close</span>
+          </button>
+          <div className="flex-1 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+            {hoyoActual.mapa_coords ? (
+              <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} className="w-full" />
+            ) : (
+              <img
+                src={mapaUrl}
+                alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
+                className="max-h-full max-w-full object-contain"
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
