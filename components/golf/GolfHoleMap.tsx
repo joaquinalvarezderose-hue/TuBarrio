@@ -32,6 +32,27 @@ function distanciaEntre(a: GolfHoleMapPoint, b: GolfHoleMapPoint) {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
+// Arcos de distancia (ayuda para el golpe de salida), centrados en el tee.
+// Radios fijos en la unidad del hoyo (m o yd), con su color de referencia.
+const ARCOS_DISTANCIA: { radio: number; color: string }[] = [
+  { radio: 250, color: '#f59e0b' },
+  { radio: 200, color: '#3b82f6' },
+  { radio: 150, color: '#cbd5e1' },
+  { radio: 100, color: '#ef4444' },
+  { radio: 50, color: '#38bdf8' },
+];
+
+const APERTURA_ARCO_RAD = (130 * Math.PI) / 180; // apertura angular total del arco
+
+// Path SVG de un arco circular centrado en `centro`, orientado hacia `anguloCentroRad`.
+function pathArco(centro: GolfHoleMapPoint, radio: number, anguloCentroRad: number): string {
+  const a1 = anguloCentroRad - APERTURA_ARCO_RAD / 2;
+  const a2 = anguloCentroRad + APERTURA_ARCO_RAD / 2;
+  const p1 = { x: centro.x + radio * Math.cos(a1), y: centro.y + radio * Math.sin(a1) };
+  const p2 = { x: centro.x + radio * Math.cos(a2), y: centro.y + radio * Math.sin(a2) };
+  return `M ${p1.x} ${p1.y} A ${radio} ${radio} 0 0 1 ${p2.x} ${p2.y}`;
+}
+
 // Punto sobre el segmento tee->green más cercano a un punto arbitrario
 // (se usa para restringir el arrastre del marcador de layup a la línea).
 function proyectarSobreSegmento(p: GolfHoleMapPoint, a: GolfHoleMapPoint, b: GolfHoleMapPoint): GolfHoleMapPoint {
@@ -110,6 +131,12 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
   const distLayupDesdeTee = layup ? distanciaEntre(tee, layup) * escala : null;
   const distLayupAGreen = layup ? distanciaEntre(layup, green) * escala : null;
 
+  // Angulo tee -> green, para orientar los arcos de distancia hacia el green.
+  const anguloTeeGreen = Math.atan2(green.y - tee.y, green.x - tee.x);
+  const arcosVisibles = escala > 0
+    ? ARCOS_DISTANCIA.filter((a) => a.radio < distancia - 10)
+    : [];
+
   return (
     <div className={className}>
       <svg
@@ -129,6 +156,40 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
           height={canvas.height}
           preserveAspectRatio="xMidYMid slice"
         />
+
+        {/* Arcos de distancia desde el tee (ayuda para el golpe de salida) */}
+        {arcosVisibles.map(({ radio, color }) => {
+          const radioCanvas = radio / escala;
+          const labelPos = {
+            x: tee.x + radioCanvas * Math.cos(anguloTeeGreen),
+            y: tee.y + radioCanvas * Math.sin(anguloTeeGreen),
+          };
+          return (
+            <g key={radio}>
+              <path
+                d={pathArco(tee, radioCanvas, anguloTeeGreen)}
+                fill="none"
+                stroke={color}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                opacity={0.9}
+              />
+              <text
+                x={labelPos.x}
+                y={labelPos.y}
+                textAnchor="middle"
+                fontSize={12}
+                fontWeight={800}
+                fill="#fff"
+                stroke="#00000090"
+                strokeWidth={3}
+                paintOrder="stroke"
+              >
+                {radio}
+              </text>
+            </g>
+          );
+        })}
 
         {/* Linea tee -> green */}
         <line
