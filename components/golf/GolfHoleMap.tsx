@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React from 'react';
 
 // ------------------------------------------------------------
 // Estructura de datos de un hoyo (lo que hoy es "figma data").
@@ -42,7 +42,7 @@ const ARCOS_DISTANCIA: { radio: number; color: string }[] = [
   { radio: 50, color: '#38bdf8' },
 ];
 
-const APERTURA_ARCO_RAD = (130 * Math.PI) / 180; // apertura angular total del arco
+const APERTURA_ARCO_RAD = (90 * Math.PI) / 180; // apertura angular total del arco
 
 // Path SVG de un arco circular centrado en `centro`, orientado hacia `anguloCentroRad`.
 function pathArco(centro: GolfHoleMapPoint, radio: number, anguloCentroRad: number): string {
@@ -53,22 +53,8 @@ function pathArco(centro: GolfHoleMapPoint, radio: number, anguloCentroRad: numb
   return `M ${p1.x} ${p1.y} A ${radio} ${radio} 0 0 1 ${p2.x} ${p2.y}`;
 }
 
-// Punto sobre el segmento tee->green más cercano a un punto arbitrario
-// (se usa para restringir el arrastre del marcador de layup a la línea).
-function proyectarSobreSegmento(p: GolfHoleMapPoint, a: GolfHoleMapPoint, b: GolfHoleMapPoint): GolfHoleMapPoint {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return a;
-  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
-  t = Math.max(0, Math.min(1, t));
-  return { x: a.x + dx * t, y: a.y + dy * t };
-}
-
 type GolfHoleMapProps = {
   data: GolfHoleMapData;
-  /** Habilita el punto intermedio arrastrable para calcular un layup. Default: true. */
-  layupHabilitado?: boolean;
   className?: string;
   /**
    * Si es true, el SVG ocupa el 100% del alto/ancho del contenedor y deja que su
@@ -80,12 +66,8 @@ type GolfHoleMapProps = {
   fill?: boolean;
 };
 
-const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true, className, fill = false }) => {
+const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, className, fill = false }) => {
   const { imageUrl, canvas, tee, green, distancia, unidad = 'm' } = data;
-
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [layup, setLayup] = useState<GolfHoleMapPoint | null>(null);
-  const [arrastrando, setArrastrando] = useState(false);
 
   const distanciaTotal = distanciaEntre(tee, green);
   const escala = distanciaTotal > 0 ? distancia / distanciaTotal : 0; // metros por unidad de Figma
@@ -94,42 +76,6 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
     x: (tee.x + green.x) / 2,
     y: (tee.y + green.y) / 2,
   };
-
-  // Convierte un evento de puntero (mouse/touch) a coordenadas del
-  // viewBox del SVG, sin importar el tamaño real renderizado en pantalla.
-  const puntoDesdeEvento = useCallback((e: React.PointerEvent): GolfHoleMapPoint | null => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return null;
-    const local = pt.matrixTransform(ctm.inverse());
-    return { x: local.x, y: local.y };
-  }, []);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (!layupHabilitado) return;
-    (e.target as Element).setPointerCapture(e.pointerId);
-    setArrastrando(true);
-    const p = puntoDesdeEvento(e);
-    if (p) setLayup(proyectarSobreSegmento(p, tee, green));
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!arrastrando) return;
-    const p = puntoDesdeEvento(e);
-    if (p) setLayup(proyectarSobreSegmento(p, tee, green));
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setArrastrando(false);
-    (e.target as Element).releasePointerCapture(e.pointerId);
-  };
-
-  const distLayupDesdeTee = layup ? distanciaEntre(tee, layup) * escala : null;
-  const distLayupAGreen = layup ? distanciaEntre(layup, green) * escala : null;
 
   // Angulo tee -> green, para orientar los arcos de distancia hacia el green.
   const anguloTeeGreen = Math.atan2(green.y - tee.y, green.x - tee.x);
@@ -140,13 +86,10 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
   return (
     <div className={className}>
       <svg
-        ref={svgRef}
         viewBox={`0 0 ${canvas.width} ${canvas.height}`}
         preserveAspectRatio="xMidYMid meet"
-        className={fill ? 'w-full h-full select-none touch-none' : 'w-full h-auto select-none touch-none'}
+        className={fill ? 'w-full h-full select-none' : 'w-full h-auto select-none'}
         style={fill ? undefined : { aspectRatio: `${canvas.width} / ${canvas.height}` }}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
       >
         <image
           href={imageUrl}
@@ -220,10 +163,12 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
           </text>
         </g>
 
-        {/* Marcador Green */}
+        {/* Marcador Green, con bandera */}
         <g>
+          <line x1={green.x} y1={green.y - 8} x2={green.x} y2={green.y - 28} stroke="#fff" strokeWidth={2} strokeLinecap="round" />
+          <path d={`M ${green.x} ${green.y - 28} L ${green.x + 15} ${green.y - 23} L ${green.x} ${green.y - 18} Z`} fill="#16a34a" stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
           <circle cx={green.x} cy={green.y} r={9} fill="#16a34a" stroke="#fff" strokeWidth={2.5} />
-          <text x={green.x} y={green.y - 16} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
+          <text x={green.x} y={green.y - 34} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
             Green
           </text>
         </g>
@@ -235,31 +180,7 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
             {Math.round(distancia)} {unidad}
           </text>
         </g>
-
-        {/* Punto intermedio arrastrable (layup) */}
-        {layupHabilitado && (
-          <g
-            transform={`translate(${layup?.x ?? centro.x}, ${layup?.y ?? centro.y})`}
-            onPointerDown={handlePointerDown}
-            style={{ cursor: 'grab' }}
-          >
-            <circle r={16} fill="transparent" />
-            <circle
-              r={8}
-              fill={layup ? '#2563eb' : '#94a3b8'}
-              stroke="#fff"
-              strokeWidth={2.5}
-            />
-          </g>
-        )}
       </svg>
-
-      {layup && (
-        <div className="mt-2 flex items-center justify-center gap-4 text-xs font-bold text-slate-600">
-          <span>Tee → Layup: {Math.round(distLayupDesdeTee!)} {unidad}</span>
-          <span>Layup → Green: {Math.round(distLayupAGreen!)} {unidad}</span>
-        </div>
-      )}
     </div>
   );
 };

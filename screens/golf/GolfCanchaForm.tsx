@@ -348,7 +348,7 @@ const HoyoMapaFila: React.FC<{
 
           {previewCoords && previewUrl && (
             <div className="mb-2 bg-white rounded-lg border border-slate-200 p-2 max-w-[220px] mx-auto">
-              <GolfHoleMap data={{ ...previewCoords, imageUrl: previewUrl }} layupHabilitado={false} />
+              <GolfHoleMap data={{ ...previewCoords, imageUrl: previewUrl }} />
             </div>
           )}
 
