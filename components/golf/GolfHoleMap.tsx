@@ -153,24 +153,23 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, className, fill = false
 
         {/* Marcador Tee */}
         <g>
-          <circle cx={tee.x} cy={tee.y} r={9} fill="#ea580c" stroke="#fff" strokeWidth={2.5} />
+          <circle cx={tee.x} cy={tee.y} r={9} fill="#2563eb" stroke="#fff" strokeWidth={2.5} />
           <text x={tee.x} y={tee.y + 22} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
             Tee
           </text>
         </g>
 
-        {/* Marcador Green, capa superior: bandera roja centrada dentro del circulo */}
+        {/* Marcador Green, capa superior: bandera clavada en el centro del circulo */}
         <g>
-          <text x={green.x} y={green.y - 40} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
+          <text x={green.x} y={green.y - 34} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
             Green
           </text>
-          <line x1={green.x} y1={green.y - 8} x2={green.x} y2={green.y - 32} stroke="#111813" strokeWidth={1.8} strokeLinecap="round" />
+          <circle cx={green.x} cy={green.y} r={10} fill="#16a34a" stroke="#fff" strokeWidth={2.5} />
+          <line x1={green.x} y1={green.y} x2={green.x} y2={green.y - 26} stroke="#111813" strokeWidth={1.8} strokeLinecap="round" />
           <path
-            d={`M ${green.x} ${green.y - 32} L ${green.x + 16} ${green.y - 29} L ${green.x + 10} ${green.y - 25} L ${green.x + 16} ${green.y - 21} L ${green.x} ${green.y - 18} Z`}
+            d={`M ${green.x} ${green.y - 26} L ${green.x + 14} ${green.y - 20} L ${green.x} ${green.y - 14} Z`}
             fill="#dc2626"
           />
-          <circle cx={green.x} cy={green.y} r={10} fill="#ffffff" stroke="#16a34a" strokeWidth={2.5} />
-          <circle cx={green.x} cy={green.y} r={3.5} fill="#16a34a" />
         </g>
       </svg>
     </div>
