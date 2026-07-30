@@ -342,54 +342,9 @@ const GolfScorecard: React.FC = () => {
 
             {hoyoActual && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="relative h-56 w-full bg-slate-100">
-                  {hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaLoading ? (
-                    <Skeleton className="h-full w-full" />
-                  ) : hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaUrl ? (
-                    <>
-                      <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} fill className="h-full w-full" />
-                      <button
-                        onClick={() => setMapaFullscreen(true)}
-                        className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-1.5 backdrop-blur-sm hover:bg-black/75"
-                        aria-label="Ver mapa completo"
-                      >
-                        <span className="material-symbols-outlined text-base">fullscreen</span>
-                      </button>
-                    </>
-                  ) : hoyoActual.mapa_url ? (
-                    <>
-                      <img
-                        src={mapaUrl ?? hoyoActual.mapa_url}
-                        alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
-                        className="h-full w-full object-contain"
-                      />
-                      <button
-                        onClick={() => setMapaFullscreen(true)}
-                        className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-1.5 backdrop-blur-sm hover:bg-black/75"
-                        aria-label="Ver mapa completo"
-                      >
-                        <span className="material-symbols-outlined text-base">fullscreen</span>
-                      </button>
-                    </>
-                  ) : (
-                    <div className="h-full w-full flex flex-col items-center justify-center gap-1.5 text-center">
-                      <span className="material-symbols-outlined text-[#4a9c40] text-4xl">golf_course</span>
-                      <p className="text-xs text-slate-500">Sin mapa disponible</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-5">
-                  <div className="flex items-center justify-between gap-2 mb-4">
-                    <button
-                      onClick={() => setHoleIdx((i) => Math.max(0, i - 1))}
-                      disabled={holeIdx === 0}
-                      className="p-2 rounded-full bg-slate-100 disabled:opacity-40 shrink-0"
-                      aria-label="Hoyo anterior"
-                    >
-                      <span className="material-symbols-outlined text-xl">chevron_left</span>
-                    </button>
-                    <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-stretch">
+                  <div className="flex-1 min-w-0 p-5">
+                    <div className="flex items-center gap-2 mb-4">
                       <p className="text-2xl font-black text-[#111813] leading-tight whitespace-nowrap">Hoyo {hoyoActual.numero_hoyo}</p>
                       {hoyoActual.categoria_dificultad && (
                         <span
@@ -401,79 +356,130 @@ const GolfScorecard: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => setHoleIdx((i) => Math.min(hoyos.length - 1, i + 1))}
-                      disabled={holeIdx === hoyos.length - 1}
-                      className="p-2 rounded-full bg-slate-100 disabled:opacity-40 shrink-0"
-                      aria-label="Hoyo siguiente"
-                    >
-                      <span className="material-symbols-outlined text-xl">chevron_right</span>
-                    </button>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-2.5 mb-4">
-                    <div className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 flex flex-col items-center gap-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Par</p>
-                      <p className="text-xl font-black text-[#111813] tabular-nums">{hoyoActual.par}</p>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 flex flex-col items-center gap-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Indice</p>
-                      <p className="text-xl font-black text-[#111813] tabular-nums">{hoyoActual.indice_dificultad}</p>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 flex flex-col items-center gap-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
-                      <p className="text-xl font-black text-[#111813] tabular-nums">
-                        {hoyoActual.yardas ?? '—'}
-                        {hoyoActual.yardas && <span className="text-xs font-bold text-slate-400 ml-0.5">yd</span>}
-                      </p>
-                    </div>
-                  </div>
-
-                  {hoyoActual.estrategia_sugerida && (
-                    <div className="mb-4 bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-xl p-3">
-                      <p className="text-[10px] font-bold text-[#4a9c40] uppercase tracking-wide mb-1 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-xs">tips_and_updates</span>
-                        Estrategia
-                      </p>
-                      <p className="text-xs text-slate-700 leading-relaxed">{hoyoActual.estrategia_sugerida}</p>
-                    </div>
-                  )}
-
-                  {scorecardActual?.estado === 'confirmado' ? (
-                    <div className="text-center bg-emerald-50 border border-emerald-200 rounded-xl py-3">
-                      <span className="material-symbols-outlined text-emerald-600 mb-1 text-lg">check_circle</span>
-                      <p className="font-bold text-emerald-800 text-sm">Confirmado</p>
-                      <p className="text-xs text-emerald-700">{scorecardActual.golpes_brutos} brutos · {scorecardActual.golpes_netos} netos</p>
-                    </div>
-                  ) : (
-                    <>
-                      {scorecardActual?.estado === 'pendiente' && (
-                        <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-2">
-                          Cargado. Falta confirmar la tarjeta completa.
+                    <div className="grid grid-cols-3 gap-2.5 mb-4">
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 flex flex-col items-center gap-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+                        <p className="text-xl font-black text-[#111813] tabular-nums">{hoyoActual.par}</p>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 flex flex-col items-center gap-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Indice</p>
+                        <p className="text-xl font-black text-[#111813] tabular-nums">{hoyoActual.indice_dificultad}</p>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 flex flex-col items-center gap-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+                        <p className="text-xl font-black text-[#111813] tabular-nums">
+                          {hoyoActual.yardas ?? '—'}
+                          {hoyoActual.yardas && <span className="text-xs font-bold text-slate-400 ml-0.5">yd</span>}
                         </p>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          value={golpesInput}
-                          onChange={(e) => setGolpesInput(e.target.value)}
-                          placeholder="Golpes"
-                          className="w-16 shrink-0 border border-slate-200 rounded-xl px-2 py-2.5 text-base font-bold text-center"
+                      </div>
+                    </div>
+
+                    {hoyoActual.estrategia_sugerida && (
+                      <div className="mb-4 bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-[#4a9c40] uppercase tracking-wide mb-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">tips_and_updates</span>
+                          Estrategia
+                        </p>
+                        <p className="text-xs text-slate-700 leading-relaxed">{hoyoActual.estrategia_sugerida}</p>
+                      </div>
+                    )}
+
+                    {scorecardActual?.estado === 'confirmado' ? (
+                      <div className="text-center bg-emerald-50 border border-emerald-200 rounded-xl py-3">
+                        <span className="material-symbols-outlined text-emerald-600 mb-1 text-lg">check_circle</span>
+                        <p className="font-bold text-emerald-800 text-sm">Confirmado</p>
+                        <p className="text-xs text-emerald-700">{scorecardActual.golpes_brutos} brutos · {scorecardActual.golpes_netos} netos</p>
+                      </div>
+                    ) : (
+                      <>
+                        {scorecardActual?.estado === 'pendiente' && (
+                          <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-2">
+                            Cargado. Falta confirmar la tarjeta completa.
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={golpesInput}
+                            onChange={(e) => setGolpesInput(e.target.value)}
+                            placeholder="Golpes"
+                            className="w-16 shrink-0 border border-slate-200 rounded-xl px-2 py-2.5 text-base font-bold text-center"
+                          />
+                          <button
+                            onClick={handleSubmitHoyo}
+                            disabled={submitting}
+                            className="flex-1 bg-[#4a9c40] hover:bg-[#3d8b33] disabled:opacity-50 text-white font-bold px-3 py-2.5 rounded-xl transition text-sm"
+                          >
+                            Guardar
+                          </button>
+                        </div>
+                        {netoPreview !== null && (
+                          <p className="text-center text-xs text-slate-500 mt-2">Neto estimado: <span className="font-bold text-slate-800">{netoPreview}</span></p>
+                        )}
+                      </>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => setHoleIdx((i) => Math.max(0, i - 1))}
+                        disabled={holeIdx === 0}
+                        className="flex items-center gap-1 text-xs font-bold text-slate-500 disabled:opacity-40 px-2 py-1.5 rounded-lg hover:bg-slate-50"
+                        aria-label="Hoyo anterior"
+                      >
+                        <span className="material-symbols-outlined text-lg">chevron_left</span>
+                        Anterior
+                      </button>
+                      <p className="text-[11px] text-slate-400">{holeIdx + 1} / {hoyos.length}</p>
+                      <button
+                        onClick={() => setHoleIdx((i) => Math.min(hoyos.length - 1, i + 1))}
+                        disabled={holeIdx === hoyos.length - 1}
+                        className="flex items-center gap-1 text-xs font-bold text-slate-500 disabled:opacity-40 px-2 py-1.5 rounded-lg hover:bg-slate-50"
+                        aria-label="Hoyo siguiente"
+                      >
+                        Siguiente
+                        <span className="material-symbols-outlined text-lg">chevron_right</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`relative w-[36%] shrink-0 bg-slate-100 ${hoyoActual.mapa_url ? '' : 'self-start h-40 rounded-bl-2xl'}`}>
+                    {hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaLoading ? (
+                      <Skeleton className="h-full w-full" />
+                    ) : hoyoActual.mapa_url && hoyoActual.mapa_coords && mapaUrl ? (
+                      <>
+                        <GolfHoleMap data={{ ...hoyoActual.mapa_coords, imageUrl: mapaUrl }} fill className="h-full w-full" />
+                        <button
+                          onClick={() => setMapaFullscreen(true)}
+                          className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 backdrop-blur-sm hover:bg-black/75"
+                          aria-label="Ver mapa completo"
+                        >
+                          <span className="material-symbols-outlined text-base">fullscreen</span>
+                        </button>
+                      </>
+                    ) : hoyoActual.mapa_url ? (
+                      <>
+                        <img
+                          src={mapaUrl ?? hoyoActual.mapa_url}
+                          alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
+                          className="h-full w-full object-contain"
                         />
                         <button
-                          onClick={handleSubmitHoyo}
-                          disabled={submitting}
-                          className="flex-1 bg-[#4a9c40] hover:bg-[#3d8b33] disabled:opacity-50 text-white font-bold px-3 py-2.5 rounded-xl transition text-sm"
+                          onClick={() => setMapaFullscreen(true)}
+                          className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 backdrop-blur-sm hover:bg-black/75"
+                          aria-label="Ver mapa completo"
                         >
-                          Guardar
+                          <span className="material-symbols-outlined text-base">fullscreen</span>
                         </button>
+                      </>
+                    ) : (
+                      <div className="h-full w-full flex flex-col items-center justify-center gap-1.5 p-3 text-center">
+                        <span className="material-symbols-outlined text-[#4a9c40] text-3xl">golf_course</span>
+                        <p className="text-[10px] text-slate-500">Sin mapa</p>
                       </div>
-                      {netoPreview !== null && (
-                        <p className="text-center text-xs text-slate-500 mt-2">Neto estimado: <span className="font-bold text-slate-800">{netoPreview}</span></p>
-                      )}
-                    </>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             )}
