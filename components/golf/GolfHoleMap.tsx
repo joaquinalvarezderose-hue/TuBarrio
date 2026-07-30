@@ -163,22 +163,22 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, className, fill = false
           </text>
         </g>
 
-        {/* Marcador Green, con bandera */}
-        <g>
-          <line x1={green.x} y1={green.y - 8} x2={green.x} y2={green.y - 28} stroke="#fff" strokeWidth={2} strokeLinecap="round" />
-          <path d={`M ${green.x} ${green.y - 28} L ${green.x + 15} ${green.y - 23} L ${green.x} ${green.y - 18} Z`} fill="#16a34a" stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
-          <circle cx={green.x} cy={green.y} r={9} fill="#16a34a" stroke="#fff" strokeWidth={2.5} />
-          <text x={green.x} y={green.y - 34} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
-            Green
-          </text>
-        </g>
-
         {/* Etiqueta de distancia total, centrada en la linea */}
         <g transform={`translate(${centro.x}, ${centro.y})`}>
           <rect x={-34} y={-14} width={68} height={28} rx={14} fill="#111813" opacity={0.85} />
           <text x={0} y={5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">
             {Math.round(distancia)} {unidad}
           </text>
+        </g>
+
+        {/* Marcador Green, capa superior: bandera roja centrada dentro del circulo */}
+        <g>
+          <text x={green.x} y={green.y - 16} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" stroke="#00000080" strokeWidth={3} paintOrder="stroke">
+            Green
+          </text>
+          <circle cx={green.x} cy={green.y} r={10} fill="#ffffff" stroke="#16a34a" strokeWidth={2.5} />
+          <line x1={green.x - 3} y1={green.y + 6} x2={green.x - 3} y2={green.y - 6} stroke="#dc2626" strokeWidth={1.6} strokeLinecap="round" />
+          <path d={`M ${green.x - 3} ${green.y - 6} L ${green.x + 6} ${green.y - 3} L ${green.x - 3} ${green.y} Z`} fill="#dc2626" />
         </g>
       </svg>
     </div>
