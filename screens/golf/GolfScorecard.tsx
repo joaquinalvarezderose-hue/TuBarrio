@@ -466,6 +466,20 @@ const GolfScorecard: React.FC = () => {
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
                         <span className="text-[10px] font-bold uppercase tracking-wide text-[#111813]">Vista del hoyo</span>
                       </div>
+                      <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-none">
+                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.par}</p>
+                        </div>
+                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Índice</p>
+                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.indice_dificultad}</p>
+                        </div>
+                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.yardas ?? '—'}</p>
+                        </div>
+                      </div>
                       <button
                         onClick={() => setMapaFullscreen(true)}
                         className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-xl font-display font-semibold text-sm hover:bg-black/60 transition-all flex items-center justify-center gap-2"
@@ -481,6 +495,20 @@ const GolfScorecard: React.FC = () => {
                         alt={`Mapa del hoyo ${hoyoActual.numero_hoyo}`}
                         className="h-full w-full object-contain"
                       />
+                      <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-none">
+                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.par}</p>
+                        </div>
+                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Índice</p>
+                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.indice_dificultad}</p>
+                        </div>
+                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.yardas ?? '—'}</p>
+                        </div>
+                      </div>
                       <button
                         onClick={() => setMapaFullscreen(true)}
                         className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-xl font-display font-semibold text-sm hover:bg-black/60 transition-all flex items-center justify-center gap-2"
@@ -579,17 +607,17 @@ const GolfScorecard: React.FC = () => {
             className="absolute top-16 right-4 z-10 flex flex-col gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col items-center bg-black/50 text-white rounded-xl px-3 py-2 backdrop-blur-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Par</p>
-              <p className="text-lg font-extrabold tabular-nums">{hoyoActual.par}</p>
+            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.par}</p>
             </div>
-            <div className="flex flex-col items-center bg-black/50 text-white rounded-xl px-3 py-2 backdrop-blur-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Índice</p>
-              <p className="text-lg font-extrabold tabular-nums">{hoyoActual.indice_dificultad}</p>
+            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Índice</p>
+              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.indice_dificultad}</p>
             </div>
-            <div className="flex flex-col items-center bg-black/50 text-white rounded-xl px-3 py-2 backdrop-blur-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Yardas</p>
-              <p className="text-lg font-extrabold tabular-nums">{hoyoActual.yardas ?? '—'}</p>
+            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.yardas ?? '—'}</p>
             </div>
           </div>
           <div className="flex-1 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
