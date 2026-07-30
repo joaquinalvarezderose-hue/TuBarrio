@@ -482,7 +482,7 @@ const GolfScorecard: React.FC = () => {
                       </div>
                       <button
                         onClick={() => setMapaFullscreen(true)}
-                        className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-xl font-display font-semibold text-sm hover:bg-black/60 transition-all flex items-center justify-center gap-2"
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2"
                       >
                         <span className="material-symbols-outlined text-lg">fullscreen</span>
                         Pantalla completa
@@ -511,7 +511,7 @@ const GolfScorecard: React.FC = () => {
                       </div>
                       <button
                         onClick={() => setMapaFullscreen(true)}
-                        className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-black/50 backdrop-blur-md border border-white/20 text-white rounded-xl font-display font-semibold text-sm hover:bg-black/60 transition-all flex items-center justify-center gap-2"
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2"
                       >
                         <span className="material-symbols-outlined text-lg">fullscreen</span>
                         Pantalla completa
@@ -598,7 +598,7 @@ const GolfScorecard: React.FC = () => {
         >
           <button
             onClick={() => setMapaFullscreen(false)}
-            className="absolute top-4 right-4 z-10 bg-white/15 text-white rounded-full p-2 backdrop-blur-sm hover:bg-white/25"
+            className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-full p-2 hover:bg-white"
             aria-label="Cerrar mapa"
           >
             <span className="material-symbols-outlined text-2xl">close</span>
