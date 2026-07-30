@@ -46,6 +46,7 @@ type CoordsFormState = {
   greenX: string;
   greenY: string;
   distancia: string;
+  distanciaRecta: string;
   unidad: 'm' | 'yd';
 };
 
@@ -57,6 +58,7 @@ const coordsFormVacio = (): CoordsFormState => ({
   greenX: '',
   greenY: '',
   distancia: '',
+  distanciaRecta: '',
   unidad: 'm',
 });
 
@@ -70,6 +72,7 @@ const coordsToFormState = (coords: MapaCoords | null): CoordsFormState =>
         greenX: String(coords.green.x),
         greenY: String(coords.green.y),
         distancia: String(coords.distancia),
+        distanciaRecta: coords.distanciaRecta != null ? String(coords.distanciaRecta) : '',
         unidad: coords.unidad ?? 'm',
       }
     : coordsFormVacio();
@@ -194,14 +197,17 @@ const HoyoMapaFila: React.FC<{
     const greenX = Number(form.greenX);
     const greenY = Number(form.greenY);
     const distancia = Number(form.distancia);
+    const distanciaRecta = form.distanciaRecta.trim() === '' ? null : Number(form.distanciaRecta);
     const valores = [canvasWidth, canvasHeight, teeX, teeY, greenX, greenY, distancia];
     if (valores.some((v) => !Number.isFinite(v) || v < 0)) return null;
     if (canvasWidth === 0 || canvasHeight === 0 || distancia === 0) return null;
+    if (distanciaRecta !== null && (!Number.isFinite(distanciaRecta) || distanciaRecta <= 0)) return null;
     return {
       canvas: { width: canvasWidth, height: canvasHeight },
       tee: { x: teeX, y: teeY },
       green: { x: greenX, y: greenY },
       distancia,
+      ...(distanciaRecta !== null ? { distanciaRecta } : {}),
       unidad: form.unidad,
     };
   };
@@ -332,7 +338,7 @@ const HoyoMapaFila: React.FC<{
             <CoordsField label="Y" value={form.greenY} onChange={(v) => updateForm('greenY', v)} />
 
             <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Distancia total</p>
-            <CoordsField label="Distancia" value={form.distancia} onChange={(v) => updateForm('distancia', v)} />
+            <CoordsField label="Distancia (scorecard)" value={form.distancia} onChange={(v) => updateForm('distancia', v)} />
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase">Unidad</label>
               <select
@@ -344,6 +350,14 @@ const HoyoMapaFila: React.FC<{
                 <option value="yd">yardas</option>
               </select>
             </div>
+
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Distancia recta tee-green</p>
+            <CoordsField label="Distancia recta" value={form.distanciaRecta} onChange={(v) => updateForm('distanciaRecta', v)} />
+            <p className="col-span-2 text-[10px] text-slate-400 -mt-1">
+              Opcional. Medila con Google Earth uniendo los puntos exactos del tee y del green. En hoyos con dogleg
+              es MENOR a la distancia de scorecard y es la que calibra los arcos de distancia; si se deja vacia se
+              usa la distancia de scorecard (correcto solo si el hoyo no dogglea).
+            </p>
           </div>
 
           {previewCoords && previewUrl && (

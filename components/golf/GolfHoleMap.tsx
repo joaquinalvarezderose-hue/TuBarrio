@@ -14,7 +14,14 @@ export type GolfHoleMapData = {
   canvas: { width: number; height: number };
   tee: GolfHoleMapPoint;
   green: GolfHoleMapPoint;
-  distancia: number; // metros (o yardas), distancia total tee -> green
+  distancia: number; // yardaje oficial del hoyo (scorecard), solo para mostrar en la pastilla
+  // Distancia real en linea recta entre tee y green (misma unidad que `distancia`), medida
+  // aparte (ej. con Google Earth) sobre los puntos reales del tee/green. En hoyos con dogleg
+  // `distancia` (yardaje oficial de scorecard) es MAYOR a la recta, porque sigue el trazado
+  // jugable. Si se usa `distancia` para calibrar la escala px<->metros de un hoyo con dogleg,
+  // los arcos de distancia quedan mas chicos de lo real. Si no esta, se usa `distancia` como
+  // fallback (correcto solo en hoyos sin dogleg, donde ambas coinciden).
+  distanciaRecta?: number;
   unidad?: 'm' | 'yd';
 };
 
@@ -68,10 +75,14 @@ type GolfHoleMapProps = {
 };
 
 const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, className, fill = false }) => {
-  const { imageUrl, canvas, tee, green, distancia } = data;
+  const { imageUrl, canvas, tee, green, distancia, distanciaRecta } = data;
 
-  const distanciaTotal = distanciaEntre(tee, green);
-  const escala = distanciaTotal > 0 ? distancia / distanciaTotal : 0; // metros por unidad de Figma
+  const distanciaTotalPx = distanciaEntre(tee, green);
+  // Calibrar la escala con la distancia RECTA tee->green, no con el yardaje oficial: en un
+  // dogleg el yardaje de scorecard sigue el trazado jugable y es mayor a la recta real entre
+  // los dos puntos, lo que encogeria los arcos de distancia.
+  const distanciaParaEscala = distanciaRecta ?? distancia;
+  const escala = distanciaTotalPx > 0 ? distanciaParaEscala / distanciaTotalPx : 0; // metros por unidad de Figma
 
   // Angulo tee -> green, para orientar los arcos de distancia hacia el green.
   const anguloTeeGreen = Math.atan2(green.y - tee.y, green.x - tee.x);

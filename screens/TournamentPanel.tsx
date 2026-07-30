@@ -141,6 +141,10 @@ const TournamentPanel: React.FC = () => {
  const isWaiting = playerStatus?.estado === 'esperando_siguiente_ronda';
  const isGroupStageOngoing = playerStatus?.estado === 'fase_grupos_en_curso' && nextMatch?.estado !== 'esperando_validacion';
 
+ // Bracket: el próximo cruce puede existir con un slot todavía sin definir
+ // (rival TBD, pendiente del otro partido de la ronda) — no ofrecer coordinar en ese caso.
+ const nextMatchRivalDefined = !!nextMatch && !!nextMatch.jugador1_id && !!nextMatch.jugador2_id;
+
  const matchIsWaitingValidation = nextMatch?.estado === 'esperando_validacion';
  // pendingConfirmMatch is set by a separate effect that finds any esperando_validacion match
  // where the current user is debe_confirmar_por — independent of nextMatch ordering.
@@ -1318,20 +1322,26 @@ const TournamentPanel: React.FC = () => {
  : `Fecha ${nextMatch.jornada}`
  ) : 'Sin partido'}
  </p>
- <h4 className="text-lg font-bold text-[#111813] ">{nextMatch ? `vs. ${nextMatch.rival_nombre}` : 'Rival por definir'}</h4>
+ <h4 className="text-lg font-bold text-[#111813] ">{nextMatchRivalDefined ? `vs. ${nextMatch!.rival_nombre}` : 'Rival por definir'}</h4>
  {nextMatchDateLabel && <p className="text-sm text-gray-500 font-medium">{nextMatchDateLabel}</p>}
  </div>
  <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white shadow-sm flex items-center justify-center text-sm font-bold uppercase">
- {String(nextMatch?.rival_nombre || 'Rival')
+ {nextMatchRivalDefined
+ ? String(nextMatch!.rival_nombre || 'Rival')
  .split(' ')
  .filter(Boolean)
  .slice(0, 2)
  .map((chunk) => chunk[0])
- .join('') || 'R'}
+ .join('') || 'R'
+ : '?'}
  </div>
  </div>
  <div className="flex flex-col gap-3">
- {nextMatch ? (
+ {nextMatch && !nextMatchRivalDefined ? (
+ <p className="text-sm text-gray-500 text-center py-2">
+ Esperando el resultado del otro cruce para definir a tu próximo rival.
+ </p>
+ ) : nextMatch ? (
  <button
  onClick={() => {
  const nextMatchDobles = nextMatch as any;
