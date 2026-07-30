@@ -49,9 +49,17 @@ type GolfHoleMapProps = {
   /** Habilita el punto intermedio arrastrable para calcular un layup. Default: true. */
   layupHabilitado?: boolean;
   className?: string;
+  /**
+   * Si es true, el SVG ocupa el 100% del alto/ancho del contenedor y deja que su
+   * propio viewBox (preserveAspectRatio="xMidYMid meet") contenga la imagen sin
+   * recortarla, sin importar la relación de aspecto del contenedor. Pensado para
+   * cajas de alto fijo (ej. la tarjeta del scorecard). Default: false, que respeta
+   * el comportamiento anterior (ancho 100%, alto automático según el aspect-ratio).
+   */
+  fill?: boolean;
 };
 
-const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true, className }) => {
+const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true, className, fill = false }) => {
   const { imageUrl, canvas, tee, green, distancia, unidad = 'm' } = data;
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -107,8 +115,9 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
       <svg
         ref={svgRef}
         viewBox={`0 0 ${canvas.width} ${canvas.height}`}
-        className="w-full h-auto select-none touch-none"
-        style={{ aspectRatio: `${canvas.width} / ${canvas.height}` }}
+        preserveAspectRatio="xMidYMid meet"
+        className={fill ? 'w-full h-full select-none touch-none' : 'w-full h-auto select-none touch-none'}
+        style={fill ? undefined : { aspectRatio: `${canvas.width} / ${canvas.height}` }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
