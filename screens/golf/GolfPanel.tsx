@@ -117,11 +117,6 @@ const GolfPanel: React.FC = () => {
           <div className="p-4">
             <h1 className="text-xl font-bold text-[#111813]">{tournament.title}</h1>
             {tournament.subtitle && <p className="text-sm text-slate-500 mt-0.5">{tournament.subtitle}</p>}
-            {!loadingEstado && (
-              <span className="inline-block mt-2 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[#4a9c40]/10 text-[#4a9c40]">
-                {estadoTorneo.replace(/_/g, ' ')}
-              </span>
-            )}
           </div>
         </div>
 
