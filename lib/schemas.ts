@@ -90,9 +90,9 @@ export type Barrio = typeof BARRIOS[number];
 export type Localidad = typeof LOCALIDADES[number];
 export type SectorCanton = typeof SECTORES_CANTON[number];
 
-export const BarrioSchema = z.enum(BARRIOS, { errorMap: () => ({ message: 'Seleccioná un country' }) });
-export const LocalidadSchema = z.enum(LOCALIDADES, { errorMap: () => ({ message: 'Seleccioná una localidad' }) });
-export const SectorCantonSchema = z.enum(SECTORES_CANTON, { errorMap: () => ({ message: 'Seleccioná un barrio' }) });
+export const BarrioSchema = z.enum(BARRIOS, { error: () => 'Seleccioná un country' });
+export const LocalidadSchema = z.enum(LOCALIDADES, { error: () => 'Seleccioná una localidad' });
+export const SectorCantonSchema = z.enum(SECTORES_CANTON, { error: () => 'Seleccioná un barrio' });
 
 export const LoginSchema = z.object({
   email: EmailSchema,

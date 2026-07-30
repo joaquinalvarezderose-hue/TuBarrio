@@ -123,8 +123,8 @@ BEGIN
     END LOOP;
   END IF;
 
-  DELETE FROM public.rondas_golf
-  WHERE torneo_id = p_torneo_id AND numero_ronda = p_numero_ronda;
+  DELETE FROM public.rondas_golf r
+  WHERE r.torneo_id = p_torneo_id AND r.numero_ronda = p_numero_ronda;
 
   FOR v_idx IN 1..v_total LOOP
     INSERT INTO public.rondas_golf (torneo_id, jugador_id, cancha_id, numero_ronda, flight_numero, estado)
