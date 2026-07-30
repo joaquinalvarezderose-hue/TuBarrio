@@ -160,9 +160,17 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
         {/* Arcos de distancia desde el tee (ayuda para el golpe de salida) */}
         {arcosVisibles.map(({ radio, color }) => {
           const radioCanvas = radio / escala;
-          const labelPos = {
+          // Etiqueta corrida sobre el propio arco (desplazamiento tangencial fijo en px de
+          // canvas), lejos de la linea central tee->green y de la pastilla de distancia total.
+          const DESPLAZAMIENTO_ETIQUETA = 34;
+          const puntoArco = {
             x: tee.x + radioCanvas * Math.cos(anguloTeeGreen),
             y: tee.y + radioCanvas * Math.sin(anguloTeeGreen),
+          };
+          const tangente = { x: -Math.sin(anguloTeeGreen), y: Math.cos(anguloTeeGreen) };
+          const labelPos = {
+            x: puntoArco.x + tangente.x * DESPLAZAMIENTO_ETIQUETA,
+            y: puntoArco.y + tangente.y * DESPLAZAMIENTO_ETIQUETA,
           };
           return (
             <g key={radio}>
