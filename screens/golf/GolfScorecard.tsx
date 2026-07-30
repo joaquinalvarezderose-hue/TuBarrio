@@ -576,20 +576,18 @@ const GolfScorecard: React.FC = () => {
             <span className="material-symbols-outlined text-2xl">close</span>
           </button>
           <div
-            className="absolute top-4 left-4 z-10 flex gap-3 bg-black/50 text-white rounded-xl px-4 py-2 backdrop-blur-sm"
+            className="absolute top-16 right-4 z-10 flex flex-col gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-center">
+            <div className="flex flex-col items-center bg-black/50 text-white rounded-xl px-3 py-2 backdrop-blur-sm">
               <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Par</p>
               <p className="text-lg font-extrabold tabular-nums">{hoyoActual.par}</p>
             </div>
-            <div className="w-px bg-white/20" />
-            <div className="text-center">
+            <div className="flex flex-col items-center bg-black/50 text-white rounded-xl px-3 py-2 backdrop-blur-sm">
               <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Índice</p>
               <p className="text-lg font-extrabold tabular-nums">{hoyoActual.indice_dificultad}</p>
             </div>
-            <div className="w-px bg-white/20" />
-            <div className="text-center">
+            <div className="flex flex-col items-center bg-black/50 text-white rounded-xl px-3 py-2 backdrop-blur-sm">
               <p className="text-[9px] font-bold uppercase tracking-wide text-white/60">Yardas</p>
               <p className="text-lg font-extrabold tabular-nums">{hoyoActual.yardas ?? '—'}</p>
             </div>
