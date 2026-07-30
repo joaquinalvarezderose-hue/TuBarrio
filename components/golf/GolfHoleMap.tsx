@@ -173,7 +173,7 @@ const GolfHoleMap: React.FC<GolfHoleMapProps> = ({ data, layupHabilitado = true,
             y: puntoArco.y + tangente.y * DESPLAZAMIENTO_ETIQUETA,
           };
           return (
-            <g key={radio}>
+            <g key={radio} style={{ pointerEvents: 'none' }}>
               <path
                 d={pathArco(tee, radioCanvas, anguloTeeGreen)}
                 fill="none"
