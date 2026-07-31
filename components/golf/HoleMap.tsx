@@ -105,6 +105,12 @@ const HoleMap: React.FC<HoleMapProps> = ({
         `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=${MAPBOX_TOKEN}`,
         { maxZoom: 19, tileSize: 256, detectRetina: true, attribution: '&copy; Mapbox &copy; OpenStreetMap' }
       ).addTo(map);
+
+      // La imagen "cruda" de mapbox.satellite sale mas apagada que el
+      // procesado que muestra Google Maps — este filtro la acerca un poco
+      // mas a ese look (mas saturada, con un pelin de calidez).
+      const tilePane = map.getPane('tilePane');
+      if (tilePane) tilePane.style.filter = 'saturate(1.25) contrast(1.08) brightness(1.02) sepia(0.06)';
     } else {
       L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
