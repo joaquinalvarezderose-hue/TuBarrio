@@ -10,7 +10,11 @@ type HoyoInput = {
   par: number;
   yardas: string;
   indice_dificultad: string;
+  categoria_dificultad: string;
+  estrategia_sugerida: string;
 };
+
+const CATEGORIAS_DIFICULTAD = ['', 'OPORTUNIDAD', 'INTERMEDIO', 'EXIGENTE', 'MUY EXIGENTE'] as const;
 
 type CanchaRow = {
   id: number;
@@ -28,7 +32,11 @@ type HoyoMapaRow = {
   tee_lng: number | null;
   green_lat: number | null;
   green_lng: number | null;
+  categoria_dificultad: string | null;
+  estrategia_sugerida: string | null;
 };
+
+type CoordsSaved = Pick<HoyoMapaRow, 'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng'>;
 
 const ALLOWED_MIME_TYPES = ['image/svg+xml', 'image/png', 'image/jpeg'];
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB, igual al limite del bucket
@@ -39,16 +47,71 @@ const emptyHoyos = (cantidad: number): HoyoInput[] =>
     par: 4,
     yardas: '',
     indice_dificultad: '',
+    categoria_dificultad: '',
+    estrategia_sugerida: '',
   }));
+
+const CoordsField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}> = ({ label, value, onChange }) => (
+  <div>
+    <label className="text-[10px] font-bold text-slate-400 uppercase">{label}</label>
+    <input
+      type="number"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full border border-slate-200 rounded-md px-2 py-1 text-sm mt-0.5"
+    />
+  </div>
+);
 
 const HoyoMapaFila: React.FC<{
   hoyo: HoyoMapaRow;
   canchaId: number;
   onUploaded: (hoyoId: number, path: string) => void;
-}> = ({ hoyo, canchaId, onUploaded }) => {
+  onCoordsSaved: (hoyoId: number, coords: CoordsSaved) => void;
+  onGuiaSaved: (hoyoId: number, categoria: string | null, estrategia: string | null) => void;
+}> = ({ hoyo, canchaId, onUploaded, onCoordsSaved, onGuiaSaved }) => {
   const { url: previewUrl, loading: previewLoading } = useGolfMapaUrl(hoyo.mapa_url);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [guiaAbierta, setGuiaAbierta] = useState(false);
+  const [categoria, setCategoria] = useState(hoyo.categoria_dificultad || '');
+  const [estrategia, setEstrategia] = useState(hoyo.estrategia_sugerida || '');
+  const [savingGuia, setSavingGuia] = useState(false);
+  const [guiaError, setGuiaError] = useState<string | null>(null);
+  const [guiaMessage, setGuiaMessage] = useState<string | null>(null);
+
+  const handleSaveGuia = async () => {
+    setGuiaError(null);
+    setGuiaMessage(null);
+    setSavingGuia(true);
+    try {
+      const { error: updateError } = await supabase
+        .from('hoyos')
+        .update({ categoria_dificultad: categoria || null, estrategia_sugerida: estrategia.trim() || null })
+        .eq('id', hoyo.id);
+      if (updateError) throw updateError;
+      onGuiaSaved(hoyo.id, categoria || null, estrategia.trim() || null);
+      setGuiaMessage('Guia del hoyo guardada.');
+    } catch (err: any) {
+      setGuiaError(err?.message || 'No se pudo guardar la guia del hoyo.');
+    } finally {
+      setSavingGuia(false);
+    }
+  };
+
+  const [coordsAbierto, setCoordsAbierto] = useState(false);
+  const [teeLat, setTeeLat] = useState(hoyo.tee_lat != null ? String(hoyo.tee_lat) : '');
+  const [teeLng, setTeeLng] = useState(hoyo.tee_lng != null ? String(hoyo.tee_lng) : '');
+  const [greenLat, setGreenLat] = useState(hoyo.green_lat != null ? String(hoyo.green_lat) : '');
+  const [greenLng, setGreenLng] = useState(hoyo.green_lng != null ? String(hoyo.green_lng) : '');
+  const [savingCoords, setSavingCoords] = useState(false);
+  const [coordsError, setCoordsError] = useState<string | null>(null);
+  const [coordsMessage, setCoordsMessage] = useState<string | null>(null);
 
   const handleFile = async (file: File | undefined) => {
     setError(null);
@@ -85,49 +148,10 @@ const HoyoMapaFila: React.FC<{
     }
   };
 
-  return (
-    <div className="flex items-center gap-3 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
-      <div className="w-14 h-14 rounded-md bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-        {previewLoading ? (
-          <Skeleton className="w-full h-full" />
-        ) : previewUrl ? (
-          <img src={previewUrl} alt={`Mapa hoyo ${hoyo.numero_hoyo}`} className="w-full h-full object-contain" />
-        ) : (
-          <span className="material-symbols-outlined text-slate-300">image</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-slate-800 text-sm">Hoyo {hoyo.numero_hoyo} · Par {hoyo.par}</p>
-        <label className="mt-1 inline-block text-xs font-bold text-[#4a9c40] cursor-pointer">
-          {uploading ? 'Subiendo...' : hoyo.mapa_url ? 'Reemplazar mapa' : 'Subir mapa'}
-          <input
-            type="file"
-            accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
-            className="hidden"
-            disabled={uploading}
-            onChange={(e) => handleFile(e.target.files?.[0])}
-          />
-        </label>
-        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-      </div>
-    </div>
-  );
-};
-
-const HoyoCoordenadasFila: React.FC<{
-  hoyo: HoyoMapaRow;
-  onSaved: (hoyoId: number, coords: Pick<HoyoMapaRow, 'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng'>) => void;
-}> = ({ hoyo, onSaved }) => {
-  const [teeLat, setTeeLat] = useState(hoyo.tee_lat != null ? String(hoyo.tee_lat) : '');
-  const [teeLng, setTeeLng] = useState(hoyo.tee_lng != null ? String(hoyo.tee_lng) : '');
-  const [greenLat, setGreenLat] = useState(hoyo.green_lat != null ? String(hoyo.green_lat) : '');
-  const [greenLng, setGreenLng] = useState(hoyo.green_lng != null ? String(hoyo.green_lng) : '');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleGuardar = async () => {
-    setError(null);
-    const parsed = {
+  const handleSaveCoords = async () => {
+    setCoordsError(null);
+    setCoordsMessage(null);
+    const parsed: CoordsSaved = {
       tee_lat: teeLat.trim() === '' ? null : Number(teeLat),
       tee_lng: teeLng.trim() === '' ? null : Number(teeLng),
       green_lat: greenLat.trim() === '' ? null : Number(greenLat),
@@ -135,60 +159,129 @@ const HoyoCoordenadasFila: React.FC<{
     };
     for (const [key, value] of Object.entries(parsed)) {
       if (value !== null && Number.isNaN(value)) {
-        setError(`Coordenada invalida en "${key}".`);
+        setCoordsError(`Coordenada invalida en "${key}".`);
         return;
       }
     }
 
-    setSaving(true);
+    setSavingCoords(true);
     try {
       const { error: updateError } = await supabase.from('hoyos').update(parsed).eq('id', hoyo.id);
       if (updateError) throw updateError;
-      onSaved(hoyo.id, parsed);
+      onCoordsSaved(hoyo.id, parsed);
+      setCoordsMessage('Coordenadas guardadas.');
     } catch (err: any) {
-      setError(err?.message || 'No se pudieron guardar las coordenadas.');
+      setCoordsError(err?.message || 'No se pudieron guardar las coordenadas.');
     } finally {
-      setSaving(false);
+      setSavingCoords(false);
     }
   };
 
   return (
-    <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
-      <p className="font-semibold text-slate-800 text-sm mb-2">Coordenadas hoyo {hoyo.numero_hoyo}</p>
-      <div className="grid grid-cols-2 gap-2">
-        <input
-          value={teeLat}
-          onChange={(e) => setTeeLat(e.target.value)}
-          placeholder="Tee lat"
-          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
-        />
-        <input
-          value={teeLng}
-          onChange={(e) => setTeeLng(e.target.value)}
-          placeholder="Tee lng"
-          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
-        />
-        <input
-          value={greenLat}
-          onChange={(e) => setGreenLat(e.target.value)}
-          placeholder="Green lat"
-          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
-        />
-        <input
-          value={greenLng}
-          onChange={(e) => setGreenLng(e.target.value)}
-          placeholder="Green lng"
-          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
-        />
+    <div className="bg-slate-50 rounded-lg border border-slate-100">
+      <div className="flex items-center gap-3 px-3 py-2">
+        <div className="w-14 h-14 rounded-md bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+          {previewLoading ? (
+            <Skeleton className="w-full h-full" />
+          ) : previewUrl ? (
+            <img src={previewUrl} alt={`Mapa hoyo ${hoyo.numero_hoyo}`} className="w-full h-full object-contain" />
+          ) : (
+            <span className="material-symbols-outlined text-slate-300">image</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 text-sm">Hoyo {hoyo.numero_hoyo} · Par {hoyo.par}</p>
+          <label className="mt-1 inline-block text-xs font-bold text-[#4a9c40] cursor-pointer">
+            {uploading ? 'Subiendo...' : hoyo.mapa_url ? 'Reemplazar mapa' : 'Subir mapa'}
+            <input
+              type="file"
+              accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => handleFile(e.target.files?.[0])}
+            />
+          </label>
+          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+        </div>
+        <button
+          onClick={() => setGuiaAbierta((v) => !v)}
+          className="text-xs font-bold text-slate-600 px-2 py-1 rounded-md hover:bg-slate-200 shrink-0"
+        >
+          {guiaAbierta ? 'Cerrar' : 'Guia del hoyo'}
+        </button>
+        <button
+          onClick={() => setCoordsAbierto((v) => !v)}
+          className="text-xs font-bold text-slate-600 px-2 py-1 rounded-md hover:bg-slate-200 shrink-0"
+        >
+          {coordsAbierto ? 'Cerrar' : 'Coordenadas'}
+        </button>
       </div>
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-      <button
-        onClick={handleGuardar}
-        disabled={saving}
-        className="mt-2 text-xs font-bold text-[#4a9c40] disabled:opacity-50"
-      >
-        {saving ? 'Guardando...' : 'Guardar coordenadas'}
-      </button>
+
+      {guiaAbierta && (
+        <div className="px-3 pb-3 border-t border-slate-200 pt-3 space-y-2">
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase">Categoria de dificultad</label>
+            <select
+              value={categoria}
+              onChange={(e) => { setCategoria(e.target.value); setGuiaMessage(null); }}
+              className="w-full border border-slate-200 rounded-md px-2 py-1 text-sm mt-0.5"
+            >
+              {CATEGORIAS_DIFICULTAD.map((c) => (
+                <option key={c} value={c}>{c || 'Sin categoria'}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase">Estrategia sugerida</label>
+            <textarea
+              value={estrategia}
+              onChange={(e) => { setEstrategia(e.target.value); setGuiaMessage(null); }}
+              rows={3}
+              placeholder="Ej: Par 4 largo y exigente. Priorizá una salida al centro de la calle..."
+              className="w-full border border-slate-200 rounded-md px-2 py-1 text-sm mt-0.5"
+            />
+          </div>
+          {guiaError && <p className="text-xs text-red-600">{guiaError}</p>}
+          {guiaMessage && <p className="text-xs text-emerald-700">{guiaMessage}</p>}
+          <button
+            onClick={handleSaveGuia}
+            disabled={savingGuia}
+            className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold py-2 rounded-lg text-sm transition"
+          >
+            {savingGuia ? 'Guardando...' : 'Guardar guia'}
+          </button>
+        </div>
+      )}
+
+      {coordsAbierto && (
+        <div className="px-3 pb-3 border-t border-slate-200 pt-3">
+          <p className="text-xs text-slate-500 mb-2">
+            Latitud/longitud reales del tee y el green (ej. sacadas de Google Maps). Habilitan el mapa satelital
+            interactivo del hoyo; si se dejan vacias, se muestra el mapa estatico subido arriba.
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase">Tee</p>
+            <CoordsField label="Latitud" value={teeLat} onChange={setTeeLat} />
+            <CoordsField label="Longitud" value={teeLng} onChange={setTeeLng} />
+
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Green</p>
+            <CoordsField label="Latitud" value={greenLat} onChange={setGreenLat} />
+            <CoordsField label="Longitud" value={greenLng} onChange={setGreenLng} />
+          </div>
+
+          {coordsError && <p className="text-xs text-red-600 mb-2">{coordsError}</p>}
+          {coordsMessage && <p className="text-xs text-emerald-700 mb-2">{coordsMessage}</p>}
+
+          <button
+            onClick={handleSaveCoords}
+            disabled={savingCoords}
+            className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold py-2 rounded-lg text-sm transition"
+          >
+            {savingCoords ? 'Guardando...' : 'Guardar coordenadas'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -242,7 +335,7 @@ const GolfCanchaForm: React.FC = () => {
       setLoadingHoyosMapas(true);
       const { data, error } = await supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng')
+        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng, categoria_dificultad, estrategia_sugerida')
         .eq('cancha_id', selectedCanchaId)
         .order('numero_hoyo', { ascending: true });
       if (cancelled) return;
@@ -256,11 +349,14 @@ const GolfCanchaForm: React.FC = () => {
     setHoyosMapas((prev) => prev.map((h) => (h.id === hoyoId ? { ...h, mapa_url: path } : h)));
   };
 
-  const handleCoordenadasSaved = (
-    hoyoId: number,
-    coords: Pick<HoyoMapaRow, 'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng'>
-  ) => {
+  const handleHoyoCoordsSaved = (hoyoId: number, coords: CoordsSaved) => {
     setHoyosMapas((prev) => prev.map((h) => (h.id === hoyoId ? { ...h, ...coords } : h)));
+  };
+
+  const handleHoyoGuiaSaved = (hoyoId: number, categoria: string | null, estrategia: string | null) => {
+    setHoyosMapas((prev) =>
+      prev.map((h) => (h.id === hoyoId ? { ...h, categoria_dificultad: categoria, estrategia_sugerida: estrategia } : h))
+    );
   };
 
   const updateCantidad = (n: number) => {
@@ -306,6 +402,8 @@ const GolfCanchaForm: React.FC = () => {
         par: h.par,
         yardas: h.yardas ? Number(h.yardas) : null,
         indice_dificultad: Number(h.indice_dificultad),
+        categoria_dificultad: h.categoria_dificultad || null,
+        estrategia_sugerida: h.estrategia_sugerida.trim() || null,
       }));
 
       const { error } = await supabase.rpc('crear_cancha_con_hoyos', {
@@ -382,10 +480,14 @@ const GolfCanchaForm: React.FC = () => {
                         <Skeleton className="h-12 w-full" />
                       ) : (
                         hoyosMapas.map((h) => (
-                          <div key={h.id} className="space-y-2">
-                            <HoyoMapaFila hoyo={h} canchaId={c.id} onUploaded={handleHoyoMapaUploaded} />
-                            <HoyoCoordenadasFila hoyo={h} onSaved={handleCoordenadasSaved} />
-                          </div>
+                          <HoyoMapaFila
+                            key={h.id}
+                            hoyo={h}
+                            canchaId={c.id}
+                            onUploaded={handleHoyoMapaUploaded}
+                            onCoordsSaved={handleHoyoCoordsSaved}
+                            onGuiaSaved={handleHoyoGuiaSaved}
+                          />
                         ))
                       )}
                     </div>
@@ -450,6 +552,8 @@ const GolfCanchaForm: React.FC = () => {
                   <th className="py-2 pr-2">Par</th>
                   <th className="py-2 pr-2">Yardas</th>
                   <th className="py-2 pr-2">Indice</th>
+                  <th className="py-2 pr-2">Categoria</th>
+                  <th className="py-2 pr-2">Estrategia sugerida</th>
                 </tr>
               </thead>
               <tbody>
@@ -482,6 +586,26 @@ const GolfCanchaForm: React.FC = () => {
                         value={h.indice_dificultad}
                         onChange={(e) => updateHoyo(idx, 'indice_dificultad', e.target.value)}
                         className="w-16 border border-slate-200 rounded-md px-2 py-1"
+                      />
+                    </td>
+                    <td className="py-1.5 pr-2">
+                      <select
+                        value={h.categoria_dificultad}
+                        onChange={(e) => updateHoyo(idx, 'categoria_dificultad', e.target.value)}
+                        className="border border-slate-200 rounded-md px-2 py-1"
+                      >
+                        {CATEGORIAS_DIFICULTAD.map((c) => (
+                          <option key={c} value={c}>{c || 'Sin categoria'}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-1.5 pr-2">
+                      <input
+                        type="text"
+                        value={h.estrategia_sugerida}
+                        onChange={(e) => updateHoyo(idx, 'estrategia_sugerida', e.target.value)}
+                        placeholder="Opcional"
+                        className="w-56 border border-slate-200 rounded-md px-2 py-1"
                       />
                     </td>
                   </tr>

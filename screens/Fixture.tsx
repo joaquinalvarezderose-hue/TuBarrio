@@ -696,7 +696,9 @@ const Fixture: React.FC = () => {
  <p className="text-sm text-[#61896b] mt-1">Buscando tu próximo cruce...</p>
  ) : displayNextMatch ? (
  <>
- <p className="text-sm font-semibold text-[#111813] mt-1">vs. {displayNextMatch.rival_nombre}</p>
+ <p className="text-sm font-semibold text-[#111813] mt-1">
+ {displayNextMatch.rival_nombre ? `vs. ${displayNextMatch.rival_nombre}` : 'Rival por definir'}
+ </p>
  <p className="text-xs text-[#61896b] mt-0.5">
  {formatGroupName(userGroup)} · Jornada {displayNextMatch.jornada}
  </p>
