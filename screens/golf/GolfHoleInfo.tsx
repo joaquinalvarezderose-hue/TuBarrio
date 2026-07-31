@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
 import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
+import HoleMap from '../../components/golf/HoleMap';
 
 type Hoyo = {
   id: number;
@@ -11,6 +12,10 @@ type Hoyo = {
   yardas: number | null;
   indice_dificultad: number;
   mapa_url: string | null;
+  tee_lat: number | null;
+  tee_lng: number | null;
+  green_lat: number | null;
+  green_lng: number | null;
 };
 
 const GolfHoleInfo: React.FC = () => {
@@ -51,7 +56,7 @@ const GolfHoleInfo: React.FC = () => {
 
       const { data: hoyosData } = await supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url')
+        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url, tee_lat, tee_lng, green_lat, green_lng')
         .eq('cancha_id', ronda.cancha_id)
         .order('numero_hoyo', { ascending: true });
 
@@ -102,7 +107,15 @@ const GolfHoleInfo: React.FC = () => {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            {hoyo.mapa_url ? (
+            {hoyo.tee_lat != null && hoyo.tee_lng != null && hoyo.green_lat != null && hoyo.green_lng != null ? (
+              <HoleMap
+                teeLat={hoyo.tee_lat}
+                teeLng={hoyo.tee_lng}
+                greenLat={hoyo.green_lat}
+                greenLng={hoyo.green_lng}
+                className="h-56 w-full"
+              />
+            ) : hoyo.mapa_url ? (
               <div className="h-56 w-full bg-slate-100 flex items-center justify-center p-2">
                 <img
                   src={hoyo.mapa_url}

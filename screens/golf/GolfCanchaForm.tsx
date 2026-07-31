@@ -24,6 +24,10 @@ type HoyoMapaRow = {
   numero_hoyo: number;
   par: number;
   mapa_url: string | null;
+  tee_lat: number | null;
+  tee_lng: number | null;
+  green_lat: number | null;
+  green_lng: number | null;
 };
 
 const ALLOWED_MIME_TYPES = ['image/svg+xml', 'image/png', 'image/jpeg'];
@@ -110,6 +114,85 @@ const HoyoMapaFila: React.FC<{
   );
 };
 
+const HoyoCoordenadasFila: React.FC<{
+  hoyo: HoyoMapaRow;
+  onSaved: (hoyoId: number, coords: Pick<HoyoMapaRow, 'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng'>) => void;
+}> = ({ hoyo, onSaved }) => {
+  const [teeLat, setTeeLat] = useState(hoyo.tee_lat != null ? String(hoyo.tee_lat) : '');
+  const [teeLng, setTeeLng] = useState(hoyo.tee_lng != null ? String(hoyo.tee_lng) : '');
+  const [greenLat, setGreenLat] = useState(hoyo.green_lat != null ? String(hoyo.green_lat) : '');
+  const [greenLng, setGreenLng] = useState(hoyo.green_lng != null ? String(hoyo.green_lng) : '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleGuardar = async () => {
+    setError(null);
+    const parsed = {
+      tee_lat: teeLat.trim() === '' ? null : Number(teeLat),
+      tee_lng: teeLng.trim() === '' ? null : Number(teeLng),
+      green_lat: greenLat.trim() === '' ? null : Number(greenLat),
+      green_lng: greenLng.trim() === '' ? null : Number(greenLng),
+    };
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value !== null && Number.isNaN(value)) {
+        setError(`Coordenada invalida en "${key}".`);
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      const { error: updateError } = await supabase.from('hoyos').update(parsed).eq('id', hoyo.id);
+      if (updateError) throw updateError;
+      onSaved(hoyo.id, parsed);
+    } catch (err: any) {
+      setError(err?.message || 'No se pudieron guardar las coordenadas.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+      <p className="font-semibold text-slate-800 text-sm mb-2">Coordenadas hoyo {hoyo.numero_hoyo}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          value={teeLat}
+          onChange={(e) => setTeeLat(e.target.value)}
+          placeholder="Tee lat"
+          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
+        />
+        <input
+          value={teeLng}
+          onChange={(e) => setTeeLng(e.target.value)}
+          placeholder="Tee lng"
+          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
+        />
+        <input
+          value={greenLat}
+          onChange={(e) => setGreenLat(e.target.value)}
+          placeholder="Green lat"
+          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
+        />
+        <input
+          value={greenLng}
+          onChange={(e) => setGreenLng(e.target.value)}
+          placeholder="Green lng"
+          className="border border-slate-200 rounded-md px-2 py-1 text-xs"
+        />
+      </div>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      <button
+        onClick={handleGuardar}
+        disabled={saving}
+        className="mt-2 text-xs font-bold text-[#4a9c40] disabled:opacity-50"
+      >
+        {saving ? 'Guardando...' : 'Guardar coordenadas'}
+      </button>
+    </div>
+  );
+};
+
 const GolfCanchaForm: React.FC = () => {
   const navigate = useNavigate();
   const { hasAccess, loading } = useRequireRole(['admin']);
@@ -159,7 +242,7 @@ const GolfCanchaForm: React.FC = () => {
       setLoadingHoyosMapas(true);
       const { data, error } = await supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, mapa_url')
+        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng')
         .eq('cancha_id', selectedCanchaId)
         .order('numero_hoyo', { ascending: true });
       if (cancelled) return;
@@ -171,6 +254,13 @@ const GolfCanchaForm: React.FC = () => {
 
   const handleHoyoMapaUploaded = (hoyoId: number, path: string) => {
     setHoyosMapas((prev) => prev.map((h) => (h.id === hoyoId ? { ...h, mapa_url: path } : h)));
+  };
+
+  const handleCoordenadasSaved = (
+    hoyoId: number,
+    coords: Pick<HoyoMapaRow, 'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng'>
+  ) => {
+    setHoyosMapas((prev) => prev.map((h) => (h.id === hoyoId ? { ...h, ...coords } : h)));
   };
 
   const updateCantidad = (n: number) => {
@@ -292,7 +382,10 @@ const GolfCanchaForm: React.FC = () => {
                         <Skeleton className="h-12 w-full" />
                       ) : (
                         hoyosMapas.map((h) => (
-                          <HoyoMapaFila key={h.id} hoyo={h} canchaId={c.id} onUploaded={handleHoyoMapaUploaded} />
+                          <div key={h.id} className="space-y-2">
+                            <HoyoMapaFila hoyo={h} canchaId={c.id} onUploaded={handleHoyoMapaUploaded} />
+                            <HoyoCoordenadasFila hoyo={h} onSaved={handleCoordenadasSaved} />
+                          </div>
                         ))
                       )}
                     </div>
