@@ -469,25 +469,14 @@ const GolfScorecard: React.FC = () => {
                         teeLng={hoyoActual.tee_lng as number}
                         greenLat={hoyoActual.green_lat as number}
                         greenLng={hoyoActual.green_lng as number}
+                        par={hoyoActual.par}
+                        yardas={hoyoActual.yardas}
+                        indice={hoyoActual.indice_dificultad}
                         className="h-full w-full"
                       />
                       <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
                         <span className="text-[10px] font-bold uppercase tracking-wide text-[#111813]">Vista del hoyo</span>
-                      </div>
-                      <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-none">
-                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
-                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.par}</p>
-                        </div>
-                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Índice</p>
-                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.indice_dificultad}</p>
-                        </div>
-                        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
-                          <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.yardas ?? '—'}</p>
-                        </div>
                       </div>
                       <button
                         onClick={() => setMapaFullscreen(true)}
@@ -612,23 +601,25 @@ const GolfScorecard: React.FC = () => {
           >
             <span className="material-symbols-outlined text-2xl">close</span>
           </button>
-          <div
-            className="absolute top-16 right-4 z-10 flex flex-col gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
-              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.par}</p>
+          {!tieneCoordsMapa && (
+            <div
+              className="absolute top-16 right-4 z-10 flex flex-col gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+                <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.par}</p>
+              </div>
+              <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Índice</p>
+                <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.indice_dificultad}</p>
+              </div>
+              <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+                <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.yardas ?? '—'}</p>
+              </div>
             </div>
-            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Índice</p>
-              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.indice_dificultad}</p>
-            </div>
-            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
-              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{hoyoActual.yardas ?? '—'}</p>
-            </div>
-          </div>
+          )}
           <div className="flex-1 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
             {tieneCoordsMapa ? (
               <HoleMap
@@ -636,7 +627,11 @@ const GolfScorecard: React.FC = () => {
                 teeLng={hoyoActual.tee_lng as number}
                 greenLat={hoyoActual.green_lat as number}
                 greenLng={hoyoActual.green_lng as number}
+                par={hoyoActual.par}
+                yardas={hoyoActual.yardas}
+                indice={hoyoActual.indice_dificultad}
                 className="w-full h-full"
+                interactive
               />
             ) : mapaUrl ? (
               <img

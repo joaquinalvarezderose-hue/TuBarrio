@@ -3,6 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import circle from '@turf/circle';
 import distance from '@turf/distance';
+import bearing from '@turf/bearing';
+import destination from '@turf/destination';
 import { point } from '@turf/helpers';
 
 type HoleMapProps = {
@@ -10,14 +12,34 @@ type HoleMapProps = {
   teeLng: number;
   greenLat: number;
   greenLng: number;
+  par?: number | null;
+  yardas?: number | null;
+  indice?: number | null;
   className?: string;
+  // Si es false (default), el mapa no responde a arrastre de un dedo/mouse —
+  // pensado para verse embebido en una pantalla con scroll propio (el gesto
+  // de swipe vertical debe scrollear la pagina, no panear el mapa). Pasar
+  // true solo en vistas de pantalla completa, sin scroll de pagina alrededor.
+  interactive?: boolean;
 };
 
-// Range rings de referencia alrededor del green, en yardas.
+// Range rings de referencia alrededor del TEE (ayuda para el golpe de
+// salida), en yardas.
 const RING_RADII_YD = [50, 100, 150];
 const YD_TO_KM = 0.0009144;
+const RING_COLOR = '#3b82f6';
 
-const HoleMap: React.FC<HoleMapProps> = ({ teeLat, teeLng, greenLat, greenLng, className = '' }) => {
+const HoleMap: React.FC<HoleMapProps> = ({
+  teeLat,
+  teeLng,
+  greenLat,
+  greenLng,
+  par,
+  yardas,
+  indice,
+  className = '',
+  interactive = false,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -27,7 +49,7 @@ const HoleMap: React.FC<HoleMapProps> = ({ teeLat, teeLng, greenLat, greenLng, c
     const map = L.map(containerRef.current, {
       zoomControl: false,
       attributionControl: false,
-      dragging: true,
+      dragging: interactive,
       scrollWheelZoom: false,
     });
     mapRef.current = map;
@@ -48,11 +70,27 @@ const HoleMap: React.FC<HoleMapProps> = ({ teeLat, teeLng, greenLat, greenLng, c
 
     const teePoint = point([teeLng, teeLat]);
     const greenPoint = point([greenLng, greenLat]);
+    // Rumbo tee->green: los rings se centran en el tee, y su etiqueta de
+    // distancia se ubica sobre la linea de juego (hacia el green), no en
+    // un punto arbitrario del circulo.
+    const rumbo = bearing(teePoint, greenPoint);
 
     RING_RADII_YD.forEach((yd) => {
-      const ring = circle(greenPoint, yd * YD_TO_KM, { units: 'kilometers', steps: 64 });
+      const radioKm = yd * YD_TO_KM;
+      const ring = circle(teePoint, radioKm, { units: 'kilometers', steps: 64 });
       L.geoJSON(ring as any, {
-        style: { color: '#ffffff', weight: 1, opacity: 0.6, fill: false, dashArray: '4 4' },
+        style: { color: RING_COLOR, weight: 2, opacity: 0.9, fill: false },
+      }).addTo(map);
+
+      const labelPoint = destination(teePoint, radioKm, rumbo, { units: 'kilometers' });
+      const [labelLng, labelLat] = labelPoint.geometry.coordinates;
+      L.marker([labelLat, labelLng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:translate(-50%,-50%);background:${RING_COLOR};color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:9999px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);">${yd} yd</div>`,
+          iconSize: [0, 0],
+        }),
+        interactive: false,
       }).addTo(map);
     });
 
@@ -80,13 +118,39 @@ const HoleMap: React.FC<HoleMapProps> = ({ teeLat, teeLng, greenLat, greenLng, c
       map.remove();
       mapRef.current = null;
     };
-  }, [teeLat, teeLng, greenLat, greenLng]);
+  }, [teeLat, teeLng, greenLat, greenLng, interactive]);
 
   const distanceYd = Math.round(distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM);
+
+  const tieneBadges = par != null || yardas != null || indice != null;
 
   return (
     <div className={`relative ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
+
+      {tieneBadges && (
+        <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-none">
+          {par != null && (
+            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{par}</p>
+            </div>
+          )}
+          {indice != null && (
+            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Indice</p>
+              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{indice}</p>
+            </div>
+          )}
+          {yardas != null && (
+            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{yardas}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md pointer-events-none">
         {distanceYd} yd tee → green
       </div>
