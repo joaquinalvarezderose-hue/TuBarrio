@@ -179,8 +179,8 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:translate(-50%, -100%);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
-          <svg width="16" height="22" viewBox="0 0 16 22">
+        html: `<div style="transform:translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+          <svg width="16" height="22" viewBox="0 0 16 22" style="display:block;">
             <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
             <path d="M8 2 L15 5.5 L8 9 Z" fill="#ef4444" />
           </svg>
