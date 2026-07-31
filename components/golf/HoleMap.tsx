@@ -54,19 +54,28 @@ const HoleMap: React.FC<HoleMapProps> = ({
     });
     mapRef.current = map;
 
-    // Leaflet necesita una vista (centro/zoom) valida antes de que se le agreguen
-    // capas vectoriales (circleMarker, geoJSON) — si no, el renderer interno
-    // (_clipPoints) explota leyendo bounds en pixeles que todavia no existen.
-    const bounds = L.latLngBounds([
-      [teeLat, teeLng],
-      [greenLat, greenLng],
-    ]);
+    // Leaflet no puede rotar el mapa (no hay "arriba = hacia el green"), asi
+    // que en cambio centramos la vista exactamente en el tee: el green
+    // reflejado a traves del tee da un punto simetrico, y encuadrar
+    // [green, reflejo] dentro del viewport garantiza que el centro resultante
+    // sea el tee (es el punto medio de ambos por construccion) con el zoom
+    // mas ajustado que igual deja ver el green completo. Ademas esto tiene
+    // que pasar ANTES de agregar capas vectoriales (circleMarker, geoJSON):
+    // sin una vista valida, el renderer interno de Leaflet (_clipPoints)
+    // explota leyendo bounds en pixeles que todavia no existen.
+    const reflejo = L.latLng(2 * teeLat - greenLat, 2 * teeLng - greenLng);
+    const bounds = L.latLngBounds([[greenLat, greenLng], reflejo]);
     map.fitBounds(bounds, { padding: [40, 40] });
 
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
     ).addTo(map);
+
+    // Esri World Imagery sale bastante plana/desaturada — este filtro la
+    // realza para que se acerque un poco mas al look "vivido" de Google Maps.
+    const tilePane = map.getPane('tilePane');
+    if (tilePane) tilePane.style.filter = 'saturate(1.4) contrast(1.1) brightness(1.03)';
 
     const teePoint = point([teeLng, teeLat]);
     const greenPoint = point([greenLng, greenLat]);
@@ -122,37 +131,33 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
   const distanceYd = Math.round(distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM);
 
-  const tieneBadges = par != null || yardas != null || indice != null;
-
   return (
     <div className={`relative ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
 
-      {tieneBadges && (
-        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
-          {par != null && (
-            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
-              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{par}</p>
-            </div>
-          )}
-          {indice != null && (
-            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Indice</p>
-              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{indice}</p>
-            </div>
-          )}
-          {yardas != null && (
-            <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
-              <p className="text-lg font-extrabold tabular-nums text-[#111813]">{yardas}</p>
-            </div>
-          )}
+      <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
+        {par != null && (
+          <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
+            <p className="text-lg font-extrabold tabular-nums text-[#111813]">{par}</p>
+          </div>
+        )}
+        {indice != null && (
+          <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Indice</p>
+            <p className="text-lg font-extrabold tabular-nums text-[#111813]">{indice}</p>
+          </div>
+        )}
+        {yardas != null && (
+          <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
+            <p className="text-lg font-extrabold tabular-nums text-[#111813]">{yardas}</p>
+          </div>
+        )}
+        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Distancia</p>
+          <p className="text-lg font-extrabold tabular-nums text-[#111813] whitespace-nowrap">{distanceYd} yd</p>
         </div>
-      )}
-
-      <div className="absolute bottom-2 right-2 z-[1000] bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md pointer-events-none">
-        {distanceYd} yd tee → green
       </div>
     </div>
   );
