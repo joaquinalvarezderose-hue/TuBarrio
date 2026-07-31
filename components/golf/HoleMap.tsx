@@ -129,7 +129,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       <div ref={containerRef} className="h-full w-full" />
 
       {tieneBadges && (
-        <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-none">
+        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
           {par != null && (
             <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
               <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
@@ -151,7 +151,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
         </div>
       )}
 
-      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md pointer-events-none">
+      <div className="absolute bottom-2 right-2 z-[1000] bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md pointer-events-none">
         {distanceYd} yd tee → green
       </div>
     </div>

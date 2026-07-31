@@ -464,23 +464,28 @@ const GolfScorecard: React.FC = () => {
                 <div className="relative rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/844]">
                   {tieneCoordsMapa ? (
                     <>
-                      <HoleMap
-                        teeLat={hoyoActual.tee_lat as number}
-                        teeLng={hoyoActual.tee_lng as number}
-                        greenLat={hoyoActual.green_lat as number}
-                        greenLng={hoyoActual.green_lng as number}
-                        par={hoyoActual.par}
-                        yardas={hoyoActual.yardas}
-                        indice={hoyoActual.indice_dificultad}
-                        className="h-full w-full"
-                      />
-                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
+                      {/* Mientras esta abierta la pantalla completa no se monta este mapa:
+                          Leaflet no soporta 2 instancias vivas superpuestas sin pisarse
+                          (paneles con z-index propio compitiendo entre las dos). */}
+                      {!mapaFullscreen && (
+                        <HoleMap
+                          teeLat={hoyoActual.tee_lat as number}
+                          teeLng={hoyoActual.tee_lng as number}
+                          greenLat={hoyoActual.green_lat as number}
+                          greenLng={hoyoActual.green_lng as number}
+                          par={hoyoActual.par}
+                          yardas={hoyoActual.yardas}
+                          indice={hoyoActual.indice_dificultad}
+                          className="h-full w-full"
+                        />
+                      )}
+                      <div className="absolute top-3 left-3 z-[1000] bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
                         <span className="text-[10px] font-bold uppercase tracking-wide text-[#111813]">Vista del hoyo</span>
                       </div>
                       <button
                         onClick={() => setMapaFullscreen(true)}
-                        className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2"
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-32px)] py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2"
                       >
                         <span className="material-symbols-outlined text-lg">fullscreen</span>
                         Pantalla completa
@@ -591,19 +596,19 @@ const GolfScorecard: React.FC = () => {
 
       {mapaFullscreen && hoyoActual && (tieneCoordsMapa || mapaUrl) && (
         <div
-          className="fixed inset-0 z-50 bg-black flex flex-col"
+          className="fixed inset-0 z-[2000] bg-black flex flex-col"
           onClick={() => setMapaFullscreen(false)}
         >
           <button
             onClick={() => setMapaFullscreen(false)}
-            className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-full p-2 hover:bg-white"
+            className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-full p-2 hover:bg-white"
             aria-label="Cerrar mapa"
           >
             <span className="material-symbols-outlined text-2xl">close</span>
           </button>
           {!tieneCoordsMapa && (
             <div
-              className="absolute top-16 right-4 z-10 flex flex-col gap-2"
+              className="absolute top-16 right-4 z-[1000] flex flex-col gap-2"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
