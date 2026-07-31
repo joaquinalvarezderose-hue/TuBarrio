@@ -168,16 +168,23 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
     L.circleMarker([greenLat, greenLng], {
       radius: 8,
-      color: GREEN_COLOR,
+      color: '#ffffff',
       weight: 3,
-      fillColor: '#ffffff',
+      fillColor: GREEN_COLOR,
       fillOpacity: 1,
       interactive: false,
     }).addTo(map);
+    // Bandera minimalista (asta + banderin), con la base del asta plantada
+    // justo en el centro del punto del green.
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:translate(-15%, -34px);font-size:20px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">🚩</div>`,
+        html: `<div style="transform:translate(-50%, -100%);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+          <svg width="16" height="22" viewBox="0 0 16 22">
+            <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
+            <path d="M8 2 L15 5.5 L8 9 Z" fill="#ef4444" />
+          </svg>
+        </div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
@@ -185,7 +192,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:translate(-50%, -50px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Green</div>`,
+        html: `<div style="transform:translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Green</div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
