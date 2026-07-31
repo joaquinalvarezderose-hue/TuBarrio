@@ -29,6 +29,8 @@ const RING_RADII_YD = [50, 100, 150];
 const YD_TO_KM = 0.0009144;
 const RING_COLOR = '#3b82f6';
 
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+
 const HoleMap: React.FC<HoleMapProps> = ({
   teeLat,
   teeLng,
@@ -67,15 +69,22 @@ const HoleMap: React.FC<HoleMapProps> = ({
     const bounds = L.latLngBounds([[greenLat, greenLng], reflejo]);
     map.fitBounds(bounds, { padding: [40, 40] });
 
-    L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
-    ).addTo(map);
+    if (MAPBOX_TOKEN) {
+      L.tileLayer(
+        `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=${MAPBOX_TOKEN}`,
+        { maxZoom: 19, tileSize: 256, detectRetina: true, attribution: '&copy; Mapbox &copy; OpenStreetMap' }
+      ).addTo(map);
+    } else {
+      L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
+      ).addTo(map);
 
-    // Esri World Imagery sale bastante plana/desaturada — este filtro la
-    // realza para que se acerque un poco mas al look "vivido" de Google Maps.
-    const tilePane = map.getPane('tilePane');
-    if (tilePane) tilePane.style.filter = 'saturate(1.4) contrast(1.1) brightness(1.03)';
+      // Esri World Imagery sale bastante plana/desaturada — este filtro la
+      // realza para que se acerque un poco mas al look "vivido" de Mapbox/Google.
+      const tilePane = map.getPane('tilePane');
+      if (tilePane) tilePane.style.filter = 'saturate(1.4) contrast(1.1) brightness(1.03)';
+    }
 
     const teePoint = point([teeLng, teeLat]);
     const greenPoint = point([greenLng, greenLat]);

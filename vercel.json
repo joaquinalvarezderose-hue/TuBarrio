@@ -12,7 +12,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://bpgyqjfysapldrlnsoty.supabase.co https://server.arcgisonline.com; connect-src 'self' https://bpgyqjfysapldrlnsoty.supabase.co wss://bpgyqjfysapldrlnsoty.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://bpgyqjfysapldrlnsoty.supabase.co https://server.arcgisonline.com https://api.mapbox.com; connect-src 'self' https://bpgyqjfysapldrlnsoty.supabase.co wss://bpgyqjfysapldrlnsoty.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",
