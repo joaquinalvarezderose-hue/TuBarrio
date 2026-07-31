@@ -32,6 +32,15 @@ const HoleMap: React.FC<HoleMapProps> = ({ teeLat, teeLng, greenLat, greenLng, c
     });
     mapRef.current = map;
 
+    // Leaflet necesita una vista (centro/zoom) valida antes de que se le agreguen
+    // capas vectoriales (circleMarker, geoJSON) — si no, el renderer interno
+    // (_clipPoints) explota leyendo bounds en pixeles que todavia no existen.
+    const bounds = L.latLngBounds([
+      [teeLat, teeLng],
+      [greenLat, greenLng],
+    ]);
+    map.fitBounds(bounds, { padding: [40, 40] });
+
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
@@ -66,12 +75,6 @@ const HoleMap: React.FC<HoleMapProps> = ({ teeLat, teeLng, greenLat, greenLng, c
     })
       .bindTooltip('Green', { permanent: false })
       .addTo(map);
-
-    const bounds = L.latLngBounds([
-      [teeLat, teeLng],
-      [greenLat, greenLng],
-    ]);
-    map.fitBounds(bounds, { padding: [40, 40] });
 
     return () => {
       map.remove();
