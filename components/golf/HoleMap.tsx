@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import circle from '@turf/circle';
 import distance from '@turf/distance';
 import bearing from '@turf/bearing';
 import destination from '@turf/destination';
@@ -23,13 +22,45 @@ type HoleMapProps = {
   interactive?: boolean;
 };
 
-// Range rings de referencia alrededor del TEE (ayuda para el golpe de
-// salida), en yardas.
-const RING_RADII_YD = [50, 100, 150];
+// Arcos de distancia de referencia (ayuda para el golpe de salida),
+// centrados en el TEE y orientados hacia el green — no son circulos
+// completos, solo el sector que cae sobre la linea de juego.
+const RING_RADII_YD = [50, 100, 150, 200, 250];
+const ARCO_APERTURA_GRADOS = 55;
 const YD_TO_KM = 0.0009144;
 const RING_COLOR = '#3b82f6';
+const TEE_COLOR = '#2563eb';
+const GREEN_COLOR = '#4a9c40';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+
+// Punto medio de un arco centrado en `centro`, abierto `aperturaGrados`
+// alrededor de `rumboCentral`, a `radioKm` de distancia.
+function puntosDeArco(
+  centro: ReturnType<typeof point>,
+  radioKm: number,
+  rumboCentral: number,
+  aperturaGrados: number,
+  pasos = 32
+): [number, number][] {
+  const mitad = aperturaGrados / 2;
+  const puntos: [number, number][] = [];
+  for (let i = 0; i <= pasos; i++) {
+    const angulo = rumboCentral - mitad + (aperturaGrados * i) / pasos;
+    const p = destination(centro, radioKm, angulo, { units: 'kilometers' });
+    const [lng, lat] = p.geometry.coordinates;
+    puntos.push([lat, lng]);
+  }
+  return puntos;
+}
+
+function etiquetaTexto(texto: string, color = '#ffffff'): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="transform:translate(-50%,-50%);color:${color};font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">${texto}</div>`,
+    iconSize: [0, 0],
+  });
+}
 
 const HoleMap: React.FC<HoleMapProps> = ({
   teeLat,
@@ -62,7 +93,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     // [green, reflejo] dentro del viewport garantiza que el centro resultante
     // sea el tee (es el punto medio de ambos por construccion) con el zoom
     // mas ajustado que igual deja ver el green completo. Ademas esto tiene
-    // que pasar ANTES de agregar capas vectoriales (circleMarker, geoJSON):
+    // que pasar ANTES de agregar capas vectoriales (circleMarker, polyline):
     // sin una vista valida, el renderer interno de Leaflet (_clipPoints)
     // explota leyendo bounds en pixeles que todavia no existen.
     const reflejo = L.latLng(2 * teeLat - greenLat, 2 * teeLng - greenLng);
@@ -88,49 +119,77 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
     const teePoint = point([teeLng, teeLat]);
     const greenPoint = point([greenLng, greenLat]);
-    // Rumbo tee->green: los rings se centran en el tee, y su etiqueta de
-    // distancia se ubica sobre la linea de juego (hacia el green), no en
-    // un punto arbitrario del circulo.
+    // Rumbo tee->green: los arcos se centran en el tee y se abren hacia el
+    // green, no son circulos completos.
     const rumbo = bearing(teePoint, greenPoint);
 
     RING_RADII_YD.forEach((yd) => {
       const radioKm = yd * YD_TO_KM;
-      const ring = circle(teePoint, radioKm, { units: 'kilometers', steps: 64 });
-      L.geoJSON(ring as any, {
-        style: { color: RING_COLOR, weight: 2, opacity: 0.9, fill: false },
+
+      L.polyline(puntosDeArco(teePoint, radioKm, rumbo, ARCO_APERTURA_GRADOS), {
+        color: RING_COLOR,
+        weight: 4,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
       }).addTo(map);
 
       const labelPoint = destination(teePoint, radioKm, rumbo, { units: 'kilometers' });
       const [labelLng, labelLat] = labelPoint.geometry.coordinates;
-      L.marker([labelLat, labelLng], {
-        icon: L.divIcon({
-          className: '',
-          html: `<div style="transform:translate(-50%,-50%);background:${RING_COLOR};color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:9999px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);">${yd} yd</div>`,
-          iconSize: [0, 0],
-        }),
-        interactive: false,
-      }).addTo(map);
+      L.marker([labelLat, labelLng], { icon: etiquetaTexto(String(yd)), interactive: false }).addTo(map);
     });
 
+    // Linea de juego: tee -> green, punteada.
+    L.polyline(
+      [
+        [teeLat, teeLng],
+        [greenLat, greenLng],
+      ],
+      { color: '#ffffff', weight: 3, opacity: 0.9, dashArray: '2 10', lineCap: 'round', interactive: false }
+    ).addTo(map);
+
     L.circleMarker([teeLat, teeLng], {
-      radius: 7,
-      color: '#1e293b',
-      weight: 2,
-      fillColor: '#f8fafc',
+      radius: 9,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: TEE_COLOR,
       fillOpacity: 1,
-    })
-      .bindTooltip('Tee', { permanent: false })
-      .addTo(map);
+      interactive: false,
+    }).addTo(map);
+    L.marker([teeLat, teeLng], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="transform:translate(-50%, 22px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Tee</div>`,
+        iconSize: [0, 0],
+      }),
+      interactive: false,
+    }).addTo(map);
 
     L.circleMarker([greenLat, greenLng], {
-      radius: 7,
-      color: '#166534',
-      weight: 2,
-      fillColor: '#4a9c40',
+      radius: 8,
+      color: GREEN_COLOR,
+      weight: 3,
+      fillColor: '#ffffff',
       fillOpacity: 1,
-    })
-      .bindTooltip('Green', { permanent: false })
-      .addTo(map);
+      interactive: false,
+    }).addTo(map);
+    L.marker([greenLat, greenLng], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="transform:translate(-15%, -34px);font-size:20px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));">🚩</div>`,
+        iconSize: [0, 0],
+      }),
+      interactive: false,
+    }).addTo(map);
+    L.marker([greenLat, greenLng], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="transform:translate(-50%, -50px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Green</div>`,
+        iconSize: [0, 0],
+      }),
+      interactive: false,
+    }).addTo(map);
 
     return () => {
       map.remove();
@@ -138,13 +197,16 @@ const HoleMap: React.FC<HoleMapProps> = ({
     };
   }, [teeLat, teeLng, greenLat, greenLng, interactive]);
 
-  const distanceYd = Math.round(distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM);
+  const distanciaRectaYd = Math.round(
+    distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM
+  );
 
   return (
     <div className={`relative ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
+      {/* top-20 para no chocar con el boton de cerrar (X) de la vista de pantalla completa */}
+      <div className="absolute top-20 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
         {par != null && (
           <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
@@ -161,11 +223,13 @@ const HoleMap: React.FC<HoleMapProps> = ({
           <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
             <p className="text-lg font-extrabold tabular-nums text-[#111813]">{yardas}</p>
+            <p className="text-[8px] text-slate-400 leading-tight text-center">total scorecard</p>
           </div>
         )}
         <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Distancia</p>
-          <p className="text-lg font-extrabold tabular-nums text-[#111813] whitespace-nowrap">{distanceYd} yd</p>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 text-center leading-tight">Distancia recta</p>
+          <p className="text-lg font-extrabold tabular-nums text-[#111813] whitespace-nowrap">{distanciaRectaYd} yd</p>
+          <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>
         </div>
       </div>
     </div>
