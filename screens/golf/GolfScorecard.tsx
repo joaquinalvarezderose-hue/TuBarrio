@@ -235,6 +235,34 @@ const GolfScorecard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holeIdx]);
 
+  // Solo mientras el mapa a pantalla completa esta abierto (que es donde
+  // vive el boton "Actualizar mi posición") mantenemos el chip GPS
+  // "precalentado" en segundo plano, para que el primer burst arranque de
+  // un fix ya afinado en vez de un cold start. Atarlo a esta ventana en vez
+  // de a toda la vista del hoyo evita tener el GPS de alta precision
+  // prendido durante la ronda entera (consume bateria en serio).
+  useEffect(() => {
+    if (!mapaFullscreen || !tieneCoordsMapa) return;
+
+    // No confiamos en que el browser suspenda el watch solo por su cuenta
+    // al bloquear pantalla (el comportamiento varia entre iOS/Android y no
+    // esta garantizado): cortamos el GPS a mano cuando la pagina deja de
+    // estar visible y lo retomamos si vuelve a estar visible con el mapa
+    // todavia abierto.
+    const syncWarmupToVisibility = () => {
+      if (document.visibilityState === 'visible') burstLocation.startWarmup();
+      else burstLocation.stopWarmup();
+    };
+
+    syncWarmupToVisibility();
+    document.addEventListener('visibilitychange', syncWarmupToVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', syncWarmupToVisibility);
+      burstLocation.stopWarmup();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapaFullscreen, tieneCoordsMapa]);
+
   const netoPreview = useMemo(() => {
     if (!hoyoActual || !golpesInput) return null;
     const brutos = Number(golpesInput);
@@ -313,7 +341,14 @@ const GolfScorecard: React.FC = () => {
         <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="font-black text-slate-900 text-lg">Scorecard</h1>
+        <h1 className="font-black text-slate-900 text-lg flex-1">Scorecard</h1>
+        <button
+          onClick={() => navigate('/golf/tarjeta-completa', { state: { tournament } })}
+          className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100"
+          aria-label="Ver tarjeta completa"
+        >
+          <span className="material-symbols-outlined">table_chart</span>
+        </button>
       </div>
 
       <div className="p-4 space-y-5">

@@ -14,55 +14,122 @@ const BURST_READINGS = 5;
 const BURST_WINDOW_MS = 3000;
 const ACCEPTABLE_ACCURACY_M = 20;
 const MAX_ATTEMPTS = 2;
+// Lecturas de precalentado mas viejas que esto se descartan: si el jugador
+// dejo el mapa abierto varios minutos sin pedir su posicion, esas lecturas
+// ya no representan un fix "en caliente".
+const WARM_BUFFER_MS = 5000;
 
-// Recolecta lecturas de geolocalizacion durante una ventana corta usando
-// watchPosition (no getCurrentPosition en loop): watchPosition entrega cada
-// fix a medida que el chip GPS lo va afinando, asi que el burst captura la
-// mejora natural desde el "cold fix" inicial sin tener que re-disparar la
-// adquisicion a mano en cada lectura. Se corta apenas se junta el numero de
-// lecturas pedido o se vence la ventana, lo que pase primero.
+type TimedReading = BurstPosition & { at: number };
+
+let warmWatchId: number | null = null;
+let warmBuffer: TimedReading[] = [];
+const warmSubscribers = new Set<(reading: BurstPosition) => void>();
+
+function pruneWarmBuffer() {
+  const cutoff = Date.now() - WARM_BUFFER_MS;
+  warmBuffer = warmBuffer.filter((r) => r.at >= cutoff);
+}
+
+// Mantiene el chip GPS "despierto" con lecturas continuas mientras el
+// jugador esta mirando un hoyo con coordenadas, para que cuando pida su
+// posicion el burst arranque desde un fix ya afinado en vez de un cold
+// start (los primeros segundos de un watchPosition nuevo suelen traer
+// 50-100m de error hasta que el chip afina la triangulacion).
+export function startGpsWarmup(): void {
+  if (warmWatchId !== null) return;
+  if (typeof navigator === 'undefined' || !('geolocation' in navigator)) return;
+
+  warmWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      warmBuffer.push({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        at: Date.now(),
+      });
+      pruneWarmBuffer();
+      warmSubscribers.forEach((cb) =>
+        cb({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy })
+      );
+    },
+    (err) => {
+      // Si el permiso esta denegado no tiene sentido seguir escuchando;
+      // el burst on-demand va a volver a intentar y reportar el error a la UI.
+      if (err.code === err.PERMISSION_DENIED) stopGpsWarmup();
+    },
+    { enableHighAccuracy: true, maximumAge: 0 }
+  );
+}
+
+export function stopGpsWarmup(): void {
+  if (warmWatchId !== null) {
+    navigator.geolocation.clearWatch(warmWatchId);
+    warmWatchId = null;
+  }
+  warmBuffer = [];
+}
+
+// Recolecta lecturas de geolocalizacion durante una ventana corta. Si el
+// precalentado esta activo, reusa ese mismo watchPosition (sumando lo que
+// ya tenia acumulado en el buffer) en vez de abrir una segunda adquisicion;
+// si no, arranca una propia como antes.
 function collectBurstReadings(
   windowMs: number,
   maxReadings: number
 ): Promise<{ readings: BurstPosition[]; denied: boolean }> {
   return new Promise((resolve) => {
-    const readings: BurstPosition[] = [];
+    pruneWarmBuffer();
+    const readings: BurstPosition[] = warmBuffer.map(({ at, ...r }) => r);
     let denied = false;
-    let watchId: number | null = null;
     let settled = false;
+    let ownWatchId: number | null = null;
 
     const finish = () => {
       if (settled) return;
       settled = true;
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      warmSubscribers.delete(onReading);
+      if (ownWatchId !== null) navigator.geolocation.clearWatch(ownWatchId);
       resolve({ readings, denied });
     };
 
     const timeoutId = setTimeout(finish, windowMs);
 
-    watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        readings.push({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        });
-        if (readings.length >= maxReadings) {
-          clearTimeout(timeoutId);
-          finish();
-        }
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          denied = true;
-          clearTimeout(timeoutId);
-          finish();
-        }
-        // POSITION_UNAVAILABLE / TIMEOUT de una lectura puntual se ignoran:
-        // la siguiente lectura del burst puede resolver igual.
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: windowMs }
-    );
+    function onReading(r: BurstPosition) {
+      readings.push(r);
+      if (readings.length >= maxReadings) {
+        clearTimeout(timeoutId);
+        finish();
+      }
+    }
+
+    if (readings.length >= maxReadings) {
+      clearTimeout(timeoutId);
+      finish();
+      return;
+    }
+
+    if (warmWatchId !== null) {
+      warmSubscribers.add(onReading);
+    } else {
+      ownWatchId = navigator.geolocation.watchPosition(
+        (pos) =>
+          onReading({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }),
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            denied = true;
+            clearTimeout(timeoutId);
+            finish();
+          }
+          // POSITION_UNAVAILABLE / TIMEOUT de una lectura puntual se ignoran:
+          // la siguiente lectura del burst puede resolver igual.
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: windowMs }
+      );
+    }
   });
 }
 

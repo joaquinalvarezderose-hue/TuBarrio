@@ -34,6 +34,7 @@ import GolfTorneoForm from './screens/golf/GolfTorneoForm';
 import GolfPanel from './screens/golf/GolfPanel';
 import GolfFlights from './screens/golf/GolfFlights';
 import GolfScorecard from './screens/golf/GolfScorecard';
+import GolfTarjetaCompleta from './screens/golf/GolfTarjetaCompleta';
 import GolfLeaderboard from './screens/golf/GolfLeaderboard';
 import GolfRules from './screens/golf/GolfRules';
 import Navigation from './components/Navigation';
@@ -162,6 +163,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
           <Route path="/golf/panel" element={user ? <GolfPanel /> : <Navigate to="/login" replace />} />
           <Route path="/golf/flights" element={user ? <GolfFlights /> : <Navigate to="/login" replace />} />
           <Route path="/golf/scorecard" element={user ? <GolfScorecard /> : <Navigate to="/login" replace />} />
+          <Route path="/golf/tarjeta-completa" element={user ? <GolfTarjetaCompleta /> : <Navigate to="/login" replace />} />
           <Route path="/golf/leaderboard" element={user ? <GolfLeaderboard /> : <Navigate to="/login" replace />} />
           <Route path="/golf/hoyo" element={<Navigate to="/golf/scorecard" replace />} />
           <Route path="/golf/rules" element={user ? <GolfRules /> : <Navigate to="/login" replace />} />

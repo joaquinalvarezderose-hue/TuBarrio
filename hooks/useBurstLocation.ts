@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { getBurstPosition, type BurstPosition } from '../services/golfBurstLocation';
+import { getBurstPosition, startGpsWarmup, stopGpsWarmup, type BurstPosition } from '../services/golfBurstLocation';
 
 type BurstLocationStatus = 'idle' | 'loading' | 'success' | 'error';
 type BurstLocationError = 'denied' | 'timeout' | 'unsupported';
@@ -39,5 +39,5 @@ export function useBurstLocation() {
     setError(null);
   }, []);
 
-  return { status, position, weakSignal, error, request, reset };
+  return { status, position, weakSignal, error, request, reset, startWarmup: startGpsWarmup, stopWarmup: stopGpsWarmup };
 }
