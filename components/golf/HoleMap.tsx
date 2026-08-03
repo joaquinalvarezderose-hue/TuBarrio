@@ -25,16 +25,18 @@ type HoleMapProps = {
   userPosition?: { latitude: number; longitude: number; accuracy: number } | null;
 };
 
-// Arcos de distancia de referencia (ayuda para el golpe de salida),
-// centrados en el TEE y orientados hacia el green — no son circulos
-// completos, solo el sector que cae sobre la linea de juego.
+// Arcos de distancia de referencia, orientados hacia el green — no son
+// circulos completos, solo el sector que cae sobre la linea de juego.
+// Se centran en el tee hasta que el jugador actualiza su posicion GPS; a
+// partir de ahi se recentran en esa posicion (y se vuelven a recentrar en
+// cada actualizacion posterior).
 const RING_RADII_YD = [50, 100, 150, 200, 250];
 const ARCO_APERTURA_GRADOS = 55;
 const YD_TO_KM = 0.0009144;
 const RING_COLOR = '#3b82f6';
 const TEE_COLOR = '#2563eb';
 const GREEN_COLOR = '#4a9c40';
-const USER_COLOR = '#f59e0b';
+const USER_COLOR = '#1a73e8';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -129,29 +131,6 @@ const HoleMap: React.FC<HoleMapProps> = ({
       if (tilePane) tilePane.style.filter = 'saturate(1.4) contrast(1.1) brightness(1.03)';
     }
 
-    const teePoint = point([teeLng, teeLat]);
-    const greenPoint = point([greenLng, greenLat]);
-    // Rumbo tee->green: los arcos se centran en el tee y se abren hacia el
-    // green, no son circulos completos.
-    const rumbo = bearing(teePoint, greenPoint);
-
-    RING_RADII_YD.forEach((yd) => {
-      const radioKm = yd * YD_TO_KM;
-
-      L.polyline(puntosDeArco(teePoint, radioKm, rumbo, ARCO_APERTURA_GRADOS), {
-        color: RING_COLOR,
-        weight: 4,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false,
-      }).addTo(map);
-
-      const labelPoint = destination(teePoint, radioKm, rumbo, { units: 'kilometers' });
-      const [labelLng, labelLat] = labelPoint.geometry.coordinates;
-      L.marker([labelLat, labelLng], { icon: etiquetaTexto(String(yd)), interactive: false }).addTo(map);
-    });
-
     // Linea de juego: tee -> green, punteada.
     L.polyline(
       [
@@ -224,7 +203,34 @@ const HoleMap: React.FC<HoleMapProps> = ({
   useEffect(() => {
     const layer = userLayerRef.current;
     if (!layer) return;
+    // Se borra todo lo dinamico (arcos + etiquetas del punto anterior, mas
+    // el marcador de posicion si habia uno) antes de redibujar desde el
+    // origen actual — asi nunca quedan arcos viejos superpuestos.
     layer.clearLayers();
+
+    const origenLat = userPosition ? userPosition.latitude : teeLat;
+    const origenLng = userPosition ? userPosition.longitude : teeLng;
+    const origenPoint = point([origenLng, origenLat]);
+    const greenPoint = point([greenLng, greenLat]);
+    const rumbo = bearing(origenPoint, greenPoint);
+
+    RING_RADII_YD.forEach((yd) => {
+      const radioKm = yd * YD_TO_KM;
+
+      L.polyline(puntosDeArco(origenPoint, radioKm, rumbo, ARCO_APERTURA_GRADOS), {
+        color: RING_COLOR,
+        weight: 4,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
+      }).addTo(layer);
+
+      const labelPoint = destination(origenPoint, radioKm, rumbo, { units: 'kilometers' });
+      const [labelLng, labelLat] = labelPoint.geometry.coordinates;
+      L.marker([labelLat, labelLng], { icon: etiquetaTexto(String(yd)), interactive: false }).addTo(layer);
+    });
+
     if (!userPosition) return;
 
     const { latitude, longitude, accuracy } = userPosition;
@@ -234,7 +240,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       color: USER_COLOR,
       weight: 1,
       fillColor: USER_COLOR,
-      fillOpacity: 0.08,
+      fillOpacity: 0.12,
       interactive: false,
     }).addTo(layer);
 
@@ -254,7 +260,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       fillOpacity: 1,
       interactive: false,
     }).addTo(layer);
-  }, [userPosition, greenLat, greenLng]);
+  }, [userPosition, teeLat, teeLng, greenLat, greenLng]);
 
   const distanciaRectaYd = Math.round(
     distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM
@@ -299,7 +305,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
           <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>
         </div>
         {distanciaJugadorYd != null && (
-          <div className="flex flex-col items-center rounded-xl px-3 py-2 shadow-sm" style={{ backgroundColor: 'rgba(245,158,11,0.9)' }}>
+          <div className="flex flex-col items-center rounded-xl px-3 py-2 shadow-sm" style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
             <p className="text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">Tu distancia</p>
             <p className="text-lg font-extrabold tabular-nums text-white whitespace-nowrap">{distanciaJugadorYd} yd</p>
             <p className="text-[8px] text-white/80 leading-tight text-center">al green</p>
