@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
 import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
+import { useBurstLocation } from '../../hooks/useBurstLocation';
 import HoleMap from '../../components/golf/HoleMap';
 
 type Hoyo = {
@@ -93,6 +94,7 @@ const GolfScorecard: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mapaFullscreen, setMapaFullscreen] = useState(false);
+  const burstLocation = useBurstLocation();
 
   useEffect(() => {
     (async () => {
@@ -227,6 +229,11 @@ const GolfScorecard: React.FC = () => {
   useEffect(() => {
     setGolpesInput(scorecardActual?.golpes_brutos ? String(scorecardActual.golpes_brutos) : '');
   }, [holeIdx, selectedRondaId, scorecardActual?.golpes_brutos]);
+
+  useEffect(() => {
+    burstLocation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holeIdx]);
 
   const netoPreview = useMemo(() => {
     if (!hoyoActual || !golpesInput) return null;
@@ -635,6 +642,7 @@ const GolfScorecard: React.FC = () => {
                 par={hoyoActual.par}
                 yardas={hoyoActual.yardas}
                 indice={hoyoActual.indice_dificultad}
+                userPosition={burstLocation.position}
                 className="w-full h-full"
                 interactive
               />
@@ -646,6 +654,36 @@ const GolfScorecard: React.FC = () => {
               />
             ) : null}
           </div>
+
+          {tieneCoordsMapa && (
+            <div
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 w-[calc(100%-32px)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {burstLocation.status === 'error' && (
+                <p className="text-xs font-semibold text-white bg-red-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-center">
+                  {burstLocation.error === 'denied' && 'Permiso de ubicación denegado. Habilitalo en la configuración del navegador.'}
+                  {burstLocation.error === 'timeout' && 'No se pudo obtener tu ubicación. Probá de nuevo.'}
+                  {burstLocation.error === 'unsupported' && 'Tu navegador no soporta geolocalización.'}
+                </p>
+              )}
+              {burstLocation.status === 'success' && burstLocation.weakSignal && (
+                <p className="text-xs font-semibold text-white bg-amber-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-center">
+                  Señal GPS débil, la distancia puede no ser precisa.
+                </p>
+              )}
+              <button
+                onClick={() => burstLocation.request()}
+                disabled={burstLocation.status === 'loading'}
+                className="w-full py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                <span className={`material-symbols-outlined text-lg ${burstLocation.status === 'loading' ? 'animate-spin' : ''}`}>
+                  {burstLocation.status === 'loading' ? 'sync' : 'my_location'}
+                </span>
+                {burstLocation.status === 'loading' ? 'Ubicando...' : 'Actualizar mi posición'}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -20,6 +20,9 @@ type HoleMapProps = {
   // de swipe vertical debe scrollear la pagina, no panear el mapa). Pasar
   // true solo en vistas de pantalla completa, sin scroll de pagina alrededor.
   interactive?: boolean;
+  // Posicion GPS puntual del jugador (resultado de un burst, no tracking
+  // continuo). null/undefined = no mostrar nada.
+  userPosition?: { latitude: number; longitude: number; accuracy: number } | null;
 };
 
 // Arcos de distancia de referencia (ayuda para el golpe de salida),
@@ -31,6 +34,7 @@ const YD_TO_KM = 0.0009144;
 const RING_COLOR = '#3b82f6';
 const TEE_COLOR = '#2563eb';
 const GREEN_COLOR = '#4a9c40';
+const USER_COLOR = '#f59e0b';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -72,9 +76,11 @@ const HoleMap: React.FC<HoleMapProps> = ({
   indice,
   className = '',
   interactive = false,
+  userPosition = null,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -204,15 +210,63 @@ const HoleMap: React.FC<HoleMapProps> = ({
       interactive: false,
     }).addTo(map);
 
+    // Capa aparte para la posicion del jugador: se actualiza en su propio
+    // effect (mas abajo) sin volver a montar tee/green/rings.
+    userLayerRef.current = L.layerGroup().addTo(map);
+
     return () => {
       map.remove();
       mapRef.current = null;
+      userLayerRef.current = null;
     };
   }, [teeLat, teeLng, greenLat, greenLng, interactive]);
+
+  useEffect(() => {
+    const layer = userLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    if (!userPosition) return;
+
+    const { latitude, longitude, accuracy } = userPosition;
+
+    L.circle([latitude, longitude], {
+      radius: accuracy,
+      color: USER_COLOR,
+      weight: 1,
+      fillColor: USER_COLOR,
+      fillOpacity: 0.08,
+      interactive: false,
+    }).addTo(layer);
+
+    L.polyline(
+      [
+        [latitude, longitude],
+        [greenLat, greenLng],
+      ],
+      { color: USER_COLOR, weight: 3, opacity: 0.9, dashArray: '4 6', lineCap: 'round', interactive: false }
+    ).addTo(layer);
+
+    L.circleMarker([latitude, longitude], {
+      radius: 8,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: USER_COLOR,
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(layer);
+  }, [userPosition, greenLat, greenLng]);
 
   const distanciaRectaYd = Math.round(
     distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM
   );
+
+  const distanciaJugadorYd = userPosition
+    ? Math.round(
+        distance(point([userPosition.longitude, userPosition.latitude]), point([greenLng, greenLat]), {
+          units: 'kilometers',
+        }) / YD_TO_KM
+      )
+    : null;
 
   return (
     <div className={`relative ${className}`}>
@@ -244,6 +298,13 @@ const HoleMap: React.FC<HoleMapProps> = ({
           <p className="text-lg font-extrabold tabular-nums text-[#111813] whitespace-nowrap">{distanciaRectaYd} yd</p>
           <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>
         </div>
+        {distanciaJugadorYd != null && (
+          <div className="flex flex-col items-center rounded-xl px-3 py-2 shadow-sm" style={{ backgroundColor: 'rgba(245,158,11,0.9)' }}>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">Tu distancia</p>
+            <p className="text-lg font-extrabold tabular-nums text-white whitespace-nowrap">{distanciaJugadorYd} yd</p>
+            <p className="text-[8px] text-white/80 leading-tight text-center">al green</p>
+          </div>
+        )}
       </div>
     </div>
   );
