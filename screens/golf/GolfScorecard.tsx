@@ -523,27 +523,27 @@ const GolfScorecard: React.FC = () => {
                           compact
                         />
                       )}
-                      <div className="absolute top-3 left-3 z-[1000] bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
+                      <div className="absolute top-3 left-3 z-20 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
                         <span className="text-[10px] font-bold uppercase tracking-wide text-[#111813]">Vista del hoyo</span>
                       </div>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-32px)] flex items-center gap-2">
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-32px)] flex items-center gap-2">
                         <button
                           onClick={() => burstLocation.request()}
                           disabled={burstLocation.status === 'loading'}
-                          aria-label="Actualizar mi posición"
-                          className="flex-none p-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl hover:bg-white transition-all flex items-center justify-center disabled:opacity-70"
+                          className="flex-1 py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                         >
                           <span className={`material-symbols-outlined text-lg ${burstLocation.status === 'loading' ? 'animate-spin' : ''}`}>
                             {burstLocation.status === 'loading' ? 'sync' : 'my_location'}
                           </span>
+                          {burstLocation.status === 'loading' ? 'Ubicando...' : 'Actualizar mi posición'}
                         </button>
                         <button
                           onClick={() => setMapaFullscreen(true)}
-                          className="flex-1 py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2"
+                          aria-label="Pantalla completa"
+                          className="flex-none p-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl hover:bg-white transition-all flex items-center justify-center"
                         >
                           <span className="material-symbols-outlined text-lg">fullscreen</span>
-                          Pantalla completa
                         </button>
                       </div>
                     </>

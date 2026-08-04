@@ -81,6 +81,8 @@ const FALLBACK_TORNEOS: Torneo[] = [
  fecha_fin: '2026-03-15',
  imagen_url: '/images/tournament-default.jpg',
  activo: true,
+ alias_pago: null,
+ whatsapp_pago: null,
  },
  {
  id: 2,
@@ -90,6 +92,8 @@ const FALLBACK_TORNEOS: Torneo[] = [
  fecha_fin: '2026-03-18',
  imagen_url: '/images/tournament-2.jpg',
  activo: true,
+ alias_pago: null,
+ whatsapp_pago: null,
  },
  {
  id: 3,
@@ -99,6 +103,8 @@ const FALLBACK_TORNEOS: Torneo[] = [
  fecha_fin: '2026-03-25',
  imagen_url: '/images/tournament-3.jpg',
  activo: true,
+ alias_pago: null,
+ whatsapp_pago: null,
  },
  {
  id: 4,
@@ -108,6 +114,8 @@ const FALLBACK_TORNEOS: Torneo[] = [
  fecha_fin: '2026-04-14',
  imagen_url: '/images/tournament-4.jpg',
  activo: true,
+ alias_pago: null,
+ whatsapp_pago: null,
  },
  {
  id: 5,
@@ -117,6 +125,8 @@ const FALLBACK_TORNEOS: Torneo[] = [
  fecha_fin: '2026-04-05',
  imagen_url: '/images/tournament-5.jpg',
  activo: true,
+ alias_pago: null,
+ whatsapp_pago: null,
  },
 ];
 
@@ -407,7 +417,7 @@ const jugadorIds = (jugadoresData || [])
 
  const items: TorneoHistorialItem[] = (torneosData as any[]).map((t) => {
  const stats = statsByTorneo[t.id] || { jugados: 0, victorias: 0, derrotas: 0, sets_ganados: 0, sets_perdidos: 0 };
- const campeon = campeonByTorneo[t.id] || {};
+ const campeon = campeonByTorneo[t.id] || { nombre: null, perfil_id: null };
  const win_rate = stats.jugados > 0 ? Math.round((stats.victorias / stats.jugados) * 100) : 0;
  return {
  torneo_id: t.id,

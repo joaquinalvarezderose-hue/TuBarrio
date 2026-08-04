@@ -285,10 +285,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
       {/* top-20 para no chocar con el boton de cerrar (X) de la vista de pantalla completa;
           en compact (mapa embebido, sin ese boton) va pegado arriba y con menos padding
-          para que entren todas las etiquetas sin invadir los controles de abajo. */}
+          para que entren todas las etiquetas sin invadir los controles de abajo.
+          z-index mas bajo en compact: el mapa embebido convive en la misma pagina que
+          la barra de navegacion inferior (z-50) y no debe taparla; en pantalla completa
+          en cambio ya vive dentro de un overlay fixed con z-[2000] propio, por encima de
+          la nav de todos modos. */}
       <div
-        className={`absolute right-3 z-[1000] flex flex-col pointer-events-none ${
-          compact ? 'top-3 gap-1.5' : 'top-20 gap-2'
+        className={`absolute right-3 flex flex-col pointer-events-none ${
+          compact ? 'top-3 gap-1.5 z-20' : 'top-20 gap-2 z-[1000]'
         }`}
       >
         {par != null && (
