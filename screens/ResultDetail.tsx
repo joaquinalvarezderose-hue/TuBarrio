@@ -71,7 +71,7 @@ const ResultDetail: React.FC = () => {
  setHistorial({
  jugador1_nombre: perfilesMap[historialData.jugador1_perfil_id] || 'Jugador 1',
  jugador2_nombre: perfilesMap[historialData.jugador2_perfil_id] || 'Jugador 2',
- sets_json: Array.isArray(historialData.sets_json) ? historialData.sets_json : null,
+ sets_json: Array.isArray(historialData.sets_json) ? (historialData.sets_json as unknown as GameDetail[]) : null,
  sets_jugador1: historialData.sets_jugador1 || 0,
  sets_jugador2: historialData.sets_jugador2 || 0,
  ganador_perfil_id: historialData.ganador_perfil_id,
