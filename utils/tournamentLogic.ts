@@ -258,7 +258,6 @@ export const registerParticipant = async (params: {
     statusBefore: 'RECRUITING',
     statusAfter: current >= max ? 'LOCKED' : 'RECRUITING',
     currentParticipants: current,
-    maxParticipants: max,
     drawTriggered: false,
     createdMatches: 0,
     byes: [],
