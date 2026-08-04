@@ -178,7 +178,7 @@ const Standings: React.FC = () => {
  const { data: groupsRows, error: groupsError } = await groupsQuery;
  if (!groupsError) {
  const groups = Array.from(
- new Set((groupsRows || []).map((row: any) => String(row?.grupo || '').trim()).filter(Boolean))
+ new Set<string>((groupsRows || []).map((row: any) => String(row?.grupo || '').trim()).filter(Boolean))
  ).sort((a, b) => getGroupOrder(a) - getGroupOrder(b));
  setAvailableGroups(groups);
  if (!selectedGroup && resolvedScope?.grupo && groups.includes(String(resolvedScope.grupo))) {
@@ -387,7 +387,7 @@ const Standings: React.FC = () => {
  const { data: groupsRows, error: groupsError } = await groupsQuery;
  if (!groupsError) {
  const groups = Array.from(
- new Set(
+ new Set<string>(
  (groupsRows || [])
  .map((row: any) => String(row?.grupo || '').trim())
  .filter(Boolean)

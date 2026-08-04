@@ -23,6 +23,10 @@ type HoleMapProps = {
   // Posicion GPS puntual del jugador (resultado de un burst, no tracking
   // continuo). null/undefined = no mostrar nada.
   userPosition?: { latitude: number; longitude: number; accuracy: number } | null;
+  // Panel de datos (par/indice/yardas/distancia) mas chico y pegado al borde
+  // superior — pensado para el mapa embebido, que no tiene el boton de
+  // cerrar (X) de la vista de pantalla completa con el que evitar chocar.
+  compact?: boolean;
 };
 
 // Arcos de distancia de referencia, orientados hacia el green — no son
@@ -79,6 +83,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
   className = '',
   interactive = false,
   userPosition = null,
+  compact = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -278,37 +283,47 @@ const HoleMap: React.FC<HoleMapProps> = ({
     <div className={`relative ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
 
-      {/* top-20 para no chocar con el boton de cerrar (X) de la vista de pantalla completa */}
-      <div className="absolute top-20 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
+      {/* top-20 para no chocar con el boton de cerrar (X) de la vista de pantalla completa;
+          en compact (mapa embebido, sin ese boton) va pegado arriba y con menos padding
+          para que entren todas las etiquetas sin invadir los controles de abajo. */}
+      <div
+        className={`absolute right-3 z-[1000] flex flex-col pointer-events-none ${
+          compact ? 'top-3 gap-1.5' : 'top-20 gap-2'
+        }`}
+      >
         {par != null && (
-          <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Par</p>
-            <p className="text-lg font-extrabold tabular-nums text-[#111813]">{par}</p>
+          <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
+            <p className={`font-bold uppercase tracking-wide text-slate-400 ${compact ? 'text-[7px]' : 'text-[9px]'}`}>Par</p>
+            <p className={`font-extrabold tabular-nums text-[#111813] ${compact ? 'text-xs' : 'text-lg'}`}>{par}</p>
           </div>
         )}
         {indice != null && (
-          <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Indice</p>
-            <p className="text-lg font-extrabold tabular-nums text-[#111813]">{indice}</p>
+          <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
+            <p className={`font-bold uppercase tracking-wide text-slate-400 ${compact ? 'text-[7px]' : 'text-[9px]'}`}>Indice</p>
+            <p className={`font-extrabold tabular-nums text-[#111813] ${compact ? 'text-xs' : 'text-lg'}`}>{indice}</p>
           </div>
         )}
         {yardas != null && (
-          <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Yardas</p>
-            <p className="text-lg font-extrabold tabular-nums text-[#111813]">{yardas}</p>
-            <p className="text-[8px] text-slate-400 leading-tight text-center">total scorecard</p>
+          <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
+            <p className={`font-bold uppercase tracking-wide text-slate-400 ${compact ? 'text-[7px]' : 'text-[9px]'}`}>Yardas</p>
+            <p className={`font-extrabold tabular-nums text-[#111813] ${compact ? 'text-xs' : 'text-lg'}`}>{yardas}</p>
+            {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">total scorecard</p>}
           </div>
         )}
-        <div className="flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl px-3 py-2 shadow-sm">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 text-center leading-tight">Distancia recta</p>
-          <p className="text-lg font-extrabold tabular-nums text-[#111813] whitespace-nowrap">{distanciaRectaYd} yd</p>
-          <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>
+        <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
+          <p className={`font-bold uppercase tracking-wide text-slate-400 text-center leading-tight ${compact ? 'text-[7px]' : 'text-[9px]'}`}>
+            {compact ? 'Recta' : 'Distancia recta'}
+          </p>
+          <p className={`font-extrabold tabular-nums text-[#111813] whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>{distanciaRectaYd} yd</p>
+          {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>}
         </div>
         {distanciaJugadorYd != null && (
-          <div className="flex flex-col items-center rounded-xl px-3 py-2 shadow-sm" style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
-            <p className="text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">Tu distancia</p>
-            <p className="text-lg font-extrabold tabular-nums text-white whitespace-nowrap">{distanciaJugadorYd} yd</p>
-            <p className="text-[8px] text-white/80 leading-tight text-center">al green</p>
+          <div className={`flex flex-col items-center rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`} style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
+            <p className={`font-bold uppercase tracking-wide text-white/80 text-center leading-tight ${compact ? 'text-[7px]' : 'text-[9px]'}`}>
+              {compact ? 'Vos' : 'Tu distancia'}
+            </p>
+            <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>{distanciaJugadorYd} yd</p>
+            {!compact && <p className="text-[8px] text-white/80 leading-tight text-center">al green</p>}
           </div>
         )}
       </div>
