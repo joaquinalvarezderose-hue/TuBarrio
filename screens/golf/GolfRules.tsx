@@ -157,6 +157,129 @@ const GolfRules: React.FC = () => {
             )}
           </>
         )}
+
+        {/* Reglas Locales - El Cantón */}
+        <div className="pt-4">
+          <h2 className="text-lg font-bold mb-1 text-slate-900">Reglas Locales</h2>
+          <p className="text-slate-500 text-sm font-medium mb-3">El Cantón Golf — según tarjeta oficial de la cancha.</p>
+
+          <div className="space-y-3">
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" open>
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">fence</span>
+                  <span className="font-semibold text-slate-800">Límites de la Cancha (Regla 27)</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                <p>a) Las estacadas o líneas blancas.</p>
+                <p>b) El borde interno de las calles que delimitan la cancha de golf.</p>
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">signpost</span>
+                  <span className="font-semibold text-slate-800">Obstrucciones Inamovibles (Regla 24-2)</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                Todas las cosas artificiales fijas instaladas en la cancha. Incluye las marcas que se encuentran en el centro de cada fairway, caminos que se encuentran dentro del campo de juego, aspersores de riego, carteles indicadores de los sitios de salida, bancos, etc. El jugador podrá liberarse en el caso que interfieran en su stance o swing.
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">golf_course</span>
+                  <span className="font-semibold text-slate-800">Pelota Enterrada en su Propio Pique</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                A través de la cancha, una pelota enterrada en su propio pique podrá ser levantada, limpiada y dropeada, sin penalidad, lo más cerca posible de donde descansaba pero no más cerca del hoyo.
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">sports_golf</span>
+                  <span className="font-semibold text-slate-800">Obstrucciones Movibles (Regla 24-1)</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                Las estacas de hazards de agua, hazard de agua lateral, zonas de dropeo y terreno en reparación.
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">construction</span>
+                  <span className="font-semibold text-slate-800">Terreno en Reparación (Regla 25)</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                <ol className="space-y-2 list-none">
+                  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">a)</span> Las zonas así definidas con líneas o estacas azules.</li>
+                  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">b)</span> Solamente cuando la pelota descansa en la huella de vehículo (solo cuando es una depresión en el suelo).</li>
+                  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">c)</span> Zanjas de drenaje (depresión en el terreno).</li>
+                  <li className="flex gap-2"><span className="font-bold text-[#4a9c40] shrink-0">d)</span> Panes de pastos a través de la cancha.</li>
+                </ol>
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">water</span>
+                  <span className="font-semibold text-slate-800">Hazard de Agua (Regla 26)</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                Sus límites están definidos por estacas o líneas amarillas.
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">waves</span>
+                  <span className="font-semibold text-slate-800">Hazard de Agua Lateral (Regla 26)</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                Sus límites están definidos por estacas o líneas rojas.
+              </div>
+            </details>
+
+            <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#4a9c40]">potted_plant</span>
+                  <span className="font-semibold text-slate-800">Plantaciones Jóvenes</span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+              </summary>
+              <div className="px-4 pb-4 pt-0 text-slate-600 text-sm leading-relaxed font-medium">
+                <p className="mb-2 text-xs text-slate-500">Identificadas por estacas o tutores azules.</p>
+                Cuando una "Plantación Joven" así marcada por la comisión de golf interfiere el asiento de la pelota, el stance o el espacio en el que el jugador intenta el swing, o cuando la pelota descansa en la cazuela, esta <strong className="text-slate-800">deberá</strong> aliviarse de tal condición, dropeando una pelota, sin penalidad y sin acercarse al hoyo, dentro del largo de un palo del punto de alivio más cercano. La pelota levantada bajo esta condición podrá ser limpiada.
+              </div>
+            </details>
+          </div>
+
+          <div className="mt-3 bg-[#4a9c40]/10 border border-[#4a9c40]/30 rounded-xl px-4 py-3 text-center">
+            <p className="text-xs font-bold text-slate-700">Penalidad por quebrantar la regla local: <span className="text-[#4a9c40]">dos golpes</span></p>
+          </div>
+        </div>
       </div>
     </div>
   );
