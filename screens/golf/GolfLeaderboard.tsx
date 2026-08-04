@@ -64,17 +64,17 @@ const GolfLeaderboard: React.FC = () => {
 
   return (
     <div className="bg-background-light min-h-screen font-display pb-16 max-w-md mx-auto">
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
-          <span className="material-symbols-outlined">arrow_back</span>
+      <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="size-10 flex items-center justify-center rounded-full hover:bg-black/5 text-[#111813] transition-colors">
+          <span className="material-symbols-outlined">arrow_back_ios</span>
         </button>
-        <h1 className="font-black text-slate-900 text-lg">Tabla de Posiciones</h1>
-      </div>
+        <h1 className="text-lg font-bold text-[#111813]">Tabla de Posiciones</h1>
+      </header>
 
       <div className="p-4">
-        {errorMsg && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 mb-4">{errorMsg}</div>}
+        {errorMsg && <div className="rounded-lg bg-red-50 border border-red-100 text-red-700 text-sm px-3 py-2 mb-4 font-medium">{errorMsg}</div>}
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-bold text-slate-500 uppercase">

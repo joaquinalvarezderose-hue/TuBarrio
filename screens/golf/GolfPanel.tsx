@@ -89,110 +89,193 @@ const GolfPanel: React.FC = () => {
     }
   };
 
+  const estadoLabel = (() => {
+    switch (estadoTorneo) {
+      case 'RECRUITING':
+      case 'INSCRIPCION_ABIERTA':
+        return 'En preparación';
+      case 'EN_CURSO':
+        return 'En curso';
+      case 'FINALIZADO':
+        return 'Finalizado';
+      default:
+        return 'En curso';
+    }
+  })();
+
   if (!tournament) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background-light p-6 text-center">
-        <span className="material-symbols-outlined text-5xl text-slate-300 mb-3">golf_course</span>
-        <p className="text-slate-500 font-medium">No encontramos el torneo de golf seleccionado.</p>
-        <button onClick={() => navigate('/tournaments')} className="mt-4 text-[#4a9c40] font-bold">Volver a Torneos</button>
+      <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light font-display">
+        <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200">
+          <button
+            onClick={() => navigate('/tournaments')}
+            className="flex items-center text-[#111813] hover:bg-black/5 p-1 rounded-full transition-colors"
+          >
+            <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
+          </button>
+          <Logo variant="tournament" className="h-[120px] w-auto" />
+          <div className="w-8"></div>
+        </header>
+        <main className="flex-1 p-4 flex flex-col items-center justify-center text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 shadow-sm mb-3">
+            <span className="material-symbols-outlined text-[#4a9c40] text-4xl">golf_course</span>
+          </div>
+          <p className="text-slate-500 font-medium">No encontramos el torneo de golf seleccionado.</p>
+          <button onClick={() => navigate('/tournaments')} className="mt-4 text-[#4a9c40] font-bold">Volver a Torneos</button>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="bg-background-light min-h-screen font-display pb-24 max-w-md mx-auto">
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate('/tournaments')} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
-          <span className="material-symbols-outlined">arrow_back</span>
+    <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-background-light transition-colors duration-300 font-display no-scrollbar overflow-y-auto">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-200">
+        <button
+          onClick={() => navigate('/tournaments')}
+          className="flex items-center text-[#111813] hover:bg-black/5 p-1 rounded-full transition-colors"
+        >
+          <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
         </button>
-        <div className="flex-1 flex justify-center">
-          <Logo variant="tournament" className="h-[90px] w-auto" />
-        </div>
-        <div className="w-8" />
-      </div>
+        <Logo variant="tournament" className="h-[120px] w-auto" />
+        <div className="w-8"></div>
+      </header>
 
-      <div className="p-4 space-y-5">
-        <div className="rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm">
-          <div className="h-32 w-full bg-cover bg-center" style={{ backgroundImage: `url("${tournament.image}")` }} />
-          <div className="p-4">
-            <h1 className="text-xl font-bold text-[#111813]">{tournament.title}</h1>
-            {tournament.subtitle && <p className="text-sm text-slate-500 mt-0.5">{tournament.subtitle}</p>}
+      <main className="flex-1 p-4 space-y-6">
+        {/* Tournament Highlight Card */}
+        <section>
+          <div className="relative overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100">
+            <div
+              className="w-full h-32 bg-cover bg-center"
+              style={{ backgroundImage: `url("${tournament.image}")` }}
+            ></div>
+            <div className="p-5">
+              <div className="flex flex-col gap-1">
+                <span className="text-primary text-xs font-bold uppercase tracking-widest">{loadingEstado ? '...' : estadoLabel}</span>
+                <h2 className="text-xl font-bold leading-tight text-[#111813]">{tournament.title}</h2>
+                {tournament.subtitle && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="bg-primary/10 text-[#4a9c40] px-2 py-0.5 rounded text-xs font-semibold">{tournament.subtitle}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* Flight asignado */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-          <h2 className="text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[#4a9c40]">golf_course</span>
-            Tu Flight
-          </h2>
-          {loadingRound ? (
-            <Skeleton className="h-16 w-full" />
-          ) : !round ? (
-            <p className="text-sm text-slate-500">Todavia no fuiste sorteado en ningun flight de este torneo.</p>
-          ) : (
-            <div>
-              <p className="font-bold text-[#111813]">Ronda {round.numeroRonda}{round.flightNumero != null ? ` · Flight ${round.flightNumero}` : ''}</p>
-              <p className="text-sm text-slate-500 mb-3">{round.canchaNombre || 'Cancha a confirmar'} · Coordiná el horario de salida con tus compañeros.</p>
-              {round.companeros.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-slate-400 uppercase">Companeros de flight</p>
-                  {round.companeros.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="text-sm font-medium text-slate-800">{c.nombre_completo}</span>
-                      {c.whatsappLink && (
-                        <a href={c.whatsappLink} target="_blank" rel="noreferrer" className="text-[#4a9c40]">
-                          <span className="material-symbols-outlined text-[20px]">chat</span>
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <section className="space-y-3">
+          <h3 className="text-lg font-bold tracking-tight px-1 text-[#111813]">Tu Flight</h3>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            {loadingRound ? (
+              <Skeleton className="h-16 w-full" />
+            ) : !round ? (
+              <p className="text-sm text-slate-500">Todavía no fuiste sorteado en ningún flight de este torneo.</p>
+            ) : (
+              <div>
+                <p className="font-bold text-[#111813]">Ronda {round.numeroRonda}{round.flightNumero != null ? ` · Flight ${round.flightNumero}` : ''}</p>
+                <p className="text-sm text-slate-500 mb-3">{round.canchaNombre || 'Cancha a confirmar'} · Coordiná el horario de salida con tus compañeros.</p>
+                {round.companeros.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Compañeros de flight</p>
+                    {round.companeros.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                        <span className="text-sm font-medium text-slate-800">{c.nombre_completo}</span>
+                        {c.whatsappLink && (
+                          <a href={c.whatsappLink} target="_blank" rel="noreferrer" className="text-[#4a9c40]">
+                            <span className="material-symbols-outlined text-[20px]">chat</span>
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
 
-        {/* Accesos */}
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => goTo('/golf/scorecard')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition">
-            <span className="material-symbols-outlined text-[#4a9c40] text-2xl">edit_note</span>
-            <span className="text-sm font-bold text-slate-800">Scorecard</span>
+        {/* Quick Action Grid 2x2 */}
+        <section className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => goTo('/golf/scorecard')}
+            className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
+          >
+            <div className="size-12 rounded-full flex items-center justify-center transition-colors shadow-md bg-[#4a9c40] text-white group-hover:bg-[#3d8b33]">
+              <span className="material-symbols-outlined text-3xl">edit_note</span>
+            </div>
+            <span className="text-sm font-semibold text-center text-[#111813]">Scorecard</span>
           </button>
-          <button onClick={() => goTo('/golf/tarjeta-completa')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition">
-            <span className="material-symbols-outlined text-[#4a9c40] text-2xl">table_chart</span>
-            <span className="text-sm font-bold text-slate-800">Ver Tarjeta</span>
+
+          <button
+            onClick={() => goTo('/golf/tarjeta-completa')}
+            className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
+          >
+            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
+              <span className="material-symbols-outlined text-3xl">table_chart</span>
+            </div>
+            <span className="text-sm font-semibold text-center text-[#111813]">Ver Tarjeta</span>
           </button>
-          <button onClick={() => goTo('/golf/leaderboard')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition">
-            <span className="material-symbols-outlined text-[#4a9c40] text-2xl">leaderboard</span>
-            <span className="text-sm font-bold text-slate-800">Tabla de Posiciones</span>
+
+          <button
+            onClick={() => goTo('/golf/leaderboard')}
+            className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
+          >
+            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
+              <span className="material-symbols-outlined text-3xl">emoji_events</span>
+            </div>
+            <span className="text-sm font-semibold text-center text-[#111813]">Tabla de Posiciones</span>
           </button>
-          <button onClick={() => goTo('/golf/rules')} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition">
-            <span className="material-symbols-outlined text-[#4a9c40] text-2xl">gavel</span>
-            <span className="text-sm font-bold text-slate-800">Reglamento</span>
+
+          <button
+            onClick={() => goTo('/golf/rules')}
+            className="flex flex-col items-center justify-center gap-3 p-6 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform group"
+          >
+            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-[#4a9c40] group-hover:bg-primary/20 transition-colors">
+              <span className="material-symbols-outlined text-3xl">info</span>
+            </div>
+            <span className="text-sm font-semibold text-center text-[#111813]">Reglamento</span>
           </button>
-        </div>
+        </section>
 
         {/* Panel del organizador */}
         {canManage && (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <h2 className="text-sm font-bold uppercase text-slate-500">Organizador</h2>
-            {actionMessage && <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">{actionMessage}</div>}
-            {actionError && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">{actionError}</div>}
-            <button onClick={() => goTo('/golf/flights')} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl transition">
-              Sortear Flights
-            </button>
-            <div className="grid grid-cols-2 gap-3">
-              <button disabled={actionBusy} onClick={handleIniciar} className="bg-[#4a9c40] hover:bg-[#3d8b33] disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition">
-                Iniciar Torneo
+          <section className="space-y-3">
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Admin</p>
+                  <h3 className="text-base font-bold text-slate-900">Organizador</h3>
+                </div>
+                <span className="rounded-full bg-emerald-100 text-emerald-700 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide">Admin</span>
+              </div>
+
+              {actionMessage && <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm font-medium text-emerald-700">{actionMessage}</div>}
+              {actionError && <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-sm font-medium text-red-700">{actionError}</div>}
+
+              <button onClick={() => goTo('/golf/flights')} className="w-full rounded-lg bg-slate-900 text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed">
+                Sortear Flights
               </button>
-              <button disabled={actionBusy} onClick={handleFinalizar} className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition">
-                Finalizar Torneo
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  disabled={actionBusy}
+                  onClick={handleIniciar}
+                  className="w-full rounded-lg bg-[#4a9c40] text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Iniciar Torneo
+                </button>
+                <button
+                  disabled={actionBusy}
+                  onClick={handleFinalizar}
+                  className="w-full rounded-lg bg-indigo-700 text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Finalizar Torneo
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
         )}
-      </div>
+      </main>
     </div>
   );
 };

@@ -165,18 +165,18 @@ const GolfTarjetaCompleta: React.FC = () => {
 
   return (
     <div className="bg-background-light min-h-screen font-display pb-16 max-w-2xl mx-auto">
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
-          <span className="material-symbols-outlined">arrow_back</span>
+      <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="size-10 flex items-center justify-center rounded-full hover:bg-black/5 text-[#111813] transition-colors">
+          <span className="material-symbols-outlined">arrow_back_ios</span>
         </button>
-        <h1 className="font-black text-slate-900 text-lg">Tarjeta completa</h1>
-      </div>
+        <h1 className="text-lg font-bold text-[#111813]">Tarjeta completa</h1>
+      </header>
 
       <div className="p-4 space-y-4">
         {loading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : misRondas.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-sm text-slate-500">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 text-center text-sm text-slate-500">
             Todavia no fuiste sorteado en ningun flight de este torneo.
           </div>
         ) : (
@@ -217,7 +217,7 @@ const GolfTarjetaCompleta: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="font-bold text-[#111813]">{selectedRonda?.nombre_completo || 'Jugador'}</p>

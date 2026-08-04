@@ -86,12 +86,12 @@ const GolfRules: React.FC = () => {
 
   return (
     <div className="bg-background-light min-h-screen font-display pb-16 max-w-md mx-auto">
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 flex items-center justify-between gap-3">
+      <div className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
+          <button onClick={() => navigate(-1)} className="flex items-center text-slate-600 p-1 hover:bg-slate-100 rounded-full transition-colors">
             <span className="material-symbols-outlined">arrow_back_ios</span>
           </button>
-          <h1 className="font-black text-slate-900 text-lg">Reglamento</h1>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">Reglamento</h1>
         </div>
         {canManage && !loading && (
           <button
@@ -108,8 +108,8 @@ const GolfRules: React.FC = () => {
           <Skeleton className="h-48 w-full rounded-xl" />
         ) : (
           <>
-            {message && <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">{message}</div>}
-            {errorMsg && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">{errorMsg}</div>}
+            {message && <div className="rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm px-3 py-2 font-medium">{message}</div>}
+            {errorMsg && <div className="rounded-lg bg-red-50 border border-red-100 text-red-700 text-sm px-3 py-2 font-medium">{errorMsg}</div>}
 
             {!config ? (
               <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-sm text-slate-500">

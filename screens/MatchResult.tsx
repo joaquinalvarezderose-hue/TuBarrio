@@ -606,7 +606,7 @@ const MatchResult: React.FC = () => {
  .maybeSingle();
 
  if (propuesta) {
- setProposalState(propuesta.estado || 'idle');
+ setProposalState((propuesta.estado as 'idle' | 'pendiente' | 'confirmado' | 'discrepancia') || 'idle');
  setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
  setMustConfirmEquipoId(propuesta.debe_confirmar_equipo_id ? String(propuesta.debe_confirmar_equipo_id) : null);
 
@@ -976,7 +976,7 @@ const MatchResult: React.FC = () => {
  ]);
 
  if (propuesta) {
- setProposalState(propuesta.estado || 'idle');
+ setProposalState((propuesta.estado as 'idle' | 'pendiente' | 'confirmado' | 'discrepancia') || 'idle');
  setLastSubmittedBy(propuesta.ultimo_cargado_por ? String(propuesta.ultimo_cargado_por) : null);
  // NEW: Set who must confirm from database
  setMustConfirmBy(propuesta.debe_confirmar_por ? String(propuesta.debe_confirmar_por) : null);

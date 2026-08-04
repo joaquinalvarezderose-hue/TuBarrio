@@ -4,16 +4,6 @@ import { BracketEngine, BracketTournament, BracketMatch, BracketPlayer } from '.
 import { supabase } from '../services/supabaseClient';
 import { Skeleton } from '../components/Skeleton';
 
-// JSX types for react-jsx transform
-declare global {
- namespace JSX {
- interface Element {}
- interface IntrinsicElements {
- [elemName: string]: any;
- }
- }
-}
-
 
 interface BracketViewProps {
  torneo_id: number;
@@ -137,7 +127,7 @@ const BracketView: React.FC<BracketViewProps> = ({ torneo_id, categoria, grupo }
  const renderConnections = () => {
  if (!bracket) return null;
  
- const connections: JSX.Element[] = [];
+ const connections: React.ReactElement[] = [];
  
  bracket.rondas.forEach((round, roundIndex) => {
  if (roundIndex === bracket.rondas.length - 1) return; // No connections after final

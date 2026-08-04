@@ -104,22 +104,22 @@ const GolfFlights: React.FC = () => {
 
   return (
     <div className="bg-background-light min-h-screen font-display pb-16">
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100">
-          <span className="material-symbols-outlined">arrow_back</span>
+      <header className="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="size-10 flex items-center justify-center rounded-full hover:bg-black/5 text-[#111813] transition-colors">
+          <span className="material-symbols-outlined">arrow_back_ios</span>
         </button>
-        <h1 className="font-black text-slate-900 text-lg">Flights — {tournament.title}</h1>
-      </div>
+        <h1 className="text-lg font-bold text-[#111813]">Flights — {tournament.title}</h1>
+      </header>
 
       <div className="max-w-2xl mx-auto w-full p-4 space-y-5">
         {loadingData ? (
           <Skeleton className="h-40 w-full rounded-xl" />
         ) : (
           <>
-            {errorMsg && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">{errorMsg}</div>}
-            {message && <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">{message}</div>}
+            {errorMsg && <div className="rounded-lg bg-red-50 border border-red-100 text-red-700 text-sm px-3 py-2 font-medium">{errorMsg}</div>}
+            {message && <div className="rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm px-3 py-2 font-medium">{message}</div>}
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
               <h2 className="font-bold text-slate-800">Sortear flights</h2>
               <p className="text-sm text-slate-500">
                 {aprobadosCount} inscripto(s) con pago aprobado. El sorteo los agrupa al azar en flights; el horario de salida lo coordinan los jugadores entre ellos.
@@ -149,7 +149,7 @@ const GolfFlights: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <h2 className="font-bold text-slate-800 mb-3">Flights de la ronda {numeroRonda}</h2>
               {flightsAgrupados.length === 0 ? (
                 <p className="text-sm text-slate-500">Todavia no se sortearon flights para esta ronda.</p>
