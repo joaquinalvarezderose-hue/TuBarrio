@@ -174,19 +174,21 @@ const Fixture: React.FC = () => {
  const refreshTimerRef = useRef<number | null>(null);
 
  const savedTournament = localStorage.getItem('active_tournament');
- const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
- id: 1,
- title: 'Abierto de Tenis TuBarrio',
- subtitle: 'Singles Caballeros',
- });
+ const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : null);
 
  // Hook de estado del jugador – usa el grupo propio del usuario
  const { loading: nextMatchLoading, status: playerStatus } = usePlayerTournamentStatus(
- tournament.id,
+ tournament?.id,
  previewMode ? '' : (currentUserId || undefined)
  );
  const nextMatch = playerStatus?.proximo_partido ?? null;
  const isEliminated = playerStatus?.estado === 'eliminado';
+
+ useEffect(() => {
+ if (!tournament) {
+ navigate('/tournaments', { replace: true });
+ }
+ }, [tournament, navigate]);
 
  useEffect(() => {
  if (previewMode) return;
@@ -201,7 +203,7 @@ const Fixture: React.FC = () => {
  }, [previewMode]);
 
  const loadFixtureData = useCallback(async () => {
- if (isLoadingRef.current) return;
+ if (!tournament || isLoadingRef.current) return;
  isLoadingRef.current = true;
 
  try {
@@ -521,7 +523,7 @@ const Fixture: React.FC = () => {
  isLoadingRef.current = false;
  setIsLoading(false);
  }
- }, [selectedGroup, tournament.id, tournament.subtitle]);
+ }, [selectedGroup, tournament?.id, tournament?.subtitle]);
 
  const fechas = useMemo(() => {
  const unique = Array.from(new Set(matches.map((m) => m.jornada))).sort((a, b) => a - b);
@@ -584,6 +586,7 @@ const Fixture: React.FC = () => {
  }, [activeFecha, fechas]);
 
  useEffect(() => {
+ if (!tournament) return;
  loadFixtureData();
  const scheduleRefresh = () => {
  if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
@@ -603,7 +606,9 @@ const Fixture: React.FC = () => {
  if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
  supabase.removeChannel(channel);
  };
- }, [loadFixtureData, tournament.id]);
+ }, [loadFixtureData, tournament?.id]);
+
+ if (!tournament) return null;
 
  return (
  <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white font-display text-[#111813] transition-colors duration-200 pb-24">

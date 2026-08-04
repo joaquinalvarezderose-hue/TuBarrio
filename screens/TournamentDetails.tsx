@@ -5,7 +5,6 @@ import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 import Logo from '../components/Logo';
 import { useRequireAuth } from '../hooks/useRequireAuth';
-import { formatTournamentDate } from '../utils/tournamentDate';
 
 const TournamentDetails: React.FC = () => {
  const navigate = useNavigate();
@@ -16,25 +15,28 @@ const TournamentDetails: React.FC = () => {
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const isAdmin = String(appUser?.rol || '').trim().toLowerCase() === 'admin';
 
- const tournament = location.state?.tournament || {
- id: 1,
- title: "Abierto de Tenis TuBarrio",
- subtitle: "Singles Damas y Caballeros",
- date: formatTournamentDate(null, null)
- };
- const isGolf = String(tournament.deporte || 'tenis') === 'golf';
+ const tournament = location.state?.tournament || null;
+ const isGolf = String(tournament?.deporte || 'tenis') === 'golf';
  const panelPath = isGolf ? '/golf/panel' : '/tournament-panel';
  const rulesPath = isGolf ? '/golf/rules' : '/rules';
 
  // Fallback solo para el caso de que el torneo llegue sin estos campos
  // (ej: flujo de intent/deep link que no selecciona todas las columnas).
- const montoExpensas = Number(tournament.precio_expensas ?? 5000);
- const montoTransferir = Number(tournament.precio_transferencia ?? 45000);
+ const montoExpensas = Number(tournament?.precio_expensas ?? 5000);
+ const montoTransferir = Number(tournament?.precio_transferencia ?? 45000);
  const costoInscripcion = montoExpensas + montoTransferir;
  const formatMonto = (n: number) => `$${n.toLocaleString('es-AR')}`;
- const premios = tournament.premios || 'Del 1° al 4°';
+ const premios = tournament?.premios || 'Del 1° al 4°';
 
  useEffect(() => {
+ if (!tournament) {
+ navigate('/tournaments', { replace: true });
+ return;
+ }
+ }, [tournament, navigate]);
+
+ useEffect(() => {
+ if (!tournament) return;
  const checkRegistration = async () => {
  const { data: authData } = await supabase.auth.getUser();
  const authUserId = authData?.user?.id;
@@ -76,7 +78,9 @@ const TournamentDetails: React.FC = () => {
  }
  };
  checkRegistration();
- }, [tournament.id]);
+ }, [tournament]);
+
+ if (!tournament) return null;
 
  const header = (
  <div className="sticky top-0 z-30 flex items-center justify-between bg-background-light/95 p-4 pb-2 backdrop-blur-md transition-colors duration-200 md:px-8">

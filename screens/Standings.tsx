@@ -118,11 +118,13 @@ const Standings: React.FC = () => {
  const [modalidad, setModalidad] = useState<'singles' | 'dobles'>('singles');
 
  const savedTournament = localStorage.getItem('active_tournament');
- const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
- id: 1,
- title: 'Abierto de Tenis TuBarrio',
- subtitle: 'Singles Caballeros',
- });
+ const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : null);
+
+ useEffect(() => {
+ if (!tournament) {
+ navigate('/tournaments', { replace: true });
+ }
+ }, [tournament, navigate]);
 
  const initialPlayers: PlayerStats[] = [];
 
@@ -279,6 +281,10 @@ const Standings: React.FC = () => {
 
  const loadDbStandings = useCallback(async () => {
  try {
+ if (!tournament) {
+ setDbRows([]);
+ return;
+ }
  const parsedTournamentId = Number(tournament.id);
  if (!Number.isFinite(parsedTournamentId)) {
  setDbRows([]);
@@ -728,9 +734,10 @@ const Standings: React.FC = () => {
  } finally {
  setIsLoading(false);
  }
- }, [selectedGroup, tournament.id, tournament.subtitle]);
+ }, [selectedGroup, tournament?.id, tournament?.subtitle]);
 
  useEffect(() => {
+ if (!tournament) return;
  loadDbStandings();
 
  const channel = supabase
@@ -768,7 +775,7 @@ const Standings: React.FC = () => {
  window.clearInterval(intervalId);
  supabase.removeChannel(channel);
  };
- }, [loadDbStandings, tournament.id]);
+ }, [loadDbStandings, tournament?.id]);
 
  const calculatedStandings = useMemo(() => {
  const source = dbRows && dbRows.length > 0 ? dbRows : (initialPlayers as any[]);
@@ -844,6 +851,8 @@ const Standings: React.FC = () => {
  window.addEventListener('resize', updateScrollHint);
  return () => window.removeEventListener('resize', updateScrollHint);
  }, [updateScrollHint, calculatedStandings.length]);
+
+ if (!tournament) return null;
 
  return (
  <div className="relative flex h-full min-h-full w-full flex-col bg-background-light font-display text-slate-900 max-w-4xl mx-auto pb-24 md:pb-12 no-scrollbar overflow-y-auto">

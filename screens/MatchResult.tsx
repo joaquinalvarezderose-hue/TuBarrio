@@ -115,11 +115,7 @@ const MatchResult: React.FC = () => {
  const location = useLocation();
 
  const savedTournament = localStorage.getItem('active_tournament');
- const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
- id: 1,
- title: 'Abierto de Tenis TuBarrio',
- subtitle: 'Singles Caballeros',
- });
+ const tournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : null);
 
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const selectedPartidoId = location.state?.partidoId ? String(location.state.partidoId) : '';
@@ -151,11 +147,17 @@ const MatchResult: React.FC = () => {
  const [sessionExpired, setSessionExpired] = useState(false);
  const [retryTick, setRetryTick] = useState(0);
 
- const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament.id, currentUserId || undefined);
+ const { loading: playerStatusLoading, status: playerStatus } = usePlayerTournamentStatus(tournament?.id, currentUserId || undefined);
  const isChampion = playerStatus?.estado === 'campeon';
  const isFinalista = playerStatus?.estado === 'finalista';
  const isPlayerFinished = playerStatus?.estado === 'eliminado' || playerStatus?.estado === 'campeon' || playerStatus?.estado === 'finalista';
  const [showConfetti, setShowConfetti] = useState(false);
+ useEffect(() => {
+ if (!tournament) {
+ navigate('/tournaments', { replace: true });
+ }
+ }, [tournament, navigate]);
+
  useEffect(() => {
  if (isChampion) {
  setShowConfetti(true);
@@ -405,6 +407,7 @@ const MatchResult: React.FC = () => {
  }, []);
 
  useEffect(() => {
+ if (!tournament) return;
  // Carga de contexto para torneos de DOBLES: espejo de loadMatchContext (singles),
  // resolviendo scope/partido/propuesta via torneo_equipos en vez de torneo_jugadores.
  const loadMatchContextDobles = async () => {
@@ -1012,7 +1015,7 @@ const MatchResult: React.FC = () => {
  };
 
  loadMatchContext();
- }, [currentUserId, selectedPartidoId, tournament.id, tournament.subtitle, retryTick]);
+ }, [currentUserId, selectedPartidoId, tournament?.id, tournament?.subtitle, retryTick]);
 
  const handleConfirm = async () => {
  if (!canConfirm || !partido?.id) return;
@@ -1168,6 +1171,8 @@ const MatchResult: React.FC = () => {
  { left: '72%', delay: '0.5s', dur: '2.8s', color: '#f59e0b' },
  { left: '88%', delay: '0.7s', dur: '3.0s', color: '#3b82f6' },
  ];
+
+ if (!tournament) return null;
 
  return (
  <>

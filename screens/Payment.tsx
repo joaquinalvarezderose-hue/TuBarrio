@@ -1,32 +1,34 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
 import { toWhatsAppLink } from '../utils/whatsapp';
-import { formatTournamentDate } from '../utils/tournamentDate';
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tournament = location.state?.tournament || {
-    id: 1,
-    title: "Barrio Tennis Open",
-    subtitle: "Inscripción Individual • Caballeros",
-    date: formatTournamentDate(null, null)
-  };
+  const tournament = location.state?.tournament || null;
 
-  const aliasDestino = tournament.alias_pago ?? 'torneo.canton';
+  useEffect(() => {
+    if (!tournament) {
+      navigate('/tournaments', { replace: true });
+    }
+  }, [tournament, navigate]);
+
+  const aliasDestino = tournament?.alias_pago ?? 'torneo.canton';
   const whatsappDestino = '+54 9 11 6421-9155';
 
   // Fallback solo para el caso de que el torneo llegue sin estos campos
   // (ej: flujo de intent/deep link que no selecciona todas las columnas).
-  const montoExpensas = Number(tournament.precio_expensas ?? 5000);
-  const montoTransferir = Number(tournament.precio_transferencia ?? 45000);
+  const montoExpensas = Number(tournament?.precio_expensas ?? 5000);
+  const montoTransferir = Number(tournament?.precio_transferencia ?? 45000);
   const costoInscripcion = montoExpensas + montoTransferir;
   const formatMonto = (n: number) => `$${n.toLocaleString('es-AR')}`;
+
+  if (!tournament) return null;
 
   const handleManualPaymentSubmit = async () => {
     setError(null);

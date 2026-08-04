@@ -1,19 +1,21 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ResponsiveScreen from '../components/layouts/ResponsiveScreen';
-import { formatTournamentDate } from '../utils/tournamentDate';
 
 const Confirmation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const tournament = location.state?.tournament || { 
-    id: 1, 
-    title: "Abierto de Tenis TuBarrio",
-    subtitle: "Singles Caballeros",
-    date: formatTournamentDate(null, null)
-  };
+  const tournament = location.state?.tournament || null;
   const enrollmentStatus = location.state?.enrollmentStatus || 'pendiente_revision';
+
+  useEffect(() => {
+    if (!tournament) {
+      navigate('/tournaments', { replace: true });
+    }
+  }, [tournament, navigate]);
+
+  if (!tournament) return null;
 
   const userStr = localStorage.getItem('app_user');
   const user = userStr ? JSON.parse(userStr) : { name: "Mateo Rossi" };

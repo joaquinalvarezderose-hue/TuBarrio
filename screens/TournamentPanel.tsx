@@ -76,14 +76,9 @@ const TournamentPanel: React.FC = () => {
  const previewMode = Boolean(previewScope?.previewMode);
 
  const savedTournament = localStorage.getItem('active_tournament');
- const rawTournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : {
- title: "Abierto de Tenis TuBarrio",
- id: 1,
- subtitle: "2da Categoría - Singles",
- image: "/images/tournament-default.jpg"
- });
+ const rawTournament = location.state?.tournament || (savedTournament ? JSON.parse(savedTournament) : null);
  // Sanitize image URL to reject external URLs (CSP compliance + localStorage cache cleanup)
- const tournament = { ...rawTournament, image: sanitizeTournamentImage(rawTournament?.image) };
+ const tournament = rawTournament ? { ...rawTournament, image: sanitizeTournamentImage(rawTournament.image) } : null;
  const appUser = localStorage.getItem('app_user') ? JSON.parse(localStorage.getItem('app_user') as string) : null;
  const [currentUserId, setCurrentUserId] = useState<string>(String(appUser?.id || ''));
  const isAdmin = String(appUser?.rol || '').trim().toLowerCase() === 'admin';
@@ -113,9 +108,9 @@ const TournamentPanel: React.FC = () => {
  const [checkingInscripcion, setCheckingInscripcion] = useState(true);
  const [myWhatsapp, setMyWhatsapp] = useState<string | null>(null);
  // Single authoritative backend hook for player status
- const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament.id, previewMode ? '' : (currentUserId || undefined));
+ const { loading: loadingNextMatch, status: playerStatus } = usePlayerTournamentStatus(tournament?.id, previewMode ? '' : (currentUserId || undefined));
  // Direct query fallback for when the RPC doesn't return proximo_partido
- const { match: nextMatchFallback } = useNextMatch(tournament.id, !previewMode);
+ const { match: nextMatchFallback } = useNextMatch(tournament?.id, !previewMode && !!tournament);
 
  const rpcNextMatch = playerStatus?.proximo_partido ?? null;
  const nextMatch = rpcNextMatch ?? (nextMatchFallback ? {
@@ -163,8 +158,12 @@ const TournamentPanel: React.FC = () => {
  } : null;
 
  useEffect(() => {
+ if (!tournament) {
+ navigate('/tournaments', { replace: true });
+ return;
+ }
  localStorage.setItem('active_tournament', JSON.stringify(tournament));
- }, [tournament]);
+ }, [tournament, navigate]);
 
  // Chequeo rápido y paralelo: solo determina si el pago está pendiente,
  // sin esperar al resto de la carga del panel.
@@ -206,7 +205,7 @@ const TournamentPanel: React.FC = () => {
  }
  })();
  return () => { cancelled = true; };
- }, [tournament.id]);
+ }, [tournament?.id]);
 
  useEffect(() => {
  const loadCurrentUser = async () => {
@@ -348,6 +347,7 @@ const TournamentPanel: React.FC = () => {
  }, [currentUserId, tournament?.id, previewMode, refreshKey]);
 
  useEffect(() => {
+ if (!tournament) return;
  const loadPanelData = async () => {
  setLoadingData(true);
  try {
@@ -574,7 +574,7 @@ const TournamentPanel: React.FC = () => {
  };
 
  loadPanelData();
- }, [currentUserId, tournament.id, tournament.subtitle, refreshKey]);
+ }, [currentUserId, tournament?.id, tournament?.subtitle, refreshKey]);
 
  const refreshPanel = () => setRefreshKey((value) => value + 1);
 
@@ -744,6 +744,8 @@ const TournamentPanel: React.FC = () => {
  const progress = ((groupSize - groupPosition + 1) / groupSize) * 100;
  return Math.max(8, Math.min(100, Math.round(progress)));
  }, [groupPosition, groupSize]);
+
+ if (!tournament) return null;
 
  if (!checkingInscripcion && inscripcionPendiente && !isAdmin) {
  return (
