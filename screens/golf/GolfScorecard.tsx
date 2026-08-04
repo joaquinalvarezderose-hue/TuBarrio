@@ -503,7 +503,7 @@ const GolfScorecard: React.FC = () => {
                 )}
 
                 {/* Mapa del hoyo */}
-                <div className="relative rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/844]">
+                <div className="relative rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/506]">
                   {tieneCoordsMapa ? (
                     <>
                       {/* Mientras esta abierta la pantalla completa no se monta este mapa:
