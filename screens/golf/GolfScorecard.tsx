@@ -503,7 +503,12 @@ const GolfScorecard: React.FC = () => {
                 )}
 
                 {/* Mapa del hoyo */}
-                <div className="relative rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/506]">
+                {/* isolate: crea un contexto de apilamiento propio para esta tarjeta. Leaflet
+                    dibuja sus paneles internos (marcadores, tooltips) con z-index de hasta 700,
+                    que si no, se filtran hacia afuera y compiten con la barra sticky de hoyos
+                    (z-30) y la nav inferior de la app (z-50) — con isolate quedan contenidos
+                    adentro, sin afectar el orden de apilamiento del resto de la pagina. */}
+                <div className="relative isolate rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/506]">
                   {tieneCoordsMapa ? (
                     <>
                       {/* Mientras esta abierta la pantalla completa no se monta este mapa:
@@ -523,11 +528,11 @@ const GolfScorecard: React.FC = () => {
                           compact
                         />
                       )}
-                      <div className="absolute top-3 left-3 z-40 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
+                      <div className="absolute top-3 left-3 z-[1000] bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
                         <span className="text-[10px] font-bold uppercase tracking-wide text-[#111813]">Vista del hoyo</span>
                       </div>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-32px)] flex items-center gap-2">
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-32px)] flex items-center gap-2">
                         <button
                           onClick={() => burstLocation.request()}
                           disabled={burstLocation.status === 'loading'}

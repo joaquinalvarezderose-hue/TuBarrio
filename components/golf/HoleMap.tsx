@@ -286,16 +286,13 @@ const HoleMap: React.FC<HoleMapProps> = ({
       {/* top-20 para no chocar con el boton de cerrar (X) de la vista de pantalla completa;
           en compact (mapa embebido, sin ese boton) va pegado arriba y con menos padding
           para que entren todas las etiquetas sin invadir los controles de abajo.
-          z-index intermedio en compact: el mapa embebido convive en la misma pagina que
-          la barra "Anterior/Siguiente hoyo" (sticky, z-30, justo debajo del mapa) y con
-          la barra de navegacion inferior de la app (fixed, z-50) — tiene que quedar por
-          encima de la primera (para no perder sus propios botones al hacer scroll) pero
-          por debajo de la segunda. En pantalla completa en cambio ya vive dentro de un
-          overlay fixed con z-[2000] propio, por encima de todo eso de todos modos. */}
+          El z-index alto (1000) es necesario en los dos casos para ganarle a los paneles
+          internos de Leaflet (marcadores/tooltips llegan a z-index 700 propio). En compact
+          esto es seguro porque el contenedor de la tarjeta (en GolfScorecard) tiene
+          `isolate`, que aisla este z-index para que no se filtre hacia paginas afuera y
+          compita con la barra sticky de hoyos o la nav inferior de la app. */}
       <div
-        className={`absolute right-3 flex flex-col pointer-events-none ${
-          compact ? 'top-3 gap-1.5 z-40' : 'top-20 gap-2 z-[1000]'
-        }`}
+        className={`absolute right-3 z-[1000] flex flex-col pointer-events-none ${compact ? 'top-3 gap-1.5' : 'top-20 gap-2'}`}
       >
         {par != null && (
           <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
