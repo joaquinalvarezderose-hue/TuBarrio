@@ -662,7 +662,7 @@ const GolfScorecard: React.FC = () => {
         >
           <button
             onClick={() => setMapaFullscreen(false)}
-            className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-full p-2 hover:bg-white"
+            className="absolute top-4 right-4 z-[1000] size-10 flex items-center justify-center bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-full hover:bg-white transition-colors"
             aria-label="Cerrar mapa"
           >
             <span className="material-symbols-outlined text-2xl">close</span>
