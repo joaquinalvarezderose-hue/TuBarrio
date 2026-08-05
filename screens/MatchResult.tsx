@@ -566,11 +566,23 @@ const MatchResult: React.FC = () => {
  es_wo: Boolean(targetPartido.es_wo),
  });
 
+ // torneo_propuestas_partido solo depende de targetPartido.id, no del roster de
+ // torneo_equipos, asi que se piden en paralelo en vez de encadenados.
  const equipoIds = [targetPartido.equipo1_id, targetPartido.equipo2_id].filter(Boolean);
- const { data: equiposPartido, error: equiposPartidoError } = await supabase
+ const [
+ { data: equiposPartido, error: equiposPartidoError },
+ { data: propuesta },
+ ] = await Promise.all([
+ supabase
  .from('torneo_equipos')
  .select('id, jugador1_id, jugador2_id, puntos, partidos_jugados, sets_ganados')
- .in('id', equipoIds.length > 0 ? equipoIds : ['00000000-0000-0000-0000-000000000000']);
+ .in('id', equipoIds.length > 0 ? equipoIds : ['00000000-0000-0000-0000-000000000000']),
+ supabase
+ .from('torneo_propuestas_partido')
+ .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por, debe_confirmar_equipo_id')
+ .eq('partido_id', targetPartido.id)
+ .maybeSingle(),
+ ]);
  if (equiposPartidoError) throw equiposPartidoError;
 
  const equipoById = Object.fromEntries((equiposPartido || []).map((row: any) => [row.id, row]));
@@ -601,12 +613,6 @@ const MatchResult: React.FC = () => {
  buildEquipoCard(targetPartido.equipo1_id ? String(targetPartido.equipo1_id) : null, 'Pareja 1'),
  buildEquipoCard(targetPartido.equipo2_id ? String(targetPartido.equipo2_id) : null, 'Pareja 2'),
  ]);
-
- const { data: propuesta } = await supabase
- .from('torneo_propuestas_partido')
- .select('estado, sets_json_j1, sets_json_j2, ultimo_cargado_por, debe_confirmar_equipo_id')
- .eq('partido_id', targetPartido.id)
- .maybeSingle();
 
  if (propuesta) {
  setProposalState((propuesta.estado as 'idle' | 'pendiente' | 'confirmado' | 'discrepancia') || 'idle');

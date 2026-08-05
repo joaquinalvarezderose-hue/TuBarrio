@@ -1,0 +1,28 @@
+/*
+ * Clase utilitaria para los iconos "material-symbols-outlined" usados en
+ * toda la app. El @font-face en si se carga desde Google Fonts (link en
+ * index.html, subsetteado a los iconos realmente usados via icon_names) en
+ * vez del paquete npm "material-symbols" (que shippeaba el woff2 completo,
+ * ~3.96MB, sin subsetting). Esta clase se mantiene identica a la que
+ * proveia node_modules/material-symbols/outlined.css para no alterar el
+ * orden/posicion en la cascada (import sin @layer, misma posicion relativa
+ * a tailwind.css en index.tsx) ni el tamano/comportamiento visual de los
+ * iconos existentes.
+ */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}

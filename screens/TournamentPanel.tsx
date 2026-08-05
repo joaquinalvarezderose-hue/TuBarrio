@@ -500,23 +500,43 @@ const TournamentPanel: React.FC = () => {
  }
 
  // La carga del próximo partido es manejada por el hook usePlayerTournamentStatus.
- // Aquí solo cargamos la posición en el grupo.
- if (resolvedScope && currentUserId) {
- const { data: tableRows, error: tableError } = isDobles
- ? await supabase
+ // Aquí solo cargamos la posición en el grupo. Esta query y las dos de bracket
+ // count de abajo no dependen entre si (todas solo necesitan resolvedScope/
+ // tournament.id/currentUserId, ya resueltos a esta altura) asi que se piden
+ // juntas en un solo Promise.all en vez de en cascada.
+ const tableQuery = (resolvedScope && currentUserId)
+ ? (isDobles
+ ? supabase
  .from('torneo_equipos')
  .select('id, jugador1_id, jugador2_id, puntos, sets_ganados, partidos_jugados')
  .eq('torneo_id', tournament.id)
  .eq('categoria', resolvedScope.categoria)
  .eq('grupo', resolvedScope.grupo)
- : await supabase
+ : supabase
  .from('torneo_jugadores')
  .select('perfil_id, puntos, sets_ganados, partidos_jugados')
  .eq('torneo_id', tournament.id)
  .eq('categoria', resolvedScope.categoria)
- .eq('grupo', resolvedScope.grupo);
+ .eq('grupo', resolvedScope.grupo))
+ : null;
 
- if (!tableError && Array.isArray(tableRows) && tableRows.length > 0) {
+ const [tableResult, { count: bracketCount }, { count: userBracketCount }] = await Promise.all([
+ tableQuery ?? Promise.resolve({ data: null, error: null }),
+ supabase
+ .from('partidos')
+ .select('id', { count: 'exact', head: true })
+ .eq('torneo_id', tournament.id)
+ .eq('bracket_tipo', 'eliminacion_directa'),
+ supabase
+ .from('partidos')
+ .select('id', { count: 'exact', head: true })
+ .eq('torneo_id', tournament.id)
+ .eq('bracket_tipo', 'eliminacion_directa')
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`),
+ ]);
+ const { data: tableRows, error: tableError } = tableResult as { data: any[] | null; error: any };
+
+ if (resolvedScope && currentUserId && !tableError && Array.isArray(tableRows) && tableRows.length > 0) {
  const sorted = [...tableRows].sort((a: any, b: any) => {
  const pointsDiff = Number(b.puntos || 0) - Number(a.puntos || 0);
  if (pointsDiff !== 0) return pointsDiff;
@@ -536,25 +556,7 @@ const TournamentPanel: React.FC = () => {
  setGroupSize(0);
  setGroupPosition(null);
  }
- } else {
- setGroupSize(0);
- setGroupPosition(null);
- }
 
- // Check if bracket matches exist, and whether this user is in any of them
- const [{ count: bracketCount }, { count: userBracketCount }] = await Promise.all([
- supabase
- .from('partidos')
- .select('id', { count: 'exact', head: true })
- .eq('torneo_id', tournament.id)
- .eq('bracket_tipo', 'eliminacion_directa'),
- supabase
- .from('partidos')
- .select('id', { count: 'exact', head: true })
- .eq('torneo_id', tournament.id)
- .eq('bracket_tipo', 'eliminacion_directa')
- .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`),
- ]);
  setBracketMatchesExist((bracketCount ?? 0) > 0);
  setUserBracketMatchExists((userBracketCount ?? 0) > 0);
 
@@ -591,6 +593,10 @@ const TournamentPanel: React.FC = () => {
 
  const handleDrawGroupsAndFixture = async () => {
  if (!isAdmin) return;
+ if (loadingData) {
+ setAdminError('Todavía se está cargando la configuración del torneo, esperá un momento y volvé a intentar.');
+ return;
+ }
 
  setAdminActionLoading('draw');
  setAdminError(null);
@@ -923,10 +929,10 @@ const TournamentPanel: React.FC = () => {
  <div className="grid grid-cols-1 gap-3">
  <button
  onClick={handleDrawGroupsAndFixture}
- disabled={adminActionLoading !== null}
+ disabled={adminActionLoading !== null || loadingData}
  className="w-full rounded-lg bg-[#4a9c40] text-white font-bold py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
  >
- {adminActionLoading === 'draw' ? 'Sorteando...' : 'Sortear Grupos y Fixture'}
+ {loadingData ? 'Cargando...' : adminActionLoading === 'draw' ? 'Sorteando...' : 'Sortear Grupos y Fixture'}
  </button>
  <button
  onClick={handleGeneratePlayoffs}

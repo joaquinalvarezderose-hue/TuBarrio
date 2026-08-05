@@ -585,6 +585,11 @@ const Fixture: React.FC = () => {
  }
  }, [activeFecha, fechas]);
 
+ // El polling de 45s es un fallback por si Realtime no esta disponible/conectado.
+ // channelStatusRef trackea el estado real del canal para evitar el doble fetch
+ // (evento realtime + poll) mientras esta confirmado SUBSCRIBED.
+ const channelStatusRef = useRef<string>('CLOSED');
+
  useEffect(() => {
  if (!tournament) return;
  loadFixtureData();
@@ -592,6 +597,7 @@ const Fixture: React.FC = () => {
  if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
  refreshTimerRef.current = window.setTimeout(() => { loadFixtureData(); refreshTimerRef.current = null; }, 250);
  };
+ channelStatusRef.current = 'CLOSED';
  const channel = supabase
  .channel(`fixture-live-${tournament.id}`)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_jugadores', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
@@ -599,8 +605,12 @@ const Fixture: React.FC = () => {
  .on('postgres_changes', { event: '*', schema: 'public', table: 'partidos', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_partidos_historial', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
  .on('postgres_changes', { event: '*', schema: 'public', table: 'torneo_propuestas_partido', filter: `torneo_id=eq.${tournament.id}` }, scheduleRefresh)
- .subscribe();
- const intervalId = window.setInterval(loadFixtureData, 45000);
+ .subscribe((status) => {
+ channelStatusRef.current = status;
+ });
+ const intervalId = window.setInterval(() => {
+ if (channelStatusRef.current !== 'SUBSCRIBED') loadFixtureData();
+ }, 45000);
  return () => {
  window.clearInterval(intervalId);
  if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);

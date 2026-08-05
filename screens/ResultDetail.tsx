@@ -46,25 +46,30 @@ const ResultDetail: React.FC = () => {
  return;
  }
 
- // Cargar historial + perfiles
- const [{ data: historialData, error: historialError }, { data: perfData, error: perfError }] = await Promise.all([
- supabase
+ // Cargar historial primero: los IDs de los jugadores salen de esta fila,
+ // asi que la consulta a perfiles no puede dispararse en paralelo con esta.
+ const { data: historialData, error: historialError } = await supabase
  .from('torneo_partidos_historial')
  .select('jugador1_perfil_id, jugador2_perfil_id, sets_json, sets_jugador1, sets_jugador2, ganador_perfil_id, es_wo')
  .eq('partido_id', partidoId)
- .maybeSingle(),
- supabase
- .from('perfiles')
- .select('id, nombre_completo'),
- ]);
+ .maybeSingle();
 
  if (historialError) throw historialError;
- if (perfError) throw perfError;
 
  if (!historialData) {
  setError('No hay resultado registrado para este partido.');
  return;
  }
+
+ const jugadorIds = [historialData.jugador1_perfil_id, historialData.jugador2_perfil_id].filter(
+ (id): id is string => Boolean(id)
+ );
+ const { data: perfData, error: perfError } = await supabase
+ .from('perfiles')
+ .select('id, nombre_completo')
+ .in('id', jugadorIds.length > 0 ? jugadorIds : ['00000000-0000-0000-0000-000000000000']);
+
+ if (perfError) throw perfError;
 
  const perfilesMap = Object.fromEntries((perfData || []).map((p: any) => [p.id, p.nombre_completo]));
 

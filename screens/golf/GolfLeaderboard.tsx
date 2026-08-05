@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { SkeletonTableRow } from '../../components/Skeleton';
@@ -38,14 +38,24 @@ const GolfLeaderboard: React.FC = () => {
     load();
   }, [load]);
 
+  // El polling de 45s es un fallback por si Realtime no esta disponible/conectado.
+  // channelStatusRef trackea el estado real del canal para evitar el doble fetch
+  // (evento realtime + poll) mientras esta confirmado SUBSCRIBED.
+  const channelStatusRef = useRef<string>('CLOSED');
+
   useEffect(() => {
     if (!tournament?.id) return;
+    channelStatusRef.current = 'CLOSED';
     const channel = supabase
       .channel(`golf-leaderboard-${tournament.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'scorecard' }, () => load())
-      .subscribe();
+      .subscribe((status) => {
+        channelStatusRef.current = status;
+      });
 
-    const interval = setInterval(load, 45000);
+    const interval = setInterval(() => {
+      if (channelStatusRef.current !== 'SUBSCRIBED') load();
+    }, 45000);
 
     return () => {
       supabase.removeChannel(channel);

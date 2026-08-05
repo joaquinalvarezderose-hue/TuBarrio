@@ -736,10 +736,15 @@ const Standings: React.FC = () => {
  }
  }, [selectedGroup, tournament?.id, tournament?.subtitle]);
 
+ // channelStatusRef trackea el estado real del canal: mientras esta confirmado
+ // SUBSCRIBED, el polling de abajo se salta (evita el doble fetch evento+poll).
+ const channelStatusRef = useRef<string>('CLOSED');
+
  useEffect(() => {
  if (!tournament) return;
  loadDbStandings();
 
+ channelStatusRef.current = 'CLOSED';
  const channel = supabase
  .channel(`standings-live-${tournament.id}`)
  .on(
@@ -763,12 +768,15 @@ const Standings: React.FC = () => {
  loadDbStandings();
  }
  )
- .subscribe();
+ .subscribe((status) => {
+ channelStatusRef.current = status;
+ });
 
  // Polling ensures standings stay fresh even if the Supabase Realtime subscription
- // above is disabled or drops (e.g. project on free tier with Realtime off).
+ // above is disabled or drops (e.g. project on free tier with Realtime off). Skipped
+ // while the channel is confirmed SUBSCRIBED to avoid redundant double-fetching.
  const intervalId = window.setInterval(() => {
- loadDbStandings();
+ if (channelStatusRef.current !== 'SUBSCRIBED') loadDbStandings();
  }, 45000);
 
  return () => {
