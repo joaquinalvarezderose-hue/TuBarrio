@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRequireRole } from '../hooks/useRequireRole';
 import { useTorneoAdminActions, type Modalidad } from '../hooks/useTorneoAdminActions';
+import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
 import { supabase } from '../services/supabaseClient';
 import { Skeleton } from '../components/Skeleton';
 
@@ -20,6 +21,8 @@ type EstadoRow = {
   current_participantes: number;
   sorteo_realizado: boolean;
 };
+const getEstadoCategoria = (e: EstadoRow) => e.categoria;
+const getEstadoGrupo = (e: EstadoRow) => e.grupo;
 
 type InscripcionRow = {
   id: string;
@@ -110,8 +113,12 @@ const OrganizadorTorneoDetail: React.FC = () => {
     loadAll();
   }, [hasAccess, torneoId, loadAll]);
 
-  const categorias = [...new Set(estados.map((e) => e.categoria))].sort();
-  const gruposDeCategoria = [...new Set(estados.filter((e) => e.categoria === activeCategoria).map((e) => e.grupo))].sort();
+  const { categorias, gruposDeCategoria } = useCategoriaGrupoOptions(
+    estados,
+    getEstadoCategoria,
+    getEstadoGrupo,
+    activeCategoria
+  );
 
   useEffect(() => {
     if (categorias.length > 0 && !categorias.includes(activeCategoria)) {

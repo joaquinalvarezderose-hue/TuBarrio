@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
+import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
 import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
+const getGrupoCategoria = (g: GrupoOption) => g.categoria;
+const getGrupoGrupo = (g: GrupoOption) => g.grupo;
 
 type PartidoRow = {
   id: string;
@@ -88,10 +91,12 @@ const AdminPartidos: React.FC = () => {
     return () => { cancelled = true; };
   }, [perfil, activeTorneo]);
 
-  const categorias = [...new Set(gruposPosiciones.map((g) => g.categoria))].sort();
-  const gruposDeCategoria = [...new Set(
-    gruposPosiciones.filter((g) => g.categoria === activeCategoria).map((g) => g.grupo)
-  )].sort();
+  const { categorias, gruposDeCategoria } = useCategoriaGrupoOptions(
+    gruposPosiciones,
+    getGrupoCategoria,
+    getGrupoGrupo,
+    activeCategoria
+  );
 
   useEffect(() => {
     if (perfil?.rol !== 'admin') return;

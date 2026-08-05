@@ -1,17 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import React, { useMemo } from 'react';
+import { useRankingCategorias } from '../hooks/useRankingCategorias';
 import Logo from './Logo';
-
-type RankingRow = {
-  categoria: string;
-  perfil_id: string;
-  nombre_completo: string | null;
-  partidos_jugados: number;
-  victorias: number;
-  derrotas: number;
-  puntos: number;
-  posicion: number;
-};
 
 type Props = {
   onBack: () => void;
@@ -24,40 +13,12 @@ const POSITION_STYLES: Record<number, { bg: string; text: string; label: string 
 };
 
 const RankingCategorias: React.FC<Props> = ({ onBack }) => {
-  const [rows, setRows] = useState<RankingRow[]>([]);
-  const [categorias, setCategorias] = useState<string[]>([]);
-  const [categoriaActiva, setCategoriaActiva] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { rows, categorias, categoriaActiva, setCategoriaActiva, loading, error } = useRankingCategorias();
 
-  useEffect(() => {
-    const fetchRanking = async () => {
-      setLoading(true);
-      setError(null);
-      const { data, error: err } = await supabase
-        .from('ranking_categorias_view')
-        .select('*')
-        .order('categoria', { ascending: true })
-        .order('posicion', { ascending: true });
-
-      if (err) {
-        setError('No se pudo cargar el ranking. Intentá de nuevo más tarde.');
-        setLoading(false);
-        return;
-      }
-
-      const allRows = (data ?? []) as RankingRow[];
-      const cats = Array.from(new Set(allRows.map((r) => r.categoria))).filter(Boolean);
-      setRows(allRows);
-      setCategorias(cats);
-      setCategoriaActiva(cats[0] ?? '');
-      setLoading(false);
-    };
-
-    fetchRanking();
-  }, []);
-
-  const rowsActivos = rows.filter((r) => r.categoria === categoriaActiva);
+  const rowsActivos = useMemo(
+    () => rows.filter((r) => r.categoria === categoriaActiva),
+    [rows, categoriaActiva]
+  );
 
   return (
     <div className="relative flex min-h-full w-full flex-col bg-background-light font-display pb-32 md:pb-0">

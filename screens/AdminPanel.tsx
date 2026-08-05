@@ -1,24 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
+import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
+import { useRankingCategorias } from '../hooks/useRankingCategorias';
 import { TournamentPreviewScope } from '../types/tournamentPreview';
 import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
+const getGrupoCategoria = (g: GrupoOption) => g.categoria;
+const getGrupoGrupo = (g: GrupoOption) => g.grupo;
 type UnpairedPlayer = { perfil_id: string; nombre: string; whatsapp: string | null };
 type EquipoRow = { id: string; nombre1: string; nombre2: string; grupo: string | null };
-type RankingRow = {
-  categoria: string;
-  perfil_id: string;
-  nombre_completo: string | null;
-  partidos_jugados: number;
-  victorias: number;
-  derrotas: number;
-  puntos: number;
-  posicion: number;
-};
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -29,10 +23,6 @@ const AdminPanel: React.FC = () => {
   const [activeTorneo, setActiveTorneo] = useState<number | null>(null);
   const [activeCategoria, setActiveCategoria] = useState<string>('');
   const [previewGrupo, setPreviewGrupo] = useState<string>('');
-
-  const [rankingRows, setRankingRows] = useState<RankingRow[]>([]);
-  const [rankingLoading, setRankingLoading] = useState(true);
-  const [rankingCategoriaActiva, setRankingCategoriaActiva] = useState<string>('');
 
   // Armado de parejas de dobles
   const [activeTorneoModalidad, setActiveTorneoModalidad] = useState<string>('singles');
@@ -274,39 +264,26 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Load the global cross-tournament ranking by category (once, independent of the preview selector above)
-  useEffect(() => {
-    if (perfil?.rol !== 'admin') return;
-    let cancelled = false;
-    (async () => {
-      setRankingLoading(true);
-      const { data, error } = await supabase
-        .from('ranking_categorias_view')
-        .select('*')
-        .order('categoria', { ascending: true })
-        .order('posicion', { ascending: true });
-      if (cancelled) return;
-      if (error) {
-        console.error('[AdminPanel] load ranking error:', error);
-        setRankingLoading(false);
-        return;
-      }
-      const rows = (data ?? []) as RankingRow[];
-      setRankingRows(rows);
-      const cats = Array.from(new Set(rows.map((r) => r.categoria))).filter(Boolean);
-      setRankingCategoriaActiva((prev) => (prev && cats.includes(prev) ? prev : cats[0] ?? ''));
-      setRankingLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [perfil]);
+  // Ranking global cross-torneo por categoria (independiente del selector de preview de arriba).
+  const {
+    rows: rankingRows,
+    categorias: rankingCategorias,
+    categoriaActiva: rankingCategoriaActiva,
+    setCategoriaActiva: setRankingCategoriaActiva,
+    loading: rankingLoading,
+  } = useRankingCategorias({ enabled: perfil?.rol === 'admin' });
 
-  const rankingCategorias = [...new Set(rankingRows.map((r) => r.categoria))].sort();
-  const rankingRowsActivos = rankingRows.filter((r) => r.categoria === rankingCategoriaActiva);
+  const rankingRowsActivos = useMemo(
+    () => rankingRows.filter((r) => r.categoria === rankingCategoriaActiva),
+    [rankingRows, rankingCategoriaActiva]
+  );
 
-  const categorias = [...new Set(gruposPosiciones.map((g) => g.categoria))].sort();
-  const gruposDeCategoria = [...new Set(
-    gruposPosiciones.filter((g) => g.categoria === activeCategoria).map((g) => g.grupo)
-  )].sort();
+  const { categorias, gruposDeCategoria } = useCategoriaGrupoOptions(
+    gruposPosiciones,
+    getGrupoCategoria,
+    getGrupoGrupo,
+    activeCategoria
+  );
 
   // Keep categoria/grupo selects pointed at a valid option as the data loads/changes
   useEffect(() => {
