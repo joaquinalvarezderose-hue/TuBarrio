@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
 import Register from './screens/Register';
@@ -20,29 +20,42 @@ import Profile from './screens/Profile';
 import Domicilio from './screens/Domicilio';
 import Payment from './screens/Payment';
 import Confirmation from './screens/Confirmation';
-import AdminPanel from './screens/AdminPanel';
-import AdminPartidos from './screens/AdminPartidos';
-import OrganizadorPanel from './screens/OrganizadorPanel';
-import OrganizadorTorneoForm from './screens/OrganizadorTorneoForm';
-import OrganizadorTorneoDetail from './screens/OrganizadorTorneoDetail';
 import Ayuda from './screens/Ayuda';
 import TermsAndConditions from './screens/TermsAndConditions';
 import CompleteProfile from './screens/CompleteProfile';
 import CoordinarPartido from './screens/CoordinarPartido';
-import GolfCanchaForm from './screens/golf/GolfCanchaForm';
-import GolfTorneoForm from './screens/golf/GolfTorneoForm';
-import GolfPanel from './screens/golf/GolfPanel';
-import GolfFlights from './screens/golf/GolfFlights';
-import GolfScorecard from './screens/golf/GolfScorecard';
-import GolfTarjetaCompleta from './screens/golf/GolfTarjetaCompleta';
-import GolfLeaderboard from './screens/golf/GolfLeaderboard';
-import GolfRules from './screens/golf/GolfRules';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import Welcome from './screens/Welcome';
+import { SkeletonCard } from './components/Skeleton';
 import { useCurrentUser } from './hooks/useCurrentUser';
 import { supabase } from './services/supabaseClient';
 import type { PendingIntent } from './types/intent';
+
+// Admin/organizador y modulo de golf: pantallas grandes, visitadas por una
+// minoria de usuarios (admins/organizadores, o solo durante torneos de golf).
+// Se cargan bajo demanda para no incluir su peso (ademas de Leaflet/Turf, en
+// el caso de golf) en el bundle principal que descarga todo el mundo.
+const AdminPanel = lazy(() => import('./screens/AdminPanel'));
+const AdminPartidos = lazy(() => import('./screens/AdminPartidos'));
+const OrganizadorPanel = lazy(() => import('./screens/OrganizadorPanel'));
+const OrganizadorTorneoForm = lazy(() => import('./screens/OrganizadorTorneoForm'));
+const OrganizadorTorneoDetail = lazy(() => import('./screens/OrganizadorTorneoDetail'));
+const GolfCanchaForm = lazy(() => import('./screens/golf/GolfCanchaForm'));
+const GolfTorneoForm = lazy(() => import('./screens/golf/GolfTorneoForm'));
+const GolfPanel = lazy(() => import('./screens/golf/GolfPanel'));
+const GolfFlights = lazy(() => import('./screens/golf/GolfFlights'));
+const GolfScorecard = lazy(() => import('./screens/golf/GolfScorecard'));
+const GolfTarjetaCompleta = lazy(() => import('./screens/golf/GolfTarjetaCompleta'));
+const GolfLeaderboard = lazy(() => import('./screens/golf/GolfLeaderboard'));
+const GolfRules = lazy(() => import('./screens/golf/GolfRules'));
+
+const RouteFallback: React.FC = () => (
+  <div className="p-4 max-w-3xl mx-auto w-full space-y-4">
+    <SkeletonCard />
+    <SkeletonCard />
+  </div>
+);
 
 interface AppContentProps {
   user: boolean;
@@ -120,6 +133,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
       {!hideNavigation && <Navigation />}
 
       <main className="flex-1 relative w-full h-[calc(100vh-64px)] md:h-screen overflow-y-auto">
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           {/* Root: Dashboard for everyone (guest mode supported), recovery redirect takes priority */}
           <Route path="/" element={pendingRecovery ? <Navigate to="/reset-password" replace /> : <Dashboard />} />
@@ -170,6 +184,7 @@ const AppContent: React.FC<AppContentProps> = ({ user, setUser, pendingRecovery,
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
     </div>
   );

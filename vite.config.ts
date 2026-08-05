@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'supabase': ['@supabase/supabase-js'],
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'leaflet-turf': ['leaflet', '@turf/bearing', '@turf/circle', '@turf/destination', '@turf/distance', '@turf/helpers'],
           },
         },
       },

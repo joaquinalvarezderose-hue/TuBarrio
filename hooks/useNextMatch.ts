@@ -22,6 +22,12 @@ export type NextMatch = {
   rivalName: string;
   rivalWhatsapp: string | null;
   whatsappLink: string | null;
+
+  // Solo presentes cuando el torneo es de dobles.
+  equipo1_id?: string;
+  equipo2_id?: string;
+  companero?: { id: string; nombre: string; whatsapp: string | null } | null;
+  rivalJugadores?: { id: string; nombre: string; whatsapp: string | null }[];
 };
 
 export type UseNextMatchResult = {
@@ -79,6 +85,102 @@ export function useNextMatch(tournamentId: number | string, enabled: boolean = t
       if (!Number.isFinite(parsedTournamentId)) {
         setError('ID de torneo invalido.');
         setMatch(null);
+        return;
+      }
+
+      let modalidad = 'singles';
+      try {
+        const { data: configRow } = await supabase
+          .from('torneo_configuracion')
+          .select('modalidad')
+          .eq('torneo_id', parsedTournamentId)
+          .maybeSingle();
+        if (configRow?.modalidad === 'dobles') modalidad = 'dobles';
+      } catch {
+        // si falla la lectura de modalidad, se asume singles (comportamiento actual)
+      }
+
+      if (modalidad === 'dobles') {
+        const { data: teamRows } = await supabase
+          .from('torneo_equipos')
+          .select('id, jugador1_id, jugador2_id')
+          .eq('torneo_id', parsedTournamentId)
+          .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+          .limit(1);
+
+        const myTeam = Array.isArray(teamRows) ? teamRows[0] : null;
+        if (!myTeam) {
+          setMatch(null);
+          return;
+        }
+
+        const companeroId = String(myTeam.jugador1_id) === currentUserId ? myTeam.jugador2_id : myTeam.jugador1_id;
+
+        const { data: teamMatchRows } = await supabase
+          .from('partidos')
+          .select('id, jornada, estado, fecha_programada, torneo_id, equipo1_id, equipo2_id')
+          .eq('torneo_id', parsedTournamentId)
+          .or(`equipo1_id.eq.${myTeam.id},equipo2_id.eq.${myTeam.id}`)
+          .in('estado', ['programado', 'en_curso', 'esperando_validacion'])
+          .order('jornada', { ascending: true })
+          .order('fecha_programada', { ascending: true, nullsFirst: false })
+          .limit(1);
+
+        const teamMatch = Array.isArray(teamMatchRows) ? teamMatchRows[0] : null;
+        if (!teamMatch) {
+          setMatch(null);
+          return;
+        }
+
+        const rivalTeamId = String(teamMatch.equipo1_id) === String(myTeam.id) ? teamMatch.equipo2_id : teamMatch.equipo1_id;
+
+        const { data: rivalTeamRow } = await supabase
+          .from('torneo_equipos')
+          .select('id, jugador1_id, jugador2_id')
+          .eq('id', rivalTeamId)
+          .maybeSingle();
+
+        const perfilIds = [companeroId, rivalTeamRow?.jugador1_id, rivalTeamRow?.jugador2_id].filter(Boolean) as string[];
+        const { data: perfilRows } = await supabase
+          .from('perfiles')
+          .select('id, nombre_completo, whatsapp')
+          .in('id', perfilIds.length > 0 ? perfilIds : ['00000000-0000-0000-0000-000000000000']);
+
+        const perfilById = new Map((perfilRows ?? []).map((p: any) => [String(p.id), p]));
+        const companeroPerfil = perfilById.get(String(companeroId));
+        const rivalJugadores = [rivalTeamRow?.jugador1_id, rivalTeamRow?.jugador2_id]
+          .filter(Boolean)
+          .map((id: string) => {
+            const p = perfilById.get(String(id));
+            return { id: String(id), nombre: String(p?.nombre_completo ?? 'Jugador'), whatsapp: p?.whatsapp ? String(p.whatsapp) : null };
+          });
+
+        const rivalNombre = rivalJugadores.map(r => r.nombre).join(' / ') || 'Rival por confirmar';
+        const rivalWhatsapp = rivalJugadores[0]?.whatsapp ?? null;
+
+        setMatch({
+          id: String(teamMatch.id),
+          jornada: Number(teamMatch.jornada ?? 1),
+          estado: String(teamMatch.estado ?? 'programado'),
+          fecha_programada: teamMatch.fecha_programada ?? null,
+          jugador1_id: currentUserId,
+          jugador2_id: String(rivalJugadores[0]?.id ?? ''),
+          rival: {
+            id: String(rivalJugadores[0]?.id ?? ''),
+            nombre_completo: rivalNombre,
+            whatsapp: rivalWhatsapp,
+          },
+          rivalId: String(rivalJugadores[0]?.id ?? ''),
+          rivalName: rivalNombre,
+          rivalWhatsapp,
+          whatsappLink: toWhatsAppLink(rivalWhatsapp),
+          equipo1_id: String(myTeam.id),
+          equipo2_id: String(rivalTeamId),
+          companero: companeroPerfil
+            ? { id: String(companeroId), nombre: String(companeroPerfil.nombre_completo ?? 'Compañero/a'), whatsapp: companeroPerfil.whatsapp ? String(companeroPerfil.whatsapp) : null }
+            : null,
+          rivalJugadores,
+        });
         return;
       }
 

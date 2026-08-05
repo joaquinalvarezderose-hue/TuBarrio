@@ -128,8 +128,14 @@ const TournamentPanel: React.FC = () => {
  rival_id: nextMatchFallback.rivalId,
  rival_nombre: nextMatchFallback.rivalName,
  rival_whatsapp: nextMatchFallback.rivalWhatsapp,
+ ...(nextMatchFallback.equipo1_id ? {
+ equipo1_id: nextMatchFallback.equipo1_id,
+ equipo2_id: nextMatchFallback.equipo2_id,
+ companero: nextMatchFallback.companero ?? null,
+ rival_jugadores: nextMatchFallback.rivalJugadores ?? [],
+ } : {}),
  } : null);
- 
+
  const isEliminated = playerStatus?.estado === 'eliminado';
  const isCampeon = playerStatus?.estado === 'campeon';
  const isFinalista = playerStatus?.estado === 'finalista';
@@ -139,6 +145,11 @@ const TournamentPanel: React.FC = () => {
  // Bracket: el próximo cruce puede existir con un slot todavía sin definir
  // (rival TBD, pendiente del otro partido de la ronda) — no ofrecer coordinar en ese caso.
  const nextMatchRivalDefined = !!nextMatch && !!nextMatch.jugador1_id && !!nextMatch.jugador2_id;
+
+ const nextMatchDobles = nextMatch as any;
+ const isDoblesMatch = tournamentConfig?.modalidad === 'dobles' && !!nextMatchDobles?.equipo1_id && !!nextMatchDobles?.equipo2_id;
+ const companeroInfo: { id: string; nombre: string; whatsapp: string | null } | null = isDoblesMatch ? (nextMatchDobles?.companero ?? null) : null;
+ const rivalesInfo: { id: string; nombre: string; whatsapp: string | null }[] = isDoblesMatch ? (nextMatchDobles?.rival_jugadores ?? []) : [];
 
  const matchIsWaitingValidation = nextMatch?.estado === 'esperando_validacion';
  // pendingConfirmMatch is set by a separate effect that finds any esperando_validacion match
@@ -1324,9 +1335,34 @@ const TournamentPanel: React.FC = () => {
  : `Fecha ${nextMatch.jornada}`
  ) : 'Sin partido'}
  </p>
+ {isDoblesMatch ? (
+ <>
+ <p className="text-xs font-semibold text-gray-500">
+ Vos{companeroInfo?.nombre ? ` & ${companeroInfo.nombre}` : ''}
+ </p>
+ <h4 className="text-lg font-bold text-[#111813] ">
+ vs. {rivalesInfo.map(r => r.nombre).filter(Boolean).join(' / ') || 'Rivales por definir'}
+ </h4>
+ </>
+ ) : (
  <h4 className="text-lg font-bold text-[#111813] ">{nextMatchRivalDefined ? `vs. ${nextMatch!.rival_nombre}` : 'Rival por definir'}</h4>
+ )}
  {nextMatchDateLabel && <p className="text-sm text-gray-500 font-medium">{nextMatchDateLabel}</p>}
  </div>
+ {isDoblesMatch ? (
+ <div className="flex -space-x-3 shrink-0">
+ {(rivalesInfo.length > 0 ? rivalesInfo : [null, null]).slice(0, 2).map((r, i) => (
+ <div
+ key={r?.id ?? i}
+ className="size-10 rounded-full bg-emerald-100 text-emerald-700 border-2 border-white shadow-sm flex items-center justify-center text-xs font-bold uppercase"
+ >
+ {r?.nombre
+ ? r.nombre.split(' ').filter(Boolean).slice(0, 2).map((chunk) => chunk[0]).join('') || 'R'
+ : '?'}
+ </div>
+ ))}
+ </div>
+ ) : (
  <div className="size-12 rounded-full bg-emerald-100 text-emerald-700 shrink-0 border-2 border-white shadow-sm flex items-center justify-center text-sm font-bold uppercase">
  {nextMatchRivalDefined
  ? String(nextMatch!.rival_nombre || 'Rival')
@@ -1337,6 +1373,7 @@ const TournamentPanel: React.FC = () => {
  .join('') || 'R'
  : '?'}
  </div>
+ )}
  </div>
  <div className="flex flex-col gap-3">
  {nextMatch && !nextMatchRivalDefined ? (
@@ -1346,8 +1383,6 @@ const TournamentPanel: React.FC = () => {
  ) : nextMatch ? (
  <button
  onClick={() => {
- const nextMatchDobles = nextMatch as any;
- const isDoblesMatch = tournamentConfig?.modalidad === 'dobles' && !!nextMatchDobles?.equipo1_id && !!nextMatchDobles?.equipo2_id;
  navigate('/coordinar-partido', {
  state: {
  partido: {
