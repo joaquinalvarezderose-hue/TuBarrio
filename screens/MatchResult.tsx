@@ -408,6 +408,9 @@ const MatchResult: React.FC = () => {
 
  useEffect(() => {
  if (!tournament) return;
+ // Evita que una respuesta tardia de una corrida anterior (p.ej. el usuario cambio de
+ // cuenta sin recargar la pagina) pise el estado ya cargado por la corrida vigente.
+ let cancelled = false;
  // Carga de contexto para torneos de DOBLES: espejo de loadMatchContext (singles),
  // resolviendo scope/partido/propuesta via torneo_equipos en vez de torneo_jugadores.
  const loadMatchContextDobles = async () => {
@@ -417,6 +420,8 @@ const MatchResult: React.FC = () => {
  .eq('torneo_id', tournament.id)
  .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
  .limit(1);
+
+ if (cancelled) return;
 
  const equipoRow = Array.isArray(equipoRows) ? equipoRows[0] : null;
  if (!equipoRow?.id) {
@@ -544,6 +549,8 @@ const MatchResult: React.FC = () => {
  return;
  }
 
+ if (cancelled) return;
+
  setPartido({
  id: String(targetPartido.id),
  jornada: Number(targetPartido.jornada || 1),
@@ -584,6 +591,7 @@ const MatchResult: React.FC = () => {
  .maybeSingle(),
  ]);
  if (equiposPartidoError) throw equiposPartidoError;
+ if (cancelled) return;
 
  const equipoById = Object.fromEntries((equiposPartido || []).map((row: any) => [row.id, row]));
  const allJugadorIds = (equiposPartido || []).flatMap((row: any) => [row.jugador1_id, row.jugador2_id]).filter(Boolean);
@@ -901,6 +909,8 @@ const MatchResult: React.FC = () => {
  return;
  }
 
+ if (cancelled) return;
+
  setPartido({
  id: String(targetPartido.id),
  jornada: Number(targetPartido.jornada || 1),
@@ -949,6 +959,7 @@ const MatchResult: React.FC = () => {
 
  if (jugadoresScopedError) throw jugadoresScopedError;
  if (perfilesError) throw perfilesError;
+ if (cancelled) return;
 
  let jugadores = jugadoresScoped || [];
  if (jugadores.length < 2) {
@@ -1013,14 +1024,16 @@ const MatchResult: React.FC = () => {
  }
  }
  } catch (error) {
+ if (cancelled) return;
  console.error('No se pudo cargar el contexto del partido', error);
  setSubmitError('Hubo un error al cargar el partido. Intenta nuevamente en unos segundos.');
  } finally {
- setLoadingMatch(false);
+ if (!cancelled) setLoadingMatch(false);
  }
  };
 
  loadMatchContext();
+ return () => { cancelled = true; };
  }, [currentUserId, selectedPartidoId, tournament?.id, tournament?.subtitle, retryTick]);
 
  const handleConfirm = async () => {

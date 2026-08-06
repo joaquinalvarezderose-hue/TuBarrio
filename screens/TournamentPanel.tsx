@@ -265,59 +265,142 @@ const TournamentPanel: React.FC = () => {
  // Independent check: find any match where the current user must confirm, regardless of nextMatch ordering.
  // This handles the case where nextMatch points to an earlier jornada (programado) but a later jornada
  // is already in esperando_validacion waiting for this user's confirmation.
+ // Dobles usa equipo1_id/equipo2_id + debe_confirmar_equipo_id en vez de los campos de singles
+ // (jugador1_id/jugador2_id + debe_confirmar_por), que siempre son NULL en partidos de dobles.
  useEffect(() => {
  if (previewMode) {
  setPendingConfirmMatch(null);
  return;
  }
  if (!currentUserId || !tournament?.id) return;
+ const isDobles = tournamentConfig?.modalidad === 'dobles';
  let cancelled = false;
  (async () => {
  try {
- const { data: waitingRows } = await supabase
+ let myEquipoId: string | null = null;
+ if (isDobles) {
+ const { data: equipoRows } = await supabase
+ .from('torneo_equipos')
+ .select('id')
+ .eq('torneo_id', tournament.id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .limit(1);
+ myEquipoId = Array.isArray(equipoRows) && equipoRows[0]?.id ? String(equipoRows[0].id) : null;
+ if (!myEquipoId) { if (!cancelled) setPendingConfirmMatch(null); return; }
+ }
+
+ const { data: waitingRows } = await (isDobles
+ ? supabase
+ .from('partidos')
+ .select('id, jornada')
+ .eq('torneo_id', tournament.id)
+ .or(`equipo1_id.eq.${myEquipoId},equipo2_id.eq.${myEquipoId}`)
+ .eq('estado', 'esperando_validacion')
+ .order('jornada', { ascending: true })
+ .limit(1)
+ : supabase
  .from('partidos')
  .select('id, jornada')
  .eq('torneo_id', tournament.id)
  .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
  .eq('estado', 'esperando_validacion')
  .order('jornada', { ascending: true })
- .limit(1);
+ .limit(1));
 
  const waiting = Array.isArray(waitingRows) ? waitingRows[0] : null;
  if (!waiting || cancelled) { setPendingConfirmMatch(null); return; }
 
  const { data: proposal } = await supabase
  .from('torneo_propuestas_partido')
- .select('debe_confirmar_por')
+ .select('debe_confirmar_por, debe_confirmar_equipo_id')
  .eq('partido_id', waiting.id)
  .maybeSingle();
 
  if (!cancelled) {
- if (proposal?.debe_confirmar_por &&
- String(proposal.debe_confirmar_por).toLowerCase() === String(currentUserId).toLowerCase()) {
- setPendingConfirmMatch({ id: String(waiting.id), jornada: Number(waiting.jornada) });
- } else {
- setPendingConfirmMatch(null);
- }
+ const mustConfirm = isDobles
+ ? !!proposal?.debe_confirmar_equipo_id &&
+ String(proposal.debe_confirmar_equipo_id).toLowerCase() === String(myEquipoId).toLowerCase()
+ : !!proposal?.debe_confirmar_por &&
+ String(proposal.debe_confirmar_por).toLowerCase() === String(currentUserId).toLowerCase();
+ setPendingConfirmMatch(mustConfirm ? { id: String(waiting.id), jornada: Number(waiting.jornada) } : null);
  }
  } catch {
  // swallow
  }
  })();
  return () => { cancelled = true; };
- }, [currentUserId, tournament?.id, refreshKey]);
+ }, [currentUserId, tournament?.id, tournamentConfig?.modalidad, refreshKey]);
 
  // Lists every match the user still hasn't submitted a result for (any jornada/ronda),
  // so "Cargar Resultado" can offer a picker instead of only ever jumping to the oldest one.
+ // Dobles usa equipo1_id/equipo2_id: jugador1_id/jugador2_id son siempre NULL en esos partidos,
+ // asi que el filtro de singles no encontraba nada y "Cargar Resultado" quedaba vacio.
  useEffect(() => {
  if (previewMode) {
  setPendingLoadMatches([]);
  return;
  }
  if (!currentUserId || !tournament?.id) return;
+ const isDobles = tournamentConfig?.modalidad === 'dobles';
  let cancelled = false;
  (async () => {
  try {
+ if (isDobles) {
+ const { data: equipoRows } = await supabase
+ .from('torneo_equipos')
+ .select('id')
+ .eq('torneo_id', tournament.id)
+ .or(`jugador1_id.eq.${currentUserId},jugador2_id.eq.${currentUserId}`)
+ .limit(1);
+ const myEquipoId = Array.isArray(equipoRows) && equipoRows[0]?.id ? String(equipoRows[0].id) : null;
+ if (!myEquipoId) { if (!cancelled) setPendingLoadMatches([]); return; }
+
+ const { data: rows } = await supabase
+ .from('partidos')
+ .select('id, jornada, equipo1_id, equipo2_id, bracket_tipo, stage_name, ronda')
+ .eq('torneo_id', tournament.id)
+ .or(`equipo1_id.eq.${myEquipoId},equipo2_id.eq.${myEquipoId}`)
+ .in('estado', ['programado', 'en_curso'])
+ .order('jornada', { ascending: true });
+
+ const matches = Array.isArray(rows) ? rows : [];
+ const rivalEquipoIds = matches
+ .map((m: any) => (String(m.equipo1_id) === myEquipoId ? m.equipo2_id : m.equipo1_id))
+ .filter(Boolean);
+
+ const { data: equipos } = rivalEquipoIds.length > 0
+ ? await supabase.from('torneo_equipos').select('id, jugador1_id, jugador2_id').in('id', rivalEquipoIds)
+ : { data: [] as any[] };
+
+ const equipoById = Object.fromEntries((equipos || []).map((e: any) => [e.id, e]));
+ const jugadorIds = (equipos || []).flatMap((e: any) => [e.jugador1_id, e.jugador2_id]).filter(Boolean);
+
+ const { data: perfiles } = jugadorIds.length > 0
+ ? await supabase.from('perfiles').select('id, nombre_completo').in('id', jugadorIds)
+ : { data: [] as any[] };
+
+ const nameById = Object.fromEntries((perfiles || []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+
+ if (!cancelled) {
+ setPendingLoadMatches(matches.map((m: any) => {
+ const rivalEquipoId = String(m.equipo1_id) === myEquipoId ? m.equipo2_id : m.equipo1_id;
+ const rivalEquipo = rivalEquipoId ? equipoById[rivalEquipoId] : null;
+ const rivalNombre = rivalEquipo
+ ? `${nameById[rivalEquipo.jugador1_id] || 'Jugador'} / ${nameById[rivalEquipo.jugador2_id] || 'Jugador'}`
+ : 'Rival';
+ return {
+ id: String(m.id),
+ jornada: Number(m.jornada || 1),
+ rival_nombre: rivalNombre,
+ bracket_tipo: m.bracket_tipo || null,
+ stage_name: m.stage_name || null,
+ ronda: m.ronda != null ? Number(m.ronda) : null,
+ };
+ }));
+ }
+ return;
+ }
+
  const { data: rows } = await supabase
  .from('partidos')
  .select('id, jornada, jugador1_id, jugador2_id, bracket_tipo, stage_name, ronda')
@@ -355,7 +438,7 @@ const TournamentPanel: React.FC = () => {
  }
  })();
  return () => { cancelled = true; };
- }, [currentUserId, tournament?.id, previewMode, refreshKey]);
+ }, [currentUserId, tournament?.id, previewMode, refreshKey, tournamentConfig?.modalidad]);
 
  useEffect(() => {
  if (!tournament) return;
