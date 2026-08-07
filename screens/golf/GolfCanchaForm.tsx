@@ -32,11 +32,18 @@ type HoyoMapaRow = {
   tee_lng: number | null;
   green_lat: number | null;
   green_lng: number | null;
+  green_front_lat: number | null;
+  green_front_lng: number | null;
+  green_back_lat: number | null;
+  green_back_lng: number | null;
   categoria_dificultad: string | null;
   estrategia_sugerida: string | null;
 };
 
-type CoordsSaved = Pick<HoyoMapaRow, 'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng'>;
+type CoordsSaved = Pick<
+  HoyoMapaRow,
+  'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng' | 'green_front_lat' | 'green_front_lng' | 'green_back_lat' | 'green_back_lng'
+>;
 
 const ALLOWED_MIME_TYPES = ['image/svg+xml', 'image/png', 'image/jpeg'];
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB, igual al limite del bucket
@@ -109,6 +116,10 @@ const HoyoMapaFila: React.FC<{
   const [teeLng, setTeeLng] = useState(hoyo.tee_lng != null ? String(hoyo.tee_lng) : '');
   const [greenLat, setGreenLat] = useState(hoyo.green_lat != null ? String(hoyo.green_lat) : '');
   const [greenLng, setGreenLng] = useState(hoyo.green_lng != null ? String(hoyo.green_lng) : '');
+  const [greenFrontLat, setGreenFrontLat] = useState(hoyo.green_front_lat != null ? String(hoyo.green_front_lat) : '');
+  const [greenFrontLng, setGreenFrontLng] = useState(hoyo.green_front_lng != null ? String(hoyo.green_front_lng) : '');
+  const [greenBackLat, setGreenBackLat] = useState(hoyo.green_back_lat != null ? String(hoyo.green_back_lat) : '');
+  const [greenBackLng, setGreenBackLng] = useState(hoyo.green_back_lng != null ? String(hoyo.green_back_lng) : '');
   const [savingCoords, setSavingCoords] = useState(false);
   const [coordsError, setCoordsError] = useState<string | null>(null);
   const [coordsMessage, setCoordsMessage] = useState<string | null>(null);
@@ -156,6 +167,10 @@ const HoyoMapaFila: React.FC<{
       tee_lng: teeLng.trim() === '' ? null : Number(teeLng),
       green_lat: greenLat.trim() === '' ? null : Number(greenLat),
       green_lng: greenLng.trim() === '' ? null : Number(greenLng),
+      green_front_lat: greenFrontLat.trim() === '' ? null : Number(greenFrontLat),
+      green_front_lng: greenFrontLng.trim() === '' ? null : Number(greenFrontLng),
+      green_back_lat: greenBackLat.trim() === '' ? null : Number(greenBackLat),
+      green_back_lng: greenBackLng.trim() === '' ? null : Number(greenBackLng),
     };
     for (const [key, value] of Object.entries(parsed)) {
       if (value !== null && Number.isNaN(value)) {
@@ -256,8 +271,10 @@ const HoyoMapaFila: React.FC<{
       {coordsAbierto && (
         <div className="px-3 pb-3 border-t border-slate-200 pt-3">
           <p className="text-xs text-slate-500 mb-2">
-            Latitud/longitud reales del tee y el green (ej. sacadas de Google Maps). Habilitan el mapa satelital
-            interactivo del hoyo; si se dejan vacias, se muestra el mapa estatico subido arriba.
+            Latitud/longitud reales del tee y el green (ej. sacadas de Google Maps). Tee + Green (centro) habilitan el
+            mapa satelital interactivo del hoyo; si se dejan vacias, se muestra el mapa estatico subido arriba. Frente
+            y fondo del green son opcionales: si se cargan, el jugador ve las 3 distancias (frente/centro/fondo) en
+            vez de una sola.
           </p>
 
           <div className="grid grid-cols-2 gap-2 mb-2">
@@ -265,9 +282,17 @@ const HoyoMapaFila: React.FC<{
             <CoordsField label="Latitud" value={teeLat} onChange={setTeeLat} />
             <CoordsField label="Longitud" value={teeLng} onChange={setTeeLng} />
 
-            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Green</p>
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Green (centro)</p>
             <CoordsField label="Latitud" value={greenLat} onChange={setGreenLat} />
             <CoordsField label="Longitud" value={greenLng} onChange={setGreenLng} />
+
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Green (frente) · opcional</p>
+            <CoordsField label="Latitud" value={greenFrontLat} onChange={setGreenFrontLat} />
+            <CoordsField label="Longitud" value={greenFrontLng} onChange={setGreenFrontLng} />
+
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Green (fondo) · opcional</p>
+            <CoordsField label="Latitud" value={greenBackLat} onChange={setGreenBackLat} />
+            <CoordsField label="Longitud" value={greenBackLng} onChange={setGreenBackLng} />
           </div>
 
           {coordsError && <p className="text-xs text-red-600 mb-2">{coordsError}</p>}
@@ -335,7 +360,7 @@ const GolfCanchaForm: React.FC = () => {
       setLoadingHoyosMapas(true);
       const { data, error } = await supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng, categoria_dificultad, estrategia_sugerida')
+        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng, green_front_lat, green_front_lng, green_back_lat, green_back_lng, categoria_dificultad, estrategia_sugerida')
         .eq('cancha_id', selectedCanchaId)
         .order('numero_hoyo', { ascending: true });
       if (cancelled) return;

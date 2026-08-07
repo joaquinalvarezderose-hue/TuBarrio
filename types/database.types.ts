@@ -47,6 +47,10 @@ export type Database = {
           categoria_dificultad: string | null
           created_at: string
           estrategia_sugerida: string | null
+          green_back_lat: number | null
+          green_back_lng: number | null
+          green_front_lat: number | null
+          green_front_lng: number | null
           green_lat: number | null
           green_lng: number | null
           id: number
@@ -65,6 +69,10 @@ export type Database = {
           categoria_dificultad?: string | null
           created_at?: string
           estrategia_sugerida?: string | null
+          green_back_lat?: number | null
+          green_back_lng?: number | null
+          green_front_lat?: number | null
+          green_front_lng?: number | null
           green_lat?: number | null
           green_lng?: number | null
           id?: never
@@ -83,6 +91,10 @@ export type Database = {
           categoria_dificultad?: string | null
           created_at?: string
           estrategia_sugerida?: string | null
+          green_back_lat?: number | null
+          green_back_lng?: number | null
+          green_front_lat?: number | null
+          green_front_lng?: number | null
           green_lat?: number | null
           green_lng?: number | null
           id?: never

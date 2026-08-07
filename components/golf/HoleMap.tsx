@@ -11,6 +11,13 @@ type HoleMapProps = {
   teeLng: number;
   greenLat: number;
   greenLng: number;
+  // Frente/fondo del green (opcionales): si estan cargados, habilitan las 3
+  // distancias estandar de golf (frente/centro/fondo) en el panel de "tu
+  // distancia". Si faltan, ese panel muestra solo la distancia al centro.
+  greenFrontLat?: number | null;
+  greenFrontLng?: number | null;
+  greenBackLat?: number | null;
+  greenBackLng?: number | null;
   par?: number | null;
   yardas?: number | null;
   indice?: number | null;
@@ -77,6 +84,10 @@ const HoleMap: React.FC<HoleMapProps> = ({
   teeLng,
   greenLat,
   greenLng,
+  greenFrontLat = null,
+  greenFrontLng = null,
+  greenBackLat = null,
+  greenBackLng = null,
   par,
   yardas,
   indice,
@@ -271,13 +282,21 @@ const HoleMap: React.FC<HoleMapProps> = ({
     distance(point([teeLng, teeLat]), point([greenLng, greenLat]), { units: 'kilometers' }) / YD_TO_KM
   );
 
-  const distanciaJugadorYd = userPosition
-    ? Math.round(
-        distance(point([userPosition.longitude, userPosition.latitude]), point([greenLng, greenLat]), {
-          units: 'kilometers',
-        }) / YD_TO_KM
-      )
-    : null;
+  const distanciaDesdeJugador = (lat: number, lng: number): number | null =>
+    userPosition
+      ? Math.round(
+          distance(point([userPosition.longitude, userPosition.latitude]), point([lng, lat]), {
+            units: 'kilometers',
+          }) / YD_TO_KM
+        )
+      : null;
+
+  const distanciaJugadorYd = distanciaDesdeJugador(greenLat, greenLng);
+  const distanciaFrenteYd =
+    greenFrontLat != null && greenFrontLng != null ? distanciaDesdeJugador(greenFrontLat, greenFrontLng) : null;
+  const distanciaFondoYd =
+    greenBackLat != null && greenBackLng != null ? distanciaDesdeJugador(greenBackLat, greenBackLng) : null;
+  const tieneFrenteFondo = distanciaFrenteYd != null || distanciaFondoYd != null;
 
   return (
     <div className={`relative ${className}`}>
@@ -320,7 +339,35 @@ const HoleMap: React.FC<HoleMapProps> = ({
           <p className={`font-extrabold tabular-nums text-[#111813] whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>{distanciaRectaYd} yd</p>
           {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>}
         </div>
-        {distanciaJugadorYd != null && (
+        {distanciaJugadorYd != null && tieneFrenteFondo && (
+          <div className={`rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`} style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
+            <p className={`font-bold uppercase tracking-wide text-white/80 text-center leading-tight ${compact ? 'text-[7px] mb-0.5' : 'text-[9px] mb-1'}`}>
+              {compact ? 'Vos' : 'Tu distancia'}
+            </p>
+            <div className={`flex items-end ${compact ? 'gap-1.5' : 'gap-2'}`}>
+              <div className="flex flex-col items-center">
+                <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Fr</p>
+                <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
+                  {distanciaFrenteYd ?? '—'}
+                </p>
+              </div>
+              <div className="flex flex-col items-center">
+                <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Ce</p>
+                <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
+                  {distanciaJugadorYd}
+                </p>
+              </div>
+              <div className="flex flex-col items-center">
+                <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Fo</p>
+                <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
+                  {distanciaFondoYd ?? '—'}
+                </p>
+              </div>
+            </div>
+            {!compact && <p className="text-[8px] text-white/80 leading-tight text-center mt-1">yd · frente/centro/fondo</p>}
+          </div>
+        )}
+        {distanciaJugadorYd != null && !tieneFrenteFondo && (
           <div className={`flex flex-col items-center rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`} style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
             <p className={`font-bold uppercase tracking-wide text-white/80 text-center leading-tight ${compact ? 'text-[7px]' : 'text-[9px]'}`}>
               {compact ? 'Vos' : 'Tu distancia'}

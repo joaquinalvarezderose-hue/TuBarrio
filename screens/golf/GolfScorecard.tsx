@@ -17,6 +17,10 @@ type Hoyo = {
   tee_lng: number | null;
   green_lat: number | null;
   green_lng: number | null;
+  green_front_lat: number | null;
+  green_front_lng: number | null;
+  green_back_lat: number | null;
+  green_back_lng: number | null;
   categoria_dificultad: string | null;
   estrategia_sugerida: string | null;
 };
@@ -145,7 +149,7 @@ const GolfScorecard: React.FC = () => {
         : Promise.resolve({ data: [] as any[] }),
       supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url, tee_lat, tee_lng, green_lat, green_lng, categoria_dificultad, estrategia_sugerida')
+        .select('id, numero_hoyo, par, yardas, indice_dificultad, mapa_url, tee_lat, tee_lng, green_lat, green_lng, green_front_lat, green_front_lng, green_back_lat, green_back_lng, categoria_dificultad, estrategia_sugerida')
         .eq('cancha_id', rondaActiva.cancha_id)
         .order('numero_hoyo', { ascending: true }),
     ]);
@@ -539,6 +543,10 @@ const GolfScorecard: React.FC = () => {
                           teeLng={hoyoActual.tee_lng as number}
                           greenLat={hoyoActual.green_lat as number}
                           greenLng={hoyoActual.green_lng as number}
+                          greenFrontLat={hoyoActual.green_front_lat}
+                          greenFrontLng={hoyoActual.green_front_lng}
+                          greenBackLat={hoyoActual.green_back_lat}
+                          greenBackLng={hoyoActual.green_back_lng}
                           par={hoyoActual.par}
                           yardas={hoyoActual.yardas}
                           indice={hoyoActual.indice_dificultad}
@@ -726,6 +734,10 @@ const GolfScorecard: React.FC = () => {
                 teeLng={hoyoActual.tee_lng as number}
                 greenLat={hoyoActual.green_lat as number}
                 greenLng={hoyoActual.green_lng as number}
+                greenFrontLat={hoyoActual.green_front_lat}
+                greenFrontLng={hoyoActual.green_front_lng}
+                greenBackLat={hoyoActual.green_back_lat}
+                greenBackLng={hoyoActual.green_back_lng}
                 par={hoyoActual.par}
                 yardas={hoyoActual.yardas}
                 indice={hoyoActual.indice_dificultad}
