@@ -41,6 +41,87 @@ export type Database = {
         }
         Relationships: []
       }
+      golf_estrategias_ia: {
+        Row: {
+          club_recomendado: string
+          created_at: string
+          distancia_bandera_yd: number | null
+          distancia_bucket_yd: number
+          distancia_centro_yd: number
+          distancia_objetivo_yd: number
+          gps_accuracy_m: number
+          gps_lat: number
+          gps_lng: number
+          hoyo_id: number
+          id: string
+          modelo: string
+          objetivo: string
+          respuesta_ia: Json
+          riesgo: string | null
+          ronda_id: string
+          senal_debil: boolean
+          tip: string
+          updated_at: string
+        }
+        Insert: {
+          club_recomendado: string
+          created_at?: string
+          distancia_bandera_yd?: number | null
+          distancia_bucket_yd: number
+          distancia_centro_yd: number
+          distancia_objetivo_yd: number
+          gps_accuracy_m: number
+          gps_lat: number
+          gps_lng: number
+          hoyo_id: number
+          id?: string
+          modelo?: string
+          objetivo: string
+          respuesta_ia: Json
+          riesgo?: string | null
+          ronda_id: string
+          senal_debil?: boolean
+          tip: string
+          updated_at?: string
+        }
+        Update: {
+          club_recomendado?: string
+          created_at?: string
+          distancia_bandera_yd?: number | null
+          distancia_bucket_yd?: number
+          distancia_centro_yd?: number
+          distancia_objetivo_yd?: number
+          gps_accuracy_m?: number
+          gps_lat?: number
+          gps_lng?: number
+          hoyo_id?: number
+          id?: string
+          modelo?: string
+          objetivo?: string
+          respuesta_ia?: Json
+          riesgo?: string | null
+          ronda_id?: string
+          senal_debil?: boolean
+          tip?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "golf_estrategias_ia_hoyo_id_fkey"
+            columns: ["hoyo_id"]
+            isOneToOne: false
+            referencedRelation: "hoyos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "golf_estrategias_ia_ronda_id_fkey"
+            columns: ["ronda_id"]
+            isOneToOne: false
+            referencedRelation: "rondas_golf"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hoyos: {
         Row: {
           cancha_id: number
@@ -678,6 +759,27 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
           user_nombre?: string | null
+        }
+        Relationships: []
+      }
+      rate_limit_log: {
+        Row: {
+          accion: string
+          created_at: string
+          id: number
+          perfil_id: string
+        }
+        Insert: {
+          accion: string
+          created_at?: string
+          id?: number
+          perfil_id: string
+        }
+        Update: {
+          accion?: string
+          created_at?: string
+          id?: number
+          perfil_id?: string
         }
         Relationships: []
       }
@@ -2514,6 +2616,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      check_rate_limit: {
+        Args: { p_accion: string; p_max_intentos: number; p_ventana: string }
+        Returns: boolean
+      }
       confirmar_horario_partido: {
         Args: { p_horario: string; p_partido_id: string }
         Returns: Json
@@ -2717,6 +2823,7 @@ export type Database = {
         Args: { p_categoria: string; p_perfil_id: string; p_torneo_id: number }
         Returns: boolean
       }
+      limpiar_rate_limit_log: { Args: never; Returns: undefined }
       obtener_estadisticas_historicas_jugador: {
         Args: { p_perfil_id: string }
         Returns: Json
@@ -2757,6 +2864,7 @@ export type Database = {
           byes: string[]
           estado_antes: string
           estado_despues: string
+          max_participantes: number
           participantes_actuales: number
           partidos_creados: number
           perfil_id: string

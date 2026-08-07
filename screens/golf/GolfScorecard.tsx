@@ -5,7 +5,10 @@ import { Skeleton } from '../../components/Skeleton';
 import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
 import { useBurstLocation } from '../../hooks/useBurstLocation';
 import { getLocationDeniedMessage } from '../../services/golfBurstLocation';
-import HoleMap from '../../components/golf/HoleMap';
+// Carga diferida: Leaflet + @turf solo hacen falta cuando el hoyo actual
+// tiene coordenadas cargadas y hay que mostrar el mapa satelital.
+const HoleMap = React.lazy(() => import('../../components/golf/HoleMap'));
+const HoleStrategyModal = React.lazy(() => import('../../components/golf/HoleStrategyModal'));
 
 type Hoyo = {
   id: number;
@@ -102,6 +105,7 @@ const GolfScorecard: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mapaFullscreen, setMapaFullscreen] = useState(false);
   const [mapaCompactoVisible, setMapaCompactoVisible] = useState(false);
+  const [strategyModalOpen, setStrategyModalOpen] = useState(false);
   const mapaCompactoRef = useRef<HTMLDivElement>(null);
   const burstLocation = useBurstLocation();
 
@@ -541,24 +545,26 @@ const GolfScorecard: React.FC = () => {
                           Leaflet no soporta 2 instancias vivas superpuestas sin pisarse
                           (paneles con z-index propio compitiendo entre las dos). */}
                       {!mapaFullscreen && (
-                        <HoleMap
-                          teeLat={hoyoActual.tee_lat as number}
-                          teeLng={hoyoActual.tee_lng as number}
-                          greenLat={hoyoActual.green_lat as number}
-                          greenLng={hoyoActual.green_lng as number}
-                          greenFrontLat={hoyoActual.green_front_lat}
-                          greenFrontLng={hoyoActual.green_front_lng}
-                          greenBackLat={hoyoActual.green_back_lat}
-                          greenBackLng={hoyoActual.green_back_lng}
-                          flagLat={hoyoActual.flag_lat}
-                          flagLng={hoyoActual.flag_lng}
-                          par={hoyoActual.par}
-                          yardas={hoyoActual.yardas}
-                          indice={hoyoActual.indice_dificultad}
-                          userPosition={burstLocation.position}
-                          className="h-full w-full"
-                          compact
-                        />
+                        <React.Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
+                          <HoleMap
+                            teeLat={hoyoActual.tee_lat as number}
+                            teeLng={hoyoActual.tee_lng as number}
+                            greenLat={hoyoActual.green_lat as number}
+                            greenLng={hoyoActual.green_lng as number}
+                            greenFrontLat={hoyoActual.green_front_lat}
+                            greenFrontLng={hoyoActual.green_front_lng}
+                            greenBackLat={hoyoActual.green_back_lat}
+                            greenBackLng={hoyoActual.green_back_lng}
+                            flagLat={hoyoActual.flag_lat}
+                            flagLng={hoyoActual.flag_lng}
+                            par={hoyoActual.par}
+                            yardas={hoyoActual.yardas}
+                            indice={hoyoActual.indice_dificultad}
+                            userPosition={burstLocation.position}
+                            className="h-full w-full"
+                            compact
+                          />
+                        </React.Suspense>
                       )}
                       <div className="absolute top-3 left-3 z-[1000] bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 shadow-sm pointer-events-none">
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
@@ -596,6 +602,17 @@ const GolfScorecard: React.FC = () => {
                           <span className="material-symbols-outlined text-lg">fullscreen</span>
                         </button>
                         </div>
+                        {rondaActiva && (
+                          <button
+                            onClick={() => setStrategyModalOpen(true)}
+                            className="w-full py-3 bg-[#4a9c40] shadow-sm text-white rounded-xl font-display font-semibold text-sm hover:bg-[#3d8b33] transition-all flex items-center justify-center gap-2"
+                          >
+                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                              auto_awesome
+                            </span>
+                            Ver estrategia
+                          </button>
+                        )}
                       </div>
                     </>
                   ) : hoyoActual.mapa_url ? (
@@ -734,24 +751,26 @@ const GolfScorecard: React.FC = () => {
           )}
           <div className="flex-1 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             {tieneCoordsMapa ? (
-              <HoleMap
-                teeLat={hoyoActual.tee_lat as number}
-                teeLng={hoyoActual.tee_lng as number}
-                greenLat={hoyoActual.green_lat as number}
-                greenLng={hoyoActual.green_lng as number}
-                greenFrontLat={hoyoActual.green_front_lat}
-                greenFrontLng={hoyoActual.green_front_lng}
-                greenBackLat={hoyoActual.green_back_lat}
-                greenBackLng={hoyoActual.green_back_lng}
-                flagLat={hoyoActual.flag_lat}
-                flagLng={hoyoActual.flag_lng}
-                par={hoyoActual.par}
-                yardas={hoyoActual.yardas}
-                indice={hoyoActual.indice_dificultad}
-                userPosition={burstLocation.position}
-                className="w-full h-full"
-                interactive
-              />
+              <React.Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
+                <HoleMap
+                  teeLat={hoyoActual.tee_lat as number}
+                  teeLng={hoyoActual.tee_lng as number}
+                  greenLat={hoyoActual.green_lat as number}
+                  greenLng={hoyoActual.green_lng as number}
+                  greenFrontLat={hoyoActual.green_front_lat}
+                  greenFrontLng={hoyoActual.green_front_lng}
+                  greenBackLat={hoyoActual.green_back_lat}
+                  greenBackLng={hoyoActual.green_back_lng}
+                  flagLat={hoyoActual.flag_lat}
+                  flagLng={hoyoActual.flag_lng}
+                  par={hoyoActual.par}
+                  yardas={hoyoActual.yardas}
+                  indice={hoyoActual.indice_dificultad}
+                  userPosition={burstLocation.position}
+                  className="w-full h-full"
+                  interactive
+                />
+              </React.Suspense>
             ) : mapaUrl ? (
               <img
                 src={mapaUrl}
@@ -788,9 +807,33 @@ const GolfScorecard: React.FC = () => {
                 </span>
                 {burstLocation.status === 'loading' ? 'Ubicando...' : 'Actualizar mi posición'}
               </button>
+              {rondaActiva && (
+                <button
+                  onClick={() => setStrategyModalOpen(true)}
+                  className="w-full py-3 bg-[#4a9c40] shadow-sm text-white rounded-xl font-display font-semibold text-sm hover:bg-[#3d8b33] transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    auto_awesome
+                  </span>
+                  Ver estrategia
+                </button>
+              )}
             </div>
           )}
         </div>
+      )}
+
+      {hoyoActual && (
+        <React.Suspense fallback={null}>
+          <HoleStrategyModal
+            open={strategyModalOpen}
+            onClose={() => setStrategyModalOpen(false)}
+            rondaId={rondaActiva?.id}
+            hoyoId={hoyoActual.id}
+            numeroHoyo={hoyoActual.numero_hoyo}
+            burstLocation={burstLocation}
+          />
+        </React.Suspense>
       )}
     </div>
   );
