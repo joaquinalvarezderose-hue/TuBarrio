@@ -38,13 +38,24 @@ type HoyoMapaRow = {
   green_front_lng: number | null;
   green_back_lat: number | null;
   green_back_lng: number | null;
+  flag_lat: number | null;
+  flag_lng: number | null;
   categoria_dificultad: string | null;
   estrategia_sugerida: string | null;
 };
 
 type CoordsSaved = Pick<
   HoyoMapaRow,
-  'tee_lat' | 'tee_lng' | 'green_lat' | 'green_lng' | 'green_front_lat' | 'green_front_lng' | 'green_back_lat' | 'green_back_lng'
+  | 'tee_lat'
+  | 'tee_lng'
+  | 'green_lat'
+  | 'green_lng'
+  | 'green_front_lat'
+  | 'green_front_lng'
+  | 'green_back_lat'
+  | 'green_back_lng'
+  | 'flag_lat'
+  | 'flag_lng'
 >;
 
 const ALLOWED_MIME_TYPES = ['image/svg+xml', 'image/png', 'image/jpeg'];
@@ -122,6 +133,8 @@ const HoyoMapaFila: React.FC<{
   const [greenFrontLng, setGreenFrontLng] = useState(hoyo.green_front_lng != null ? String(hoyo.green_front_lng) : '');
   const [greenBackLat, setGreenBackLat] = useState(hoyo.green_back_lat != null ? String(hoyo.green_back_lat) : '');
   const [greenBackLng, setGreenBackLng] = useState(hoyo.green_back_lng != null ? String(hoyo.green_back_lng) : '');
+  const [flagLat, setFlagLat] = useState(hoyo.flag_lat != null ? String(hoyo.flag_lat) : '');
+  const [flagLng, setFlagLng] = useState(hoyo.flag_lng != null ? String(hoyo.flag_lng) : '');
   const [savingCoords, setSavingCoords] = useState(false);
   const [coordsError, setCoordsError] = useState<string | null>(null);
   const [coordsMessage, setCoordsMessage] = useState<string | null>(null);
@@ -173,6 +186,8 @@ const HoyoMapaFila: React.FC<{
       green_front_lng: greenFrontLng.trim() === '' ? null : Number(greenFrontLng),
       green_back_lat: greenBackLat.trim() === '' ? null : Number(greenBackLat),
       green_back_lng: greenBackLng.trim() === '' ? null : Number(greenBackLng),
+      flag_lat: flagLat.trim() === '' ? null : Number(flagLat),
+      flag_lng: flagLng.trim() === '' ? null : Number(flagLng),
     };
     for (const [key, value] of Object.entries(parsed)) {
       if (value !== null && Number.isNaN(value)) {
@@ -289,7 +304,8 @@ const HoyoMapaFila: React.FC<{
             Latitud/longitud reales del tee y el green (ej. sacadas de Google Maps). Tee + Green (centro) habilitan el
             mapa satelital interactivo del hoyo; si se dejan vacias, se muestra el mapa estatico subido arriba. Frente
             y fondo del green son opcionales: si se cargan, el jugador ve las 3 distancias (frente/centro/fondo) en
-            vez de una sola.
+            vez de una sola. Bandera es la posicion del pin del dia (distinta del centro fijo del green): opcional,
+            se actualiza cada vez que cambia de lugar.
           </p>
 
           <div className="grid grid-cols-2 gap-2 mb-2">
@@ -308,6 +324,10 @@ const HoyoMapaFila: React.FC<{
             <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Green (fondo) · opcional</p>
             <CoordsField label="Latitud" value={greenBackLat} onChange={setGreenBackLat} />
             <CoordsField label="Longitud" value={greenBackLng} onChange={setGreenBackLng} />
+
+            <p className="col-span-2 text-[11px] font-bold text-slate-400 uppercase mt-1">Bandera (pin del dia) · opcional</p>
+            <CoordsField label="Latitud" value={flagLat} onChange={setFlagLat} />
+            <CoordsField label="Longitud" value={flagLng} onChange={setFlagLng} />
           </div>
 
           {coordsError && <p className="text-xs text-red-600 mb-2">{coordsError}</p>}
@@ -375,7 +395,7 @@ const GolfCanchaForm: React.FC = () => {
       setLoadingHoyosMapas(true);
       const { data, error } = await supabase
         .from('hoyos')
-        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng, green_front_lat, green_front_lng, green_back_lat, green_back_lng, categoria_dificultad, estrategia_sugerida')
+        .select('id, numero_hoyo, par, mapa_url, tee_lat, tee_lng, green_lat, green_lng, green_front_lat, green_front_lng, green_back_lat, green_back_lng, flag_lat, flag_lng, categoria_dificultad, estrategia_sugerida')
         .eq('cancha_id', selectedCanchaId)
         .order('numero_hoyo', { ascending: true });
       if (cancelled) return;

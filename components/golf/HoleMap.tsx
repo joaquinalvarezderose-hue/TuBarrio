@@ -18,6 +18,11 @@ type HoleMapProps = {
   greenFrontLng?: number | null;
   greenBackLat?: number | null;
   greenBackLng?: number | null;
+  // Posicion de la bandera (pin del dia): opcional y distinta de
+  // greenLat/greenLng (centro fijo de referencia del green). Si esta
+  // cargada, se dibuja como un punto aparte en el mapa.
+  flagLat?: number | null;
+  flagLng?: number | null;
   par?: number | null;
   yardas?: number | null;
   indice?: number | null;
@@ -48,6 +53,7 @@ const RING_COLOR = '#3b82f6';
 const TEE_COLOR = '#2563eb';
 const GREEN_COLOR = '#4a9c40';
 const USER_COLOR = '#1a73e8';
+const FLAG_COLOR = '#f59e0b';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -88,6 +94,8 @@ const HoleMap: React.FC<HoleMapProps> = ({
   greenFrontLng = null,
   greenBackLat = null,
   greenBackLng = null,
+  flagLat = null,
+  flagLng = null,
   par,
   yardas,
   indice,
@@ -262,6 +270,33 @@ const HoleMap: React.FC<HoleMapProps> = ({
       }).addTo(map);
     }
 
+    // Bandera (pin del dia): opcional, distinta del centro fijo del green.
+    // Icono en forma de banderin (mismo estilo que la del centro) pero en
+    // un color propio (ambar) para que no se confunda con la referencia fija.
+    if (flagLat != null && flagLng != null) {
+      L.marker([flagLat, flagLng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+            <svg width="16" height="22" viewBox="0 0 16 22" style="display:block;">
+              <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
+              <path d="M8 2 L15 5.5 L8 9 Z" fill="${FLAG_COLOR}" />
+            </svg>
+          </div>`,
+          iconSize: [0, 0],
+        }),
+        interactive: false,
+      }).addTo(map);
+      L.marker([flagLat, flagLng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:translate(-50%, -40px);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Bandera</div>`,
+          iconSize: [0, 0],
+        }),
+        interactive: false,
+      }).addTo(map);
+    }
+
     // Capa aparte para la posicion del jugador: se actualiza en su propio
     // effect (mas abajo) sin volver a montar tee/green/rings.
     userLayerRef.current = L.layerGroup().addTo(map);
@@ -272,7 +307,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       userLayerRef.current = null;
       teeLineRef.current = null;
     };
-  }, [teeLat, teeLng, greenLat, greenLng, greenFrontLat, greenFrontLng, greenBackLat, greenBackLng, interactive]);
+  }, [teeLat, teeLng, greenLat, greenLng, greenFrontLat, greenFrontLng, greenBackLat, greenBackLng, flagLat, flagLng, interactive]);
 
   useEffect(() => {
     const layer = userLayerRef.current;
@@ -377,6 +412,17 @@ const HoleMap: React.FC<HoleMapProps> = ({
   const distanciaFondoYd =
     greenBackLat != null && greenBackLng != null ? distanciaDesdeJugador(greenBackLat, greenBackLng) : null;
   const tieneFrenteFondo = distanciaFrenteYd != null || distanciaFondoYd != null;
+  const tieneBandera = flagLat != null && flagLng != null;
+  const distanciaBanderaYd = tieneBandera ? distanciaDesdeJugador(flagLat as number, flagLng as number) : null;
+  const tieneDetalle = tieneFrenteFondo || tieneBandera;
+  const detalleLabel = [
+    tieneFrenteFondo ? 'frente' : null,
+    'centro',
+    tieneBandera ? 'bandera' : null,
+    tieneFrenteFondo ? 'fondo' : null,
+  ]
+    .filter(Boolean)
+    .join('/');
 
   return (
     <div className={`relative ${className}`}>
@@ -421,35 +467,47 @@ const HoleMap: React.FC<HoleMapProps> = ({
             {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>}
           </div>
         )}
-        {distanciaJugadorYd != null && tieneFrenteFondo && (
+        {distanciaJugadorYd != null && tieneDetalle && (
           <div className={`rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`} style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
             <p className={`font-bold uppercase tracking-wide text-white/80 text-center leading-tight ${compact ? 'text-[7px] mb-0.5' : 'text-[9px] mb-1'}`}>
               {compact ? 'Vos' : 'Tu distancia'}
             </p>
             <div className={`flex items-end ${compact ? 'gap-1.5' : 'gap-2'}`}>
-              <div className="flex flex-col items-center">
-                <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Fr</p>
-                <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
-                  {distanciaFrenteYd ?? '—'}
-                </p>
-              </div>
+              {tieneFrenteFondo && (
+                <div className="flex flex-col items-center">
+                  <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Fr</p>
+                  <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
+                    {distanciaFrenteYd ?? '—'}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col items-center">
                 <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Ce</p>
                 <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
                   {distanciaJugadorYd}
                 </p>
               </div>
-              <div className="flex flex-col items-center">
-                <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Fo</p>
-                <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
-                  {distanciaFondoYd ?? '—'}
-                </p>
-              </div>
+              {tieneBandera && (
+                <div className="flex flex-col items-center">
+                  <p className={`font-bold uppercase ${compact ? 'text-[6px]' : 'text-[8px]'}`} style={{ color: FLAG_COLOR }}>Ba</p>
+                  <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
+                    {distanciaBanderaYd ?? '—'}
+                  </p>
+                </div>
+              )}
+              {tieneFrenteFondo && (
+                <div className="flex flex-col items-center">
+                  <p className={`font-bold uppercase text-white/70 ${compact ? 'text-[6px]' : 'text-[8px]'}`}>Fo</p>
+                  <p className={`font-extrabold tabular-nums text-white whitespace-nowrap ${compact ? 'text-[10px]' : 'text-base'}`}>
+                    {distanciaFondoYd ?? '—'}
+                  </p>
+                </div>
+              )}
             </div>
-            {!compact && <p className="text-[8px] text-white/80 leading-tight text-center mt-1">yd · frente/centro/fondo</p>}
+            {!compact && <p className="text-[8px] text-white/80 leading-tight text-center mt-1">yd · {detalleLabel}</p>}
           </div>
         )}
-        {distanciaJugadorYd != null && !tieneFrenteFondo && (
+        {distanciaJugadorYd != null && !tieneDetalle && (
           <div className={`flex flex-col items-center rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`} style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
             <p className={`font-bold uppercase tracking-wide text-white/80 text-center leading-tight ${compact ? 'text-[7px]' : 'text-[9px]'}`}>
               {compact ? 'Vos' : 'Tu distancia'}

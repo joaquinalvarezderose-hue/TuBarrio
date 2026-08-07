@@ -47,6 +47,8 @@ export type Database = {
           categoria_dificultad: string | null
           created_at: string
           estrategia_sugerida: string | null
+          flag_lat: number | null
+          flag_lng: number | null
           green_back_lat: number | null
           green_back_lng: number | null
           green_front_lat: number | null
@@ -69,6 +71,8 @@ export type Database = {
           categoria_dificultad?: string | null
           created_at?: string
           estrategia_sugerida?: string | null
+          flag_lat?: number | null
+          flag_lng?: number | null
           green_back_lat?: number | null
           green_back_lng?: number | null
           green_front_lat?: number | null
@@ -91,6 +95,8 @@ export type Database = {
           categoria_dificultad?: string | null
           created_at?: string
           estrategia_sugerida?: string | null
+          flag_lat?: number | null
+          flag_lng?: number | null
           green_back_lat?: number | null
           green_back_lng?: number | null
           green_front_lat?: number | null
