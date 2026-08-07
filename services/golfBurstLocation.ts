@@ -10,6 +10,34 @@ export type BurstLocationResult =
   | { status: 'timeout' }
   | { status: 'unsupported' };
 
+function isStandalonePwa(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches === true ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream;
+}
+
+// El texto "habilitalo en la configuracion del navegador" solo tiene sentido
+// si el usuario esta viendo la barra del navegador. Cuando la app corre
+// instalada como PWA (icono en el inicio, sin barra de navegador visible)
+// ese permiso vive en los ajustes del sistema operativo, no en un navegador,
+// asi que el mensaje tiene que apuntar ahi para no confundir al jugador.
+export function getLocationDeniedMessage(): string {
+  if (!isStandalonePwa()) {
+    return 'Permiso de ubicación denegado. Habilitalo en la configuración del navegador.';
+  }
+  if (isIOS()) {
+    return 'Permiso de ubicación denegado. Andá a Ajustes del iPhone → Privacidad y seguridad → Localización, buscá Tu Barrio y habilitalo.';
+  }
+  return 'Permiso de ubicación denegado. Andá a Ajustes del teléfono → Apps → Tu Barrio → Permisos → Ubicación, y habilitalo.';
+}
+
 const BURST_READINGS = 5;
 const BURST_WINDOW_MS = 3000;
 const ACCEPTABLE_ACCURACY_M = 20;

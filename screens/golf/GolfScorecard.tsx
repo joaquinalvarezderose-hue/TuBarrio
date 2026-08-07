@@ -4,6 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
 import { useGolfMapaUrl } from '../../hooks/useGolfMapaUrl';
 import { useBurstLocation } from '../../hooks/useBurstLocation';
+import { getLocationDeniedMessage } from '../../services/golfBurstLocation';
 import HoleMap from '../../components/golf/HoleMap';
 
 type Hoyo = {
@@ -562,7 +563,7 @@ const GolfScorecard: React.FC = () => {
                       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-32px)] flex flex-col items-center gap-2">
                         {burstLocation.status === 'error' && (
                           <p className="text-xs font-semibold text-white bg-red-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-center">
-                            {burstLocation.error === 'denied' && 'Permiso de ubicación denegado. Habilitalo en la configuración del navegador.'}
+                            {burstLocation.error === 'denied' && getLocationDeniedMessage()}
                             {burstLocation.error === 'timeout' && 'No se pudo obtener tu ubicación. Probá de nuevo.'}
                             {burstLocation.error === 'unsupported' && 'Tu navegador no soporta geolocalización.'}
                           </p>
@@ -761,7 +762,7 @@ const GolfScorecard: React.FC = () => {
             >
               {burstLocation.status === 'error' && (
                 <p className="text-xs font-semibold text-white bg-red-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-center">
-                  {burstLocation.error === 'denied' && 'Permiso de ubicación denegado. Habilitalo en la configuración del navegador.'}
+                  {burstLocation.error === 'denied' && getLocationDeniedMessage()}
                   {burstLocation.error === 'timeout' && 'No se pudo obtener tu ubicación. Probá de nuevo.'}
                   {burstLocation.error === 'unsupported' && 'Tu navegador no soporta geolocalización.'}
                 </p>
