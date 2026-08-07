@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Skeleton } from '../../components/Skeleton';
@@ -94,6 +94,8 @@ const GolfScorecard: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mapaFullscreen, setMapaFullscreen] = useState(false);
+  const [mapaCompactoVisible, setMapaCompactoVisible] = useState(false);
+  const mapaCompactoRef = useRef<HTMLDivElement>(null);
   const burstLocation = useBurstLocation();
 
   useEffect(() => {
@@ -235,20 +237,37 @@ const GolfScorecard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holeIdx]);
 
-  // Solo mientras el mapa a pantalla completa esta abierto (que es donde
-  // vive el boton "Actualizar mi posición") mantenemos el chip GPS
-  // "precalentado" en segundo plano, para que el primer burst arranque de
-  // un fix ya afinado en vez de un cold start. Atarlo a esta ventana en vez
-  // de a toda la vista del hoyo evita tener el GPS de alta precision
-  // prendido durante la ronda entera (consume bateria en serio).
+  // Detecta si la tarjeta del mapa chico (embebido en el scroll de la
+  // pantalla) esta realmente asomando en el viewport. El nodo observado no
+  // se desmonta al navegar entre hoyos (mismo div durante toda la vida de
+  // la pantalla), asi que alcanza con reconectar el observer cuando cambia
+  // el hoyo actual para cubrir el primer render en el que aparece.
   useEffect(() => {
-    if (!mapaFullscreen || !tieneCoordsMapa) return;
+    const el = mapaCompactoRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setMapaCompactoVisible(entry.isIntersecting), {
+      threshold: 0,
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hoyoActual?.id]);
+
+  // Mantenemos el chip GPS "precalentado" en segundo plano solo mientras el
+  // mapa (chico embebido o a pantalla completa) esta realmente visible en
+  // pantalla, para que el primer burst arranque de un fix ya afinado en vez
+  // de un cold start. No lo hacemos mientras el mapa esta scrolleado fuera
+  // de vista, en otra pantalla de la app (este efecto se desmonta con el
+  // componente) o con la app en background: consume bateria en serio tener
+  // el GPS de alta precision prendido sin necesidad.
+  useEffect(() => {
+    const mapaVisible = mapaFullscreen || mapaCompactoVisible;
+    if (!mapaVisible || !tieneCoordsMapa) return;
 
     // No confiamos en que el browser suspenda el watch solo por su cuenta
     // al bloquear pantalla (el comportamiento varia entre iOS/Android y no
     // esta garantizado): cortamos el GPS a mano cuando la pagina deja de
     // estar visible y lo retomamos si vuelve a estar visible con el mapa
-    // todavia abierto.
+    // todavia visible.
     const syncWarmupToVisibility = () => {
       if (document.visibilityState === 'visible') burstLocation.startWarmup();
       else burstLocation.stopWarmup();
@@ -261,7 +280,7 @@ const GolfScorecard: React.FC = () => {
       burstLocation.stopWarmup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapaFullscreen, tieneCoordsMapa]);
+  }, [mapaFullscreen, mapaCompactoVisible, tieneCoordsMapa]);
 
   const netoPreview = useMemo(() => {
     if (!hoyoActual || !golpesInput) return null;
@@ -508,7 +527,7 @@ const GolfScorecard: React.FC = () => {
                     que si no, se filtran hacia afuera y compiten con la barra sticky de hoyos
                     (z-30) y la nav inferior de la app (z-50) — con isolate quedan contenidos
                     adentro, sin afectar el orden de apilamiento del resto de la pagina. */}
-                <div className="relative isolate rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/506]">
+                <div ref={mapaCompactoRef} className="relative isolate rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100 aspect-[390/506]">
                   {tieneCoordsMapa ? (
                     <>
                       {/* Mientras esta abierta la pantalla completa no se monta este mapa:
@@ -532,7 +551,20 @@ const GolfScorecard: React.FC = () => {
                         <span className="w-2 h-2 rounded-full bg-[#4a9c40]" />
                         <span className="text-[10px] font-bold uppercase tracking-wide text-[#111813]">Vista del hoyo</span>
                       </div>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-32px)] flex items-center gap-2">
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-32px)] flex flex-col items-center gap-2">
+                        {burstLocation.status === 'error' && (
+                          <p className="text-xs font-semibold text-white bg-red-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-center">
+                            {burstLocation.error === 'denied' && 'Permiso de ubicación denegado. Habilitalo en la configuración del navegador.'}
+                            {burstLocation.error === 'timeout' && 'No se pudo obtener tu ubicación. Probá de nuevo.'}
+                            {burstLocation.error === 'unsupported' && 'Tu navegador no soporta geolocalización.'}
+                          </p>
+                        )}
+                        {burstLocation.status === 'success' && burstLocation.weakSignal && (
+                          <p className="text-xs font-semibold text-white bg-amber-500/90 backdrop-blur-md px-3 py-1.5 rounded-full text-center">
+                            Señal GPS débil, la distancia puede no ser precisa.
+                          </p>
+                        )}
+                        <div className="w-full flex items-center gap-2">
                         <button
                           onClick={() => burstLocation.request()}
                           disabled={burstLocation.status === 'loading'}
@@ -550,6 +582,7 @@ const GolfScorecard: React.FC = () => {
                         >
                           <span className="material-symbols-outlined text-lg">fullscreen</span>
                         </button>
+                        </div>
                       </div>
                     </>
                   ) : hoyoActual.mapa_url ? (
