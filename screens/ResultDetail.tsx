@@ -20,9 +20,7 @@ type HistorialData = {
  sets_json: GameDetail[] | null;
  sets_jugador1: number;
  sets_jugador2: number;
- ganador_perfil_id: string | null;
- jugador1_id: string;
- jugador2_id: string;
+ ganadorIndex: 1 | 2 | null;
  esWo: boolean;
 };
 
@@ -35,6 +33,9 @@ const ResultDetail: React.FC = () => {
  const currentUserId = location.state?.currentUserId as string;
 
  const [historial, setHistorial] = useState<HistorialData | null>(null);
+ const [isParticipant, setIsParticipant] = useState(false);
+ const [userWon, setUserWon] = useState(false);
+ const [userLost, setUserLost] = useState(false);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
 
@@ -46,11 +47,11 @@ const ResultDetail: React.FC = () => {
  return;
  }
 
- // Cargar historial primero: los IDs de los jugadores salen de esta fila,
+ // Cargar historial primero: los IDs de los jugadores/equipos salen de esta fila,
  // asi que la consulta a perfiles no puede dispararse en paralelo con esta.
  const { data: historialData, error: historialError } = await supabase
  .from('torneo_partidos_historial')
- .select('jugador1_perfil_id, jugador2_perfil_id, sets_json, sets_jugador1, sets_jugador2, ganador_perfil_id, es_wo')
+ .select('jugador1_perfil_id, jugador2_perfil_id, sets_json, sets_jugador1, sets_jugador2, ganador_perfil_id, es_wo, equipo1_id, equipo2_id, equipo_ganador_id')
  .eq('partido_id', partidoId)
  .maybeSingle();
 
@@ -61,6 +62,62 @@ const ResultDetail: React.FC = () => {
  return;
  }
 
+ const setsJson = Array.isArray(historialData.sets_json) ? (historialData.sets_json as unknown as GameDetail[]) : null;
+ const esWo = Boolean((historialData as any).es_wo);
+
+ // Partido de dobles: jugador1_perfil_id/jugador2_perfil_id solo guardan el
+ // representante de cada pareja. Hay que resolver ambos integrantes de cada
+ // equipo via torneo_equipos para mostrar los dos nombres y para que el
+ // companero (no representante) tambien vea "GANASTE"/"PERDISTE" en su propio partido.
+ if (historialData.equipo1_id && historialData.equipo2_id) {
+ const { data: equipos, error: equiposError } = await supabase
+ .from('torneo_equipos')
+ .select('id, jugador1_id, jugador2_id')
+ .in('id', [historialData.equipo1_id, historialData.equipo2_id]);
+
+ if (equiposError) throw equiposError;
+
+ const equipoById = Object.fromEntries((equipos || []).map((e: any) => [e.id, e]));
+ const equipo1 = equipoById[historialData.equipo1_id];
+ const equipo2 = equipoById[historialData.equipo2_id];
+
+ const allIds = [equipo1?.jugador1_id, equipo1?.jugador2_id, equipo2?.jugador1_id, equipo2?.jugador2_id].filter(
+ (id): id is string => Boolean(id)
+ );
+ const { data: perfData, error: perfError } = await supabase
+ .from('perfiles')
+ .select('id, nombre_completo')
+ .in('id', allIds.length > 0 ? allIds : ['00000000-0000-0000-0000-000000000000']);
+
+ if (perfError) throw perfError;
+
+ const perfilesMap = Object.fromEntries((perfData || []).map((p: any) => [p.id, p.nombre_completo]));
+
+ const isTeam1 = Boolean(currentUserId) && [equipo1?.jugador1_id, equipo1?.jugador2_id].includes(currentUserId);
+ const isTeam2 = Boolean(currentUserId) && [equipo2?.jugador1_id, equipo2?.jugador2_id].includes(currentUserId);
+ const participant = isTeam1 || isTeam2;
+ const ganadorIndex: 1 | 2 | null =
+ historialData.equipo_ganador_id === historialData.equipo1_id
+ ? 1
+ : historialData.equipo_ganador_id === historialData.equipo2_id
+ ? 2
+ : null;
+ const won = participant && ganadorIndex !== null && ((isTeam1 && ganadorIndex === 1) || (isTeam2 && ganadorIndex === 2));
+ const lost = participant && ganadorIndex !== null && !won;
+
+ setHistorial({
+ jugador1_nombre: `${perfilesMap[equipo1?.jugador1_id] || 'Jugador'} / ${perfilesMap[equipo1?.jugador2_id] || 'Jugador'}`,
+ jugador2_nombre: `${perfilesMap[equipo2?.jugador1_id] || 'Jugador'} / ${perfilesMap[equipo2?.jugador2_id] || 'Jugador'}`,
+ sets_json: setsJson,
+ sets_jugador1: historialData.sets_jugador1 || 0,
+ sets_jugador2: historialData.sets_jugador2 || 0,
+ ganadorIndex,
+ esWo,
+ });
+ setIsParticipant(participant);
+ setUserWon(won);
+ setUserLost(lost);
+ } else {
  const jugadorIds = [historialData.jugador1_perfil_id, historialData.jugador2_perfil_id].filter(
  (id): id is string => Boolean(id)
  );
@@ -73,17 +130,30 @@ const ResultDetail: React.FC = () => {
 
  const perfilesMap = Object.fromEntries((perfData || []).map((p: any) => [p.id, p.nombre_completo]));
 
+ const participant = Boolean(currentUserId) &&
+ (historialData.jugador1_perfil_id === currentUserId || historialData.jugador2_perfil_id === currentUserId);
+ const ganadorIndex: 1 | 2 | null =
+ historialData.ganador_perfil_id === historialData.jugador1_perfil_id
+ ? 1
+ : historialData.ganador_perfil_id === historialData.jugador2_perfil_id
+ ? 2
+ : null;
+ const won = participant && historialData.ganador_perfil_id === currentUserId;
+ const lost = participant && !!historialData.ganador_perfil_id && historialData.ganador_perfil_id !== currentUserId;
+
  setHistorial({
  jugador1_nombre: perfilesMap[historialData.jugador1_perfil_id] || 'Jugador 1',
  jugador2_nombre: perfilesMap[historialData.jugador2_perfil_id] || 'Jugador 2',
- sets_json: Array.isArray(historialData.sets_json) ? (historialData.sets_json as unknown as GameDetail[]) : null,
+ sets_json: setsJson,
  sets_jugador1: historialData.sets_jugador1 || 0,
  sets_jugador2: historialData.sets_jugador2 || 0,
- ganador_perfil_id: historialData.ganador_perfil_id,
- jugador1_id: historialData.jugador1_perfil_id,
- jugador2_id: historialData.jugador2_perfil_id,
- esWo: Boolean((historialData as any).es_wo),
+ ganadorIndex,
+ esWo,
  });
+ setIsParticipant(participant);
+ setUserWon(won);
+ setUserLost(lost);
+ }
  } catch (err) {
  console.error('Error cargando detalle del resultado:', err);
  setError('Hubo un error al cargar el detalle del resultado.');
@@ -93,7 +163,7 @@ const ResultDetail: React.FC = () => {
  };
 
  loadResultDetail();
- }, [partidoId, tournament?.id]);
+ }, [partidoId, tournament?.id, currentUserId]);
 
  const formatSetScore = (set: GameDetail): string => {
  if (set.tb !== undefined) {
@@ -101,11 +171,6 @@ const ResultDetail: React.FC = () => {
  }
  return `${set.p1}-${set.p2}`;
  };
-
- const isParticipant = currentUserId && historial &&
- (historial.jugador1_id === currentUserId || historial.jugador2_id === currentUserId);
- const userWon = isParticipant && historial!.ganador_perfil_id === currentUserId;
- const userLost = isParticipant && !!historial!.ganador_perfil_id && historial!.ganador_perfil_id !== currentUserId;
 
  return (
  <div className="min-h-screen bg-gradient-to-b from-background-light to-background flex flex-col">
@@ -181,7 +246,7 @@ const ResultDetail: React.FC = () => {
  <div className="flex items-center justify-between">
  <span
  className={`text-lg font-bold ${
- historial.ganador_perfil_id === historial.jugador1_id ? 'text-[#4a9c40]' : 'text-[#111813] '
+ historial.ganadorIndex === 1 ? 'text-[#4a9c40]' : 'text-[#111813] '
  }`}
  >
  {historial.jugador1_nombre}
@@ -194,7 +259,7 @@ const ResultDetail: React.FC = () => {
  <div className="flex items-center justify-between">
  <span
  className={`text-lg font-bold ${
- historial.ganador_perfil_id === historial.jugador2_id ? 'text-[#4a9c40]' : 'text-[#111813] '
+ historial.ganadorIndex === 2 ? 'text-[#4a9c40]' : 'text-[#111813] '
  }`}
  >
  {historial.jugador2_nombre}
@@ -203,7 +268,7 @@ const ResultDetail: React.FC = () => {
  </div>
  </div>
 
- {currentUserId && (
+ {currentUserId && isParticipant && (
  <div className="pt-4">
  {userWon && (
  <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
