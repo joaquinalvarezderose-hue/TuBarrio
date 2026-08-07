@@ -99,6 +99,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
+  const teeLineRef = useRef<L.Polyline | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -147,8 +148,10 @@ const HoleMap: React.FC<HoleMapProps> = ({
       if (tilePane) tilePane.style.filter = 'saturate(1.4) contrast(1.1) brightness(1.03)';
     }
 
-    // Linea de juego: tee -> green, punteada.
-    L.polyline(
+    // Linea de juego: tee -> green, punteada. Se oculta apenas hay una
+    // posicion GPS del jugador (segundo effect, mas abajo): a partir de ahi
+    // la referencia util es la linea jugador -> green, no esta.
+    teeLineRef.current = L.polyline(
       [
         [teeLat, teeLng],
         [greenLat, greenLng],
@@ -199,7 +202,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Green</div>`,
+        html: `<div style="transform:translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Centro</div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
@@ -231,6 +234,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
         fillOpacity: 0.65,
         interactive: false,
       }).addTo(map);
+      L.marker([greenFrontLat as number, greenFrontLng as number], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:translate(-50%, -20px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Frente</div>`,
+          iconSize: [0, 0],
+        }),
+        interactive: false,
+      }).addTo(map);
     }
     if (tieneFondo) {
       L.circleMarker([greenBackLat as number, greenBackLng as number], {
@@ -239,6 +250,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
         weight: 2,
         fillColor: GREEN_COLOR,
         fillOpacity: 0.65,
+        interactive: false,
+      }).addTo(map);
+      L.marker([greenBackLat as number, greenBackLng as number], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:translate(-50%, 12px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Fondo</div>`,
+          iconSize: [0, 0],
+        }),
         interactive: false,
       }).addTo(map);
     }
@@ -251,6 +270,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       map.remove();
       mapRef.current = null;
       userLayerRef.current = null;
+      teeLineRef.current = null;
     };
   }, [teeLat, teeLng, greenLat, greenLng, greenFrontLat, greenFrontLng, greenBackLat, greenBackLng, interactive]);
 
@@ -261,6 +281,20 @@ const HoleMap: React.FC<HoleMapProps> = ({
     // el marcador de posicion si habia uno) antes de redibujar desde el
     // origen actual — asi nunca quedan arcos viejos superpuestos.
     layer.clearLayers();
+
+    // La linea tee -> green solo tiene sentido de referencia mientras no se
+    // conoce la posicion real del jugador; una vez que la hay, el tee queda
+    // como un punto mas (mismo marcador, sin la linea) y la referencia pasa
+    // a ser la linea jugador -> green de mas abajo.
+    const map = mapRef.current;
+    const teeLine = teeLineRef.current;
+    if (map && teeLine) {
+      if (userPosition) {
+        if (map.hasLayer(teeLine)) map.removeLayer(teeLine);
+      } else if (!map.hasLayer(teeLine)) {
+        teeLine.addTo(map);
+      }
+    }
 
     const origenLat = userPosition ? userPosition.latitude : teeLat;
     const origenLng = userPosition ? userPosition.longitude : teeLng;
@@ -306,12 +340,20 @@ const HoleMap: React.FC<HoleMapProps> = ({
       { color: USER_COLOR, weight: 3, opacity: 0.9, dashArray: '4 6', lineCap: 'round', interactive: false }
     ).addTo(layer);
 
-    L.circleMarker([latitude, longitude], {
-      radius: 8,
-      color: '#ffffff',
-      weight: 3,
-      fillColor: USER_COLOR,
-      fillOpacity: 1,
+    // Icono de persona (en vez de un punto generico) para que se distinga
+    // de un vistazo del pin del green y del punto del tee.
+    L.marker([latitude, longitude], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="transform:translate(-50%,-50%);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
+          <svg width="26" height="26" viewBox="0 0 26 26" style="display:block;">
+            <circle cx="13" cy="13" r="12" fill="${USER_COLOR}" stroke="#ffffff" stroke-width="2.5" />
+            <circle cx="13" cy="9.5" r="3" fill="#ffffff" />
+            <path d="M7 20c0-3.6 2.7-6 6-6s6 2.4 6 6" fill="#ffffff" />
+          </svg>
+        </div>`,
+        iconSize: [0, 0],
+      }),
       interactive: false,
     }).addTo(layer);
   }, [userPosition, teeLat, teeLng, greenLat, greenLng]);
@@ -370,13 +412,15 @@ const HoleMap: React.FC<HoleMapProps> = ({
             {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">total scorecard</p>}
           </div>
         )}
-        <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
-          <p className={`font-bold uppercase tracking-wide text-slate-400 text-center leading-tight ${compact ? 'text-[7px]' : 'text-[9px]'}`}>
-            {compact ? 'Recta' : 'Distancia recta'}
-          </p>
-          <p className={`font-extrabold tabular-nums text-[#111813] whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>{distanciaRectaYd} yd</p>
-          {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>}
-        </div>
+        {!userPosition && (
+          <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
+            <p className={`font-bold uppercase tracking-wide text-slate-400 text-center leading-tight ${compact ? 'text-[7px]' : 'text-[9px]'}`}>
+              {compact ? 'Recta' : 'Distancia recta'}
+            </p>
+            <p className={`font-extrabold tabular-nums text-[#111813] whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>{distanciaRectaYd} yd</p>
+            {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>}
+          </div>
+        )}
         {distanciaJugadorYd != null && tieneFrenteFondo && (
           <div className={`rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`} style={{ backgroundColor: 'rgba(26,115,232,0.9)' }}>
             <p className={`font-bold uppercase tracking-wide text-white/80 text-center leading-tight ${compact ? 'text-[7px] mb-0.5' : 'text-[9px] mb-1'}`}>
