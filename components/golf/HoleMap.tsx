@@ -205,6 +205,44 @@ const HoleMap: React.FC<HoleMapProps> = ({
       interactive: false,
     }).addTo(map);
 
+    // Frente/fondo del green: opcionales. Mismo color que la bandera
+    // (GREEN_COLOR) pero mas chicos/tenues que el pin, para que se lean
+    // como "bordes del green" y no compitan con el marcador principal. La
+    // linea que los une, si estan los dos, da el eje de profundidad del
+    // green de un vistazo.
+    const tieneFrente = greenFrontLat != null && greenFrontLng != null;
+    const tieneFondo = greenBackLat != null && greenBackLng != null;
+
+    if (tieneFrente && tieneFondo) {
+      L.polyline(
+        [
+          [greenFrontLat as number, greenFrontLng as number],
+          [greenBackLat as number, greenBackLng as number],
+        ],
+        { color: GREEN_COLOR, weight: 2, opacity: 0.55, dashArray: '1 6', lineCap: 'round', interactive: false }
+      ).addTo(map);
+    }
+    if (tieneFrente) {
+      L.circleMarker([greenFrontLat as number, greenFrontLng as number], {
+        radius: 5,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: GREEN_COLOR,
+        fillOpacity: 0.65,
+        interactive: false,
+      }).addTo(map);
+    }
+    if (tieneFondo) {
+      L.circleMarker([greenBackLat as number, greenBackLng as number], {
+        radius: 5,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: GREEN_COLOR,
+        fillOpacity: 0.65,
+        interactive: false,
+      }).addTo(map);
+    }
+
     // Capa aparte para la posicion del jugador: se actualiza en su propio
     // effect (mas abajo) sin volver a montar tee/green/rings.
     userLayerRef.current = L.layerGroup().addTo(map);
@@ -214,7 +252,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       mapRef.current = null;
       userLayerRef.current = null;
     };
-  }, [teeLat, teeLng, greenLat, greenLng, interactive]);
+  }, [teeLat, teeLng, greenLat, greenLng, greenFrontLat, greenFrontLng, greenBackLat, greenBackLng, interactive]);
 
   useEffect(() => {
     const layer = userLayerRef.current;

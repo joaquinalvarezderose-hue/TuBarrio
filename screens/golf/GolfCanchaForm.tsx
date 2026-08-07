@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import distance from '@turf/distance';
+import { point } from '@turf/helpers';
 import { supabase } from '../../services/supabaseClient';
 import { useRequireRole } from '../../hooks/useRequireRole';
 import { Skeleton } from '../../components/Skeleton';
@@ -175,6 +177,19 @@ const HoyoMapaFila: React.FC<{
     for (const [key, value] of Object.entries(parsed)) {
       if (value !== null && Number.isNaN(value)) {
         setCoordsError(`Coordenada invalida en "${key}".`);
+        return;
+      }
+    }
+
+    // Chequeo simple de sentido geografico: el frente del green tiene que
+    // quedar mas cerca del tee que el fondo (si no, seguramente se cargaron
+    // las coordenadas al reves). Solo aplica si estan los 3 puntos.
+    if (parsed.tee_lat != null && parsed.tee_lng != null && parsed.green_front_lat != null && parsed.green_front_lng != null && parsed.green_back_lat != null && parsed.green_back_lng != null) {
+      const teePoint = point([parsed.tee_lng, parsed.tee_lat]);
+      const distFrente = distance(teePoint, point([parsed.green_front_lng, parsed.green_front_lat]), { units: 'kilometers' });
+      const distFondo = distance(teePoint, point([parsed.green_back_lng, parsed.green_back_lat]), { units: 'kilometers' });
+      if (distFrente >= distFondo) {
+        setCoordsError('El frente del green deberia estar mas cerca del tee que el fondo. Revisa si las coordenadas estan invertidas.');
         return;
       }
     }
