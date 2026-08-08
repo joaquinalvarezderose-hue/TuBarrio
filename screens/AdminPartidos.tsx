@@ -3,12 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
 import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
+import { useTorneoAdminActions } from '../hooks/useTorneoAdminActions';
 import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
 const getGrupoCategoria = (g: GrupoOption) => g.categoria;
 const getGrupoGrupo = (g: GrupoOption) => g.grupo;
+
+type SetInput = { p1: string; p2: string };
+const EMPTY_SETS: SetInput[] = [{ p1: '', p2: '' }, { p1: '', p2: '' }, { p1: '', p2: '' }];
+
+type SetEval =
+  | { state: 'empty' }
+  | { state: 'invalid' }
+  | { state: 'valid'; p1: number; p2: number };
+
+const evaluateSet = (s: SetInput): SetEval => {
+  const p1Raw = s.p1.trim();
+  const p2Raw = s.p2.trim();
+  if (p1Raw === '' && p2Raw === '') return { state: 'empty' };
+  const p1 = Number(p1Raw);
+  const p2 = Number(p2Raw);
+  if (p1Raw === '' || p2Raw === '' || !Number.isFinite(p1) || !Number.isFinite(p2) || p1 === p2) {
+    return { state: 'invalid' };
+  }
+  return { state: 'valid', p1, p2 };
+};
 
 type PartidoRow = {
   id: string;
@@ -40,6 +61,11 @@ const AdminPartidos: React.FC = () => {
   const [woPerdedorId, setWoPerdedorId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const { forzarResultado } = useTorneoAdminActions(activeTorneo);
+  const [resultadoModalPartido, setResultadoModalPartido] = useState<PartidoRow | null>(null);
+  const [resultadoSets, setResultadoSets] = useState<SetInput[]>(EMPTY_SETS);
+  const [resultadoMotivo, setResultadoMotivo] = useState('');
 
   useEffect(() => {
     if (!loading && !authUser) {
@@ -192,6 +218,66 @@ const AdminPartidos: React.FC = () => {
     loadPartidos();
   };
 
+  const openResultadoModal = (partido: PartidoRow) => {
+    setFeedback(null);
+    setResultadoSets(EMPTY_SETS.map((s) => ({ ...s })));
+    setResultadoMotivo('');
+    setResultadoModalPartido(partido);
+  };
+
+  const closeResultadoModal = () => {
+    setResultadoModalPartido(null);
+    setResultadoSets(EMPTY_SETS.map((s) => ({ ...s })));
+    setResultadoMotivo('');
+  };
+
+  const updateResultadoSet = (index: number, player: 'p1' | 'p2', value: string) => {
+    setResultadoSets((prev) => prev.map((s, idx) => (idx === index ? { ...s, [player]: value } : s)));
+  };
+
+  const resultadoSetEvals = resultadoSets.map(evaluateSet);
+  const resultadoTieneEntradaInvalida = resultadoSetEvals.some((ev) => ev.state === 'invalid');
+  const resultadoValida = resultadoSetEvals[0].state === 'valid' && resultadoSetEvals[1].state === 'valid' && !resultadoTieneEntradaInvalida;
+  let resultadoSetsJugador1 = 0;
+  let resultadoSetsJugador2 = 0;
+  const resultadoSetsJson: Array<{ p1: number; p2: number }> = [];
+  resultadoSetEvals.forEach((ev) => {
+    if (ev.state === 'valid') {
+      if (ev.p1 > ev.p2) resultadoSetsJugador1 += 1;
+      else resultadoSetsJugador2 += 1;
+      resultadoSetsJson.push({ p1: ev.p1, p2: ev.p2 });
+    }
+  });
+  const resultadoGanadorClaro = resultadoValida
+    && resultadoSetsJugador1 !== resultadoSetsJugador2
+    && (resultadoSetsJugador1 >= 2 || resultadoSetsJugador2 >= 2);
+  const resultadoGanadorId = resultadoGanadorClaro && resultadoModalPartido
+    ? (resultadoSetsJugador1 > resultadoSetsJugador2 ? resultadoModalPartido.jugador1_id : resultadoModalPartido.jugador2_id)
+    : null;
+  const resultadoTieneEntradas = resultadoSets.some((s) => s.p1.trim() !== '' || s.p2.trim() !== '');
+
+  const confirmResultado = async () => {
+    if (!resultadoModalPartido || !resultadoGanadorId || resultadoSetsJson.length === 0) return;
+
+    setSubmitting(true);
+    const result = await forzarResultado(
+      resultadoModalPartido.id,
+      resultadoGanadorId,
+      resultadoSetsJson,
+      resultadoMotivo.trim() || undefined
+    );
+    setSubmitting(false);
+
+    if (!result.ok) {
+      setFeedback(`Error: ${result.error}`);
+      return;
+    }
+
+    setFeedback(String(result.data));
+    closeResultadoModal();
+    loadPartidos();
+  };
+
   if (loading || !authUser || !perfil) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-100">
@@ -319,13 +405,22 @@ const AdminPartidos: React.FC = () => {
                         )}
                       </p>
                     </div>
-                    <button
-                      onClick={() => openWoModal(p)}
-                      disabled={!p.jugador1_id || !p.jugador2_id}
-                      className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 px-3 rounded-lg disabled:opacity-40 transition"
-                    >
-                      Marcar W.O.
-                    </button>
+                    <div className="shrink-0 flex flex-col gap-1.5">
+                      <button
+                        onClick={() => openResultadoModal(p)}
+                        disabled={!p.jugador1_id || !p.jugador2_id}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg disabled:opacity-40 transition"
+                      >
+                        Cargar resultado
+                      </button>
+                      <button
+                        onClick={() => openWoModal(p)}
+                        disabled={!p.jugador1_id || !p.jugador2_id}
+                        className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 px-3 rounded-lg disabled:opacity-40 transition"
+                      >
+                        Marcar W.O.
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -384,6 +479,77 @@ const AdminPartidos: React.FC = () => {
                 className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 transition"
               >
                 {submitting ? 'Guardando...' : 'Confirmar W.O.'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resultadoModalPartido && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
+            <h3 className="font-bold text-slate-900 mb-1">Cargar resultado</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              {resultadoModalPartido.jugador1_nombre} vs {resultadoModalPartido.jugador2_nombre}
+            </p>
+
+            {resultadoModalPartido.estado === 'finalizado' && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-4">
+                Este partido ya tiene un resultado cargado{resultadoModalPartido.es_wo ? ' (W.O.)' : ''}. Cargar un resultado nuevo lo sobrescribe.
+              </p>
+            )}
+
+            <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-slate-500 mb-1">
+              <span></span>
+              <span className="truncate">{resultadoModalPartido.jugador1_nombre}</span>
+              <span className="truncate">{resultadoModalPartido.jugador2_nombre}</span>
+            </div>
+            {resultadoSets.map((set, i) => (
+              <div key={i} className="grid grid-cols-3 gap-2 items-center mb-2">
+                <span className="text-xs text-slate-500">Set {i + 1}{i === 2 ? ' (opc.)' : ''}</span>
+                <input
+                  type="number"
+                  value={set.p1}
+                  onChange={(e) => updateResultadoSet(i, 'p1', e.target.value)}
+                  className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm w-full"
+                />
+                <input
+                  type="number"
+                  value={set.p2}
+                  onChange={(e) => updateResultadoSet(i, 'p2', e.target.value)}
+                  className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm w-full"
+                />
+              </div>
+            ))}
+
+            {!resultadoGanadorClaro && resultadoTieneEntradas && (
+              <p className="text-xs text-red-600 mb-3">
+                Cargá un resultado válido: sin empates dentro de un set, con Set 1 y Set 2 completos y un ganador claro (Set 3 solo si hace falta para desempatar).
+              </p>
+            )}
+
+            <input
+              type="text"
+              placeholder="Motivo (opcional)"
+              value={resultadoMotivo}
+              onChange={(e) => setResultadoMotivo(e.target.value)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4"
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={closeResultadoModal}
+                disabled={submitting}
+                className="flex-1 border border-slate-200 text-slate-700 font-semibold py-2 rounded-lg text-sm disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmResultado}
+                disabled={submitting || !resultadoGanadorClaro}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 transition"
+              >
+                {submitting ? 'Guardando...' : 'Confirmar resultado'}
               </button>
             </div>
           </div>
