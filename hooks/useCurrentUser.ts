@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { isAuthSessionMissingError } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 import type { Database } from '../types/database.types';
 
@@ -57,6 +58,16 @@ function useCurrentUserState(): CurrentUserState {
     setError(null);
     try {
       let { data, error: authErr } = await supabase.auth.getUser();
+
+      // Sin sesion en absoluto (visitante nuevo/deslogueado): no hay nada que
+      // refrescar, evita un segundo round-trip de red que iba a fallar igual.
+      if (authErr && isAuthSessionMissingError(authErr)) {
+        if (requestId !== requestIdRef.current) return;
+        setAuthUser(null);
+        setPerfil(null);
+        localStorage.removeItem(PERFIL_CACHE_KEY);
+        return;
+      }
 
       if (authErr || !data?.user) {
         const { data: refreshed } = await supabase.auth.refreshSession();

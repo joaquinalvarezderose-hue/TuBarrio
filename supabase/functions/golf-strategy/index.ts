@@ -34,7 +34,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
 const BUCKET_YD = 15;
 const WEAK_GPS_ACCURACY_M = 20; // mismo umbral que ACCEPTABLE_ACCURACY_M en golfBurstLocation.ts
 const HARD_REJECT_ACCURACY_M = 150; // por encima de esto no vale la pena ni llamar a la IA
-const MODEL = 'claude-haiku-4-5';
+const MODEL = 'claude-haiku-4-5-20251001';
 const YD_PER_M = 1.0936133;
 
 function jsonResponse(status: number, body: unknown, origin: string | null): Response {

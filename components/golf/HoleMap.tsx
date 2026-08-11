@@ -99,27 +99,6 @@ function etiquetaTexto(texto: string, rotationDeg: number, color = '#ffffff'): L
   });
 }
 
-// Etiqueta de viento: velocidad + flecha, pegada a la bandera. El wrapper
-// externo usa la misma contra-rotacion que etiquetaTexto (rota derecho pese
-// al contenedor rotado) — eso deja, para todo lo que va adentro, un espacio
-// equivalente a "pantalla sin rotar". La flecha aprovecha eso: en vez de
-// contra-rotar como el texto, se rota directamente a `directionDeg + 180`
-// (direccion real hacia donde sopla el viento) sin sumar/restar
-// `rotationDeg` de nuevo, porque el wrapper ya canceló la rotación ambiente.
-function etiquetaViento(speedKmh: number, directionDeg: number, rotationDeg: number): L.DivIcon {
-  const arrowRotation = (directionDeg + 180) % 360;
-  return L.divIcon({
-    className: '',
-    html: `<div style="transform:rotate(${rotationDeg}deg) translate(-50%,-58px);display:flex;align-items:center;gap:3px;white-space:nowrap;">
-      <svg width="14" height="14" viewBox="0 0 24 24" style="display:block;transform:rotate(${arrowRotation}deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.85));">
-        <path d="M12 2 L19 21 L12 16.5 L5 21 Z" fill="${WIND_COLOR}" />
-      </svg>
-      <span style="color:${WIND_COLOR};font-size:12px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">${Math.round(speedKmh)} km/h</span>
-    </div>`,
-    iconSize: [0, 0],
-  });
-}
-
 const HoleMap: React.FC<HoleMapProps> = ({
   teeLat,
   teeLng,
@@ -142,11 +121,10 @@ const HoleMap: React.FC<HoleMapProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
-  const windLayerRef = useRef<L.LayerGroup | null>(null);
   const teeLineRef = useRef<L.Polyline | null>(null);
   // Coordenadas de la bandera que se esta mostrando (pin del dia si esta
-  // cargado, si no el centro del green) — es donde se pide el viento y donde
-  // se ancla su etiqueta.
+  // cargado, si no el centro del green) — es donde se pide el viento para
+  // la ficha "Viento" del panel de datos.
   const windLat = flagLat ?? greenLat;
   const windLng = flagLng ?? greenLng;
   const windData = useGolfWindData(windLat, windLng);
@@ -415,31 +393,17 @@ const HoleMap: React.FC<HoleMapProps> = ({
       }).addTo(map);
     }
 
-    // Capas aparte para la posicion del jugador y el viento: se actualizan en
-    // sus propios effects (mas abajo) sin volver a montar tee/green/rings.
+    // Capa aparte para la posicion del jugador: se actualiza en su propio
+    // effect (mas abajo) sin volver a montar tee/green/rings.
     userLayerRef.current = L.layerGroup().addTo(map);
-    windLayerRef.current = L.layerGroup().addTo(map);
 
     return () => {
       map.remove();
       mapRef.current = null;
       userLayerRef.current = null;
-      windLayerRef.current = null;
       teeLineRef.current = null;
     };
   }, [teeLat, teeLng, greenLat, greenLng, greenFrontLat, greenFrontLng, greenBackLat, greenBackLng, flagLat, flagLng, interactive]);
-
-  useEffect(() => {
-    const layer = windLayerRef.current;
-    if (!layer) return;
-    layer.clearLayers();
-    if (!windData || windLat == null || windLng == null) return;
-
-    L.marker([windLat, windLng], {
-      icon: etiquetaViento(windData.speedKmh, windData.directionDeg, rotationRef.current),
-      interactive: false,
-    }).addTo(layer);
-  }, [windData, windLat, windLng]);
 
   useEffect(() => {
     const layer = userLayerRef.current;
@@ -602,6 +566,24 @@ const HoleMap: React.FC<HoleMapProps> = ({
             </p>
             <p className={`font-extrabold tabular-nums text-[#111813] whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>{distanciaRectaYd} yd</p>
             {!compact && <p className="text-[8px] text-slate-400 leading-tight text-center">tee → green</p>}
+          </div>
+        )}
+        {windData && (
+          <div className={`flex flex-col items-center bg-white/90 backdrop-blur-md rounded-xl shadow-sm ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}>
+            <p className={`font-bold uppercase tracking-wide text-slate-400 ${compact ? 'text-[7px]' : 'text-[9px]'}`}>Viento</p>
+            <div className="flex items-center gap-1">
+              <svg
+                width={compact ? 8 : 10}
+                height={compact ? 8 : 10}
+                viewBox="0 0 24 24"
+                style={{ transform: `rotate(${(windData.directionDeg + 180) % 360}deg)`, flexShrink: 0 }}
+              >
+                <path d="M12 2 L19 21 L12 16.5 L5 21 Z" fill={WIND_COLOR} />
+              </svg>
+              <p className={`font-extrabold tabular-nums text-[#111813] whitespace-nowrap ${compact ? 'text-xs' : 'text-lg'}`}>
+                {Math.round(windData.speedKmh)} km/h
+              </p>
+            </div>
           </div>
         )}
         {distanciaJugadorYd != null && tieneDetalle && (
