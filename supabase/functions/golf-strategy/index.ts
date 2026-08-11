@@ -273,6 +273,9 @@ Deno.serve(async (req: Request) => {
         error: {
           code: status === 429 ? 'rate_limited' : 'ai_error',
           message: status === 429 ? 'Demasiados pedidos, esperá unos segundos.' : 'No se pudo generar la estrategia. Intentá de nuevo.',
+          // DEBUG TEMPORAL: sacar este campo despues de diagnosticar.
+          debug_upstream_status: anthropicRes.status,
+          debug_upstream_body: detail.slice(0, 500),
         },
       },
       origin,
