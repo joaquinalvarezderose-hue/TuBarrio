@@ -21,31 +21,40 @@ async function killStaleServiceWorkers(): Promise<boolean> {
   return wasControlled && registrations.length > 0;
 }
 
-async function bootstrap() {
-  try {
-    const hadStaleServiceWorker = await killStaleServiceWorkers();
-
-    if (hadStaleServiceWorker && !sessionStorage.getItem(RELOAD_FLAG)) {
-      sessionStorage.setItem(RELOAD_FLAG, '1');
-      window.location.reload();
-      return;
-    }
-
-    const rootElement = document.getElementById('root');
-    if (rootElement) {
-      const root = ReactDOM.createRoot(rootElement);
-      root.render(React.createElement(App));
-    }
-  } catch (error) {
-    console.error('[index.tsx] ERROR:', error);
-    document.body.innerHTML = `<div style="color: red; padding: 20px; font-size: 16px;">
-      <strong>ERROR:</strong><br/>
-      ${String(error)}<br/><br/>
-      <pre style="overflow: auto; background: #f0f0f0; padding: 10px;">
-      ${error instanceof Error ? error.stack : 'No stack trace'}
-      </pre>
-    </div>`;
+function mount() {
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(React.createElement(App));
   }
 }
 
-void bootstrap();
+// Corre en paralelo al mount, no antes: para la enorme mayoria de visitas (sin
+// service worker viejo instalado) esto no encuentra nada que limpiar, asi que
+// no tiene sentido demorar el primer render esperando esta verificacion.
+async function cleanupStaleServiceWorkers() {
+  try {
+    const hadStaleServiceWorker = await killStaleServiceWorkers();
+    if (hadStaleServiceWorker && !sessionStorage.getItem(RELOAD_FLAG)) {
+      sessionStorage.setItem(RELOAD_FLAG, '1');
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error('[index.tsx] SW cleanup error:', error);
+  }
+}
+
+try {
+  mount();
+} catch (error) {
+  console.error('[index.tsx] ERROR:', error);
+  document.body.innerHTML = `<div style="color: red; padding: 20px; font-size: 16px;">
+    <strong>ERROR:</strong><br/>
+    ${String(error)}<br/><br/>
+    <pre style="overflow: auto; background: #f0f0f0; padding: 10px;">
+    ${error instanceof Error ? error.stack : 'No stack trace'}
+    </pre>
+  </div>`;
+}
+
+void cleanupStaleServiceWorkers();

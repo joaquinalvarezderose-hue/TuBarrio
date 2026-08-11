@@ -2,35 +2,41 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './screens/Dashboard';
-import Register from './screens/Register';
-import Login from './screens/Login';
-import ResetPassword from './screens/ResetPassword';
-import Services from './screens/Services';
-import ServiceDetail from './screens/ServiceDetail';
-import RecommendProfessional from './screens/RecommendProfessional';
-import Tournaments from './screens/Tournaments';
-import TournamentDetails from './screens/TournamentDetails';
-import TournamentPanel from './screens/TournamentPanel';
-import Fixture from './screens/Fixture';
-import Standings from './screens/Standings';
-import MatchResult from './screens/MatchResult';
-import ResultDetail from './screens/ResultDetail';
-import Rules from './screens/Rules';
-import Profile from './screens/Profile';
-import Domicilio from './screens/Domicilio';
-import Payment from './screens/Payment';
-import Confirmation from './screens/Confirmation';
-import Ayuda from './screens/Ayuda';
-import TermsAndConditions from './screens/TermsAndConditions';
-import CompleteProfile from './screens/CompleteProfile';
-import CoordinarPartido from './screens/CoordinarPartido';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
-import Welcome from './screens/Welcome';
 import { SkeletonCard } from './components/Skeleton';
 import { useCurrentUser } from './hooks/useCurrentUser';
 import { supabase } from './services/supabaseClient';
 import type { PendingIntent } from './types/intent';
+
+// Todas las pantallas salvo Dashboard (la ruta "/") se cargan bajo demanda:
+// cada visitante nuevo solo debe bajar el codigo de la pantalla que realmente
+// va a ver, no las ~15k lineas combinadas de todas las pantallas de la app
+// (algunas, como MatchResult/TournamentPanel/CoordinarPartido, son enormes y
+// las usa una minoria de usuarios en un momento dado).
+const Register = lazy(() => import('./screens/Register'));
+const Login = lazy(() => import('./screens/Login'));
+const ResetPassword = lazy(() => import('./screens/ResetPassword'));
+const Services = lazy(() => import('./screens/Services'));
+const ServiceDetail = lazy(() => import('./screens/ServiceDetail'));
+const RecommendProfessional = lazy(() => import('./screens/RecommendProfessional'));
+const Tournaments = lazy(() => import('./screens/Tournaments'));
+const TournamentDetails = lazy(() => import('./screens/TournamentDetails'));
+const TournamentPanel = lazy(() => import('./screens/TournamentPanel'));
+const Fixture = lazy(() => import('./screens/Fixture'));
+const Standings = lazy(() => import('./screens/Standings'));
+const MatchResult = lazy(() => import('./screens/MatchResult'));
+const ResultDetail = lazy(() => import('./screens/ResultDetail'));
+const Rules = lazy(() => import('./screens/Rules'));
+const Profile = lazy(() => import('./screens/Profile'));
+const Domicilio = lazy(() => import('./screens/Domicilio'));
+const Payment = lazy(() => import('./screens/Payment'));
+const Confirmation = lazy(() => import('./screens/Confirmation'));
+const Ayuda = lazy(() => import('./screens/Ayuda'));
+const TermsAndConditions = lazy(() => import('./screens/TermsAndConditions'));
+const CompleteProfile = lazy(() => import('./screens/CompleteProfile'));
+const CoordinarPartido = lazy(() => import('./screens/CoordinarPartido'));
+const Welcome = lazy(() => import('./screens/Welcome'));
 
 // Admin/organizador y modulo de golf: pantallas grandes, visitadas por una
 // minoria de usuarios (admins/organizadores, o solo durante torneos de golf).

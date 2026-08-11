@@ -2,7 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { Database } from '../types/database.types';
 
-export type Perfil = Database['public']['Tables']['perfiles']['Row'];
+// Solo las columnas que efectivamente se leen en la app — evita traer created_at/
+// updated_at (sin uso en UI) en la consulta que corre en cada carga inicial.
+export type Perfil = Pick<
+  Database['public']['Tables']['perfiles']['Row'],
+  | 'id'
+  | 'email'
+  | 'nombre_completo'
+  | 'whatsapp'
+  | 'rol'
+  | 'handicap'
+  | 'barrio'
+  | 'sector'
+  | 'calle'
+  | 'numero_altura'
+  | 'lote'
+  | 'localidad'
+>;
 
 export interface AuthUser {
   id: string;
@@ -73,7 +89,7 @@ export function useCurrentUser(): CurrentUserState {
 
       const { data: profileData, error: profileErr } = await supabase
         .from('perfiles')
-        .select('*')
+        .select('id, email, nombre_completo, whatsapp, rol, handicap, barrio, sector, calle, numero_altura, lote, localidad')
         .eq('id', data.user.id)
         .maybeSingle();
 
