@@ -5,6 +5,7 @@ import distance from '@turf/distance';
 import bearing from '@turf/bearing';
 import destination from '@turf/destination';
 import { point } from '@turf/helpers';
+import { useGolfWindData } from '../../hooks/useGolfWindData';
 
 type HoleMapProps = {
   teeLat: number;
@@ -62,6 +63,7 @@ const TEE_COLOR = '#2563eb';
 const GREEN_COLOR = '#4a9c40';
 const USER_COLOR = '#1a73e8';
 const FLAG_COLOR = '#f59e0b';
+const WIND_COLOR = '#38bdf8';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -97,6 +99,27 @@ function etiquetaTexto(texto: string, rotationDeg: number, color = '#ffffff'): L
   });
 }
 
+// Etiqueta de viento: velocidad + flecha, pegada a la bandera. El wrapper
+// externo usa la misma contra-rotacion que etiquetaTexto (rota derecho pese
+// al contenedor rotado) — eso deja, para todo lo que va adentro, un espacio
+// equivalente a "pantalla sin rotar". La flecha aprovecha eso: en vez de
+// contra-rotar como el texto, se rota directamente a `directionDeg + 180`
+// (direccion real hacia donde sopla el viento) sin sumar/restar
+// `rotationDeg` de nuevo, porque el wrapper ya canceló la rotación ambiente.
+function etiquetaViento(speedKmh: number, directionDeg: number, rotationDeg: number): L.DivIcon {
+  const arrowRotation = (directionDeg + 180) % 360;
+  return L.divIcon({
+    className: '',
+    html: `<div style="transform:rotate(${rotationDeg}deg) translate(-50%,-58px);display:flex;align-items:center;gap:3px;white-space:nowrap;">
+      <svg width="14" height="14" viewBox="0 0 24 24" style="display:block;transform:rotate(${arrowRotation}deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.85));">
+        <path d="M12 2 L19 21 L12 16.5 L5 21 Z" fill="${WIND_COLOR}" />
+      </svg>
+      <span style="color:${WIND_COLOR};font-size:12px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">${Math.round(speedKmh)} km/h</span>
+    </div>`,
+    iconSize: [0, 0],
+  });
+}
+
 const HoleMap: React.FC<HoleMapProps> = ({
   teeLat,
   teeLng,
@@ -119,7 +142,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
+  const windLayerRef = useRef<L.LayerGroup | null>(null);
   const teeLineRef = useRef<L.Polyline | null>(null);
+  // Coordenadas de la bandera que se esta mostrando (pin del dia si esta
+  // cargado, si no el centro del green) — es donde se pide el viento y donde
+  // se ancla su etiqueta.
+  const windLat = flagLat ?? greenLat;
+  const windLng = flagLng ?? greenLng;
+  const windData = useGolfWindData(windLat, windLng);
   // Rumbo tee->green en grados, calculado en el primer efecto: rota el
   // contenedor del mapa y contra-rota cada etiqueta de texto. Vive en un ref
   // (en vez de recalcularse) para que el segundo efecto (arcos + posicion
@@ -385,17 +415,31 @@ const HoleMap: React.FC<HoleMapProps> = ({
       }).addTo(map);
     }
 
-    // Capa aparte para la posicion del jugador: se actualiza en su propio
-    // effect (mas abajo) sin volver a montar tee/green/rings.
+    // Capas aparte para la posicion del jugador y el viento: se actualizan en
+    // sus propios effects (mas abajo) sin volver a montar tee/green/rings.
     userLayerRef.current = L.layerGroup().addTo(map);
+    windLayerRef.current = L.layerGroup().addTo(map);
 
     return () => {
       map.remove();
       mapRef.current = null;
       userLayerRef.current = null;
+      windLayerRef.current = null;
       teeLineRef.current = null;
     };
   }, [teeLat, teeLng, greenLat, greenLng, greenFrontLat, greenFrontLng, greenBackLat, greenBackLng, flagLat, flagLng, interactive]);
+
+  useEffect(() => {
+    const layer = windLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    if (!windData || windLat == null || windLng == null) return;
+
+    L.marker([windLat, windLng], {
+      icon: etiquetaViento(windData.speedKmh, windData.directionDeg, rotationRef.current),
+      interactive: false,
+    }).addTo(layer);
+  }, [windData, windLat, windLng]);
 
   useEffect(() => {
     const layer = userLayerRef.current;

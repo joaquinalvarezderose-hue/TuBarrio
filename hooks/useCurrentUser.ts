@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { Database } from '../types/database.types';
 
@@ -44,16 +44,7 @@ function readPerfilCache(): Perfil | null {
   }
 }
 
-/**
- * Fuente única de verdad para el usuario autenticado actual.
- *
- * Usa supabase.auth.getUser() — que valida el JWT contra el servidor — en lugar de
- * confiar en localStorage. Esto evita que un atacante con DevTools / XSS pueda
- * suplantar la identidad modificando localStorage['app_user'].
- *
- * El perfil sigue siendo legible por RLS: solo el dueño + admins ven datos completos.
- */
-export function useCurrentUser(): CurrentUserState {
+function useCurrentUserState(): CurrentUserState {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(readPerfilCache);
   const [loading, setLoading] = useState(true);
@@ -147,4 +138,37 @@ export function useCurrentUser(): CurrentUserState {
   }, []);
 
   return { authUser, perfil, loading, error, refresh: load };
+}
+
+const CurrentUserContext = createContext<CurrentUserState | null>(null);
+
+/**
+ * Corre useCurrentUserState() una unica vez para toda la app. Sin esto, cada
+ * pantalla/hook que llama useCurrentUser() (Dashboard, Profile, AdminPanel,
+ * useRequireRole, useRequireAuth, ...) dispara su propia ronda independiente
+ * de getUser()/refreshSession()/select perfiles — en la carga inicial de "/"
+ * por ejemplo, App.tsx y Dashboard.tsx corrian esto por duplicado en paralelo,
+ * compitiendo por el mismo refresh de sesion (el cliente de Supabase serializa
+ * refreshes concurrentes) y multiplicando la demora hasta mostrar contenido.
+ */
+export const CurrentUserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const state = useCurrentUserState();
+  return React.createElement(CurrentUserContext.Provider, { value: state }, children);
+};
+
+/**
+ * Fuente única de verdad para el usuario autenticado actual.
+ *
+ * Usa supabase.auth.getUser() — que valida el JWT contra el servidor — en lugar de
+ * confiar en localStorage. Esto evita que un atacante con DevTools / XSS pueda
+ * suplantar la identidad modificando localStorage['app_user'].
+ *
+ * El perfil sigue siendo legible por RLS: solo el dueño + admins ven datos completos.
+ */
+export function useCurrentUser(): CurrentUserState {
+  const ctx = useContext(CurrentUserContext);
+  if (!ctx) {
+    throw new Error('useCurrentUser() debe usarse dentro de <CurrentUserProvider>');
+  }
+  return ctx;
 }

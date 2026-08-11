@@ -3,6 +3,7 @@ import './material-symbols.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { CurrentUserProvider } from './hooks/useCurrentUser';
 
 const RELOAD_FLAG = 'tubarrio_sw_cleanup_reloaded';
 
@@ -25,7 +26,7 @@ function mount() {
   const rootElement = document.getElementById('root');
   if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
-    root.render(React.createElement(App));
+    root.render(React.createElement(CurrentUserProvider, null, React.createElement(App)));
   }
 }
 

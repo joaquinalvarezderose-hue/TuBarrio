@@ -214,9 +214,18 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const user = !!authUser || overrideUser;
+  // useCurrentUser inicializa `perfil` desde localStorage de forma sincronica (antes de
+  // que resuelva ninguna llamada de red). Si hay perfil cacheado, esto es case casi
+  // seguro un usuario que ya estaba logueado la vez anterior: lo tratamos como
+  // logueado de entrada y dejamos que getUser()/refreshSession() confirmen en
+  // background, en vez de bloquear el splash 1-3 round-trips a Supabase en cada
+  // carga (perfil de red lento/movil -> pantalla en blanco varios segundos).
+  // Si la sesion en verdad expiro, authUser pasa a null cuando resuelve y las
+  // pantallas protegidas ya redirigen a /login normalmente.
+  const hasCachedSession = !!perfil;
+  const user = !!authUser || overrideUser || (loading && hasCachedSession);
 
-  if (loading && !overrideUser) {
+  if (loading && !overrideUser && !hasCachedSession) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white font-display select-none">
         {/* Logo con fade-in + escala suave */}
