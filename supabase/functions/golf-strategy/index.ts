@@ -212,7 +212,21 @@ Deno.serve(async (req: Request) => {
     'jugador en la cancha. No inventes obstáculos (bunkers, agua, rough, arboles) que no te fueron informados ' +
     'explícitamente: si no tenés datos de peligros puntuales, hablá en términos generales de riesgo apoyándote ' +
     'solo en la categoría de dificultad y la nota del hoyo que te paso. Sé breve — esto se lee en un celular, ' +
-    'antes de pegarle a la pelota.';
+    'antes de pegarle a la pelota.\n\n' +
+    'El campo mas importante de tu respuesta es club_recomendado: siempre tenés que indicar un palo concreto ' +
+    '(nunca una respuesta vaga como "un hierro corto"). Elegilo en base a la distancia al objetivo que te paso ' +
+    'y el handicap del jugador. Como referencia de alcance para un jugador amateur (ajustá unas yardas menos ' +
+    'si el handicap es alto, es decir un jugador menos consistente, y unas yardas mas si es bajo):\n' +
+    '- Driver: 200+ yardas (tee de un par 4 o 5 largo)\n' +
+    '- Madera 3 / Hibrido: 180-200 yardas\n' +
+    '- Hierro 4-5: 160-180 yardas\n' +
+    '- Hierro 6-7: 140-160 yardas\n' +
+    '- Hierro 8-9: 115-140 yardas\n' +
+    '- Wedge de approach (PW): 95-115 yardas\n' +
+    '- Wedge de arena / lob: menos de 95 yardas, y siempre que haya que levantar la pelota rapido cerca del green\n' +
+    '- Para putts sobre el green (unos pocos metros/yardas al hoyo) recomendá "Putter".\n' +
+    'Estos rangos son orientativos, no una tabla exacta: usalos como referencia pero primero razoná con criterio ' +
+    'de golf real (viento, si es cuesta arriba/abajo si te lo mencionan, etc. cuando haya datos).';
 
   const userContent = [
     `Hoyo ${hoyo.numero_hoyo} · Par ${hoyo.par} · ${hoyo.yardas ?? '?'} yardas totales · Índice de dificultad ${hoyo.indice_dificultad} (1=más difícil del recorrido, 18=más fácil).`,
