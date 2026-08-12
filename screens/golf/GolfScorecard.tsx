@@ -587,32 +587,32 @@ const GolfScorecard: React.FC = () => {
                         <button
                           onClick={() => burstLocation.request()}
                           disabled={burstLocation.status === 'loading'}
-                          className="flex-1 py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl font-display font-semibold text-sm hover:bg-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                          aria-label={burstLocation.status === 'loading' ? 'Ubicando...' : 'Actualizar mi posición'}
+                          className="flex-1 py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl hover:bg-white transition-all flex items-center justify-center disabled:opacity-70"
                         >
                           <span className={`material-symbols-outlined text-lg ${burstLocation.status === 'loading' ? 'animate-spin' : ''}`}>
                             {burstLocation.status === 'loading' ? 'sync' : 'my_location'}
                           </span>
-                          {burstLocation.status === 'loading' ? 'Ubicando...' : 'Actualizar mi posición'}
                         </button>
-                        <button
-                          onClick={() => setMapaFullscreen(true)}
-                          aria-label="Pantalla completa"
-                          className="flex-none p-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl hover:bg-white transition-all flex items-center justify-center"
-                        >
-                          <span className="material-symbols-outlined text-lg">fullscreen</span>
-                        </button>
-                        </div>
                         {rondaActiva && (
                           <button
                             onClick={() => setStrategyModalOpen(true)}
-                            className="w-full py-3 bg-[#4a9c40] shadow-sm text-white rounded-xl font-display font-semibold text-sm hover:bg-[#3d8b33] transition-all flex items-center justify-center gap-2"
+                            aria-label="Ver estrategia"
+                            className="flex-1 py-3 bg-[#4a9c40] shadow-sm text-white rounded-xl hover:bg-[#3d8b33] transition-all flex items-center justify-center"
                           >
                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                               auto_awesome
                             </span>
-                            Ver estrategia
                           </button>
                         )}
+                        <button
+                          onClick={() => setMapaFullscreen(true)}
+                          aria-label="Pantalla completa"
+                          className="flex-1 py-3 bg-white/90 backdrop-blur-md shadow-sm text-[#111813] rounded-xl hover:bg-white transition-all flex items-center justify-center"
+                        >
+                          <span className="material-symbols-outlined text-lg">fullscreen</span>
+                        </button>
+                        </div>
                       </div>
                     </>
                   ) : hoyoActual.mapa_url ? (
