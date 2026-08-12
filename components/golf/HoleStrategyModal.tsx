@@ -193,6 +193,10 @@ const HoleStrategyModal: React.FC<Props> = ({ open, onClose, rondaId, hoyoId, nu
             <div className="bg-[#4a9c40]/5 border border-[#4a9c40]/20 rounded-2xl p-4">
               <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Palo recomendado</p>
               <p className="font-display font-extrabold text-2xl text-[#111813]">{resultado.estrategia.club_recomendado}</p>
+              <p className="flex items-center gap-1 text-[10px] text-slate-400 mt-1.5">
+                <span className="material-symbols-outlined text-xs">my_location</span>
+                Según tu posición actual
+              </p>
             </div>
 
             <div>
