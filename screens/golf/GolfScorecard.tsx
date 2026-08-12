@@ -601,7 +601,7 @@ const GolfScorecard: React.FC = () => {
                             className="flex-1 py-3 bg-[#4a9c40] shadow-sm text-white rounded-xl hover:bg-[#3d8b33] transition-all flex items-center justify-center"
                           >
                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                              auto_awesome
+                              tips_and_updates
                             </span>
                           </button>
                         )}
@@ -813,7 +813,7 @@ const GolfScorecard: React.FC = () => {
                   className="w-full py-3 bg-[#4a9c40] shadow-sm text-white rounded-xl font-display font-semibold text-sm hover:bg-[#3d8b33] transition-all flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    auto_awesome
+                    tips_and_updates
                   </span>
                   Ver estrategia
                 </button>

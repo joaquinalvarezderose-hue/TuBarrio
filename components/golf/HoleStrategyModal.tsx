@@ -120,7 +120,7 @@ const HoleStrategyModal: React.FC<Props> = ({ open, onClose, rondaId, hoyoId, nu
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#4a9c40]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              auto_awesome
+              tips_and_updates
             </span>
             <h2 className="font-display font-bold text-lg text-[#111813]">Estrategia · Hoyo {numeroHoyo}</h2>
           </div>
