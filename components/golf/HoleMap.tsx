@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+// Side-effect: parchea L.Map/L.Marker para soportar rotacion real (con drag y
+// pellizco correctos en cualquier angulo) — ver leaflet-rotate.d.ts para los
+// tipos que agrega.
+import 'leaflet-rotate';
 import distance from '@turf/distance';
 import bearing from '@turf/bearing';
 import destination from '@turf/destination';
@@ -87,14 +91,13 @@ function puntosDeArco(
   return puntos;
 }
 
-// `rotationDeg` contra-rota la etiqueta para que quede derecha pese a que el
-// contenedor del mapa esta rotado (ver comentario sobre rotacion en el
-// primer efecto, mas abajo): rotar primero y recien despues centrar hace que
-// el contra-giro tambien "enderece" el propio desplazamiento del translate.
-function etiquetaTexto(texto: string, rotationDeg: number, color = '#ffffff'): L.DivIcon {
+// Los marcadores de leaflet-rotate quedan "derechos" por default aunque el
+// mapa este rotado (rotateWithView:false es el default del plugin) — no hace
+// falta contra-rotar nada a mano aca, solo centrar el texto sobre su punto.
+function etiquetaTexto(texto: string, color = '#ffffff'): L.DivIcon {
   return L.divIcon({
     className: '',
-    html: `<div style="transform:rotate(${rotationDeg}deg) translate(-50%,-50%);color:${color};font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">${texto}</div>`,
+    html: `<div style="transform:translate(-50%,-50%);color:${color};font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">${texto}</div>`,
     iconSize: [0, 0],
   });
 }
@@ -128,26 +131,11 @@ const HoleMap: React.FC<HoleMapProps> = ({
   const windLat = flagLat ?? greenLat;
   const windLng = flagLng ?? greenLng;
   const windData = useGolfWindData(windLat, windLng);
-  // Rumbo tee->green en grados, calculado en el primer efecto: rota el
-  // contenedor del mapa y contra-rota cada etiqueta de texto. Vive en un ref
-  // (en vez de recalcularse) para que el segundo efecto (arcos + posicion
-  // del jugador) lo reuse sin duplicar el calculo.
-  const rotationRef = useRef<number>(0);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    // El div persiste entre montajes del mapa (solo el mapa interno se
-    // destruye/reconstruye cuando cambian las coordenadas), asi que hay que
-    // resetear el tamano/rotacion inline que le haya dejado un montaje
-    // anterior antes de volver a medirlo mas abajo.
-    el.style.position = '';
-    el.style.top = '';
-    el.style.left = '';
-    el.style.width = '100%';
-    el.style.height = '100%';
-    el.style.transform = '';
     // Sin esto, el navegador puede tomar un pellizco sobre el mapa como zoom
     // nativo de la pagina entera (Leaflet no llega a interceptar el gesto
     // cuando touchZoom esta apagado). `pan-y` en la vista chica deja pasar el
@@ -155,41 +143,43 @@ const HoleMap: React.FC<HoleMapProps> = ({
     // `none` en pantalla completa porque ahi Leaflet maneja todos los gestos.
     el.style.touchAction = interactive ? 'none' : 'pan-y';
 
+    // Rumbo tee->green: se calcula ANTES de crear el mapa para poder pasarlo
+    // como `bearing` inicial (leaflet-rotate rota el mapa de verdad — tiles,
+    // arrastre y pellizco quedan correctos en cualquier angulo — asi que el
+    // green queda siempre "hacia arriba" en las dos vistas sin el hack de
+    // CSS que se usaba antes).
+    const teePoint = point([teeLng, teeLat]);
+    const greenPoint = point([greenLng, greenLat]);
+    const bearingToGreen = bearing(teePoint, greenPoint);
+
     const map = L.map(el, {
       // Zoom control (+/-) solo tiene sentido donde se puede zoomear de
       // verdad: pantalla completa.
       zoomControl: interactive,
       attributionControl: false,
       // El arrastre y el zoom real solo se habilitan en la vista interactiva
-      // (pantalla completa): ahi el mapa deja de rotarse (ver mas abajo)
-      // para que el drag de Leaflet, que se calcula en el espacio sin rotar,
-      // coincida 1:1 con el gesto del usuario. La vista chica queda fija
-      // (no compite con el scroll de la pagina que la rodea).
+      // (pantalla completa). La vista chica queda fija (no compite con el
+      // scroll de la pagina que la rodea).
       dragging: interactive,
       touchZoom: interactive,
       doubleClickZoom: interactive,
       scrollWheelZoom: false,
+      // Rumbo fijo por codigo: sin control visible (rotateControl) ni gesto
+      // de dos dedos (touchRotate) para rotarlo a mano, en ninguna vista.
+      rotate: true,
+      bearing: bearingToGreen,
+      rotateControl: false,
+      touchRotate: false,
     });
     mapRef.current = map;
 
-    // Encuadre acotado a la geometria real del hoyo, orientado sobre el
-    // rumbo tee->green (en vez de un cuadro isotropico, un rectangulo
-    // angosto en esa direccion, para no desperdiciar zoom). La distancia se
-    // arma con el punto conocido mas lejano (green/frente/fondo/bandera) mas
-    // un margen fijo, con un techo de seguridad ante coordenadas mal
-    // cargadas — asi el cuadro nunca se abre mas de lo que el hoyo requiere.
-    const teePoint = point([teeLng, teeLat]);
-    const greenPoint = point([greenLng, greenLat]);
-    const bearingToGreen = bearing(teePoint, greenPoint);
-    // Rotacion visual del mapa: en pantalla completa queda norte-arriba (0)
-    // para que el arrastre se sienta natural; en la vista chica, que no se
-    // arrastra, se mantiene el truco de rotar el contenedor por CSS para que
-    // el green quede siempre "hacia arriba". `bearingToGreen` en si (sin
-    // pasar por esta variable) se sigue usando abajo tal cual para encuadrar
-    // el rectangulo angosto del hoyo — eso es geometria, no rotacion visual.
-    const mapRotationDeg = interactive ? 0 : bearingToGreen;
-    rotationRef.current = mapRotationDeg;
-
+    // Encuadre acotado a la geometria real del hoyo: un margen chico detras
+    // del tee hasta el punto conocido mas lejano (green/frente/fondo/
+    // bandera) mas ese mismo margen — asi el centro del encuadre cae en el
+    // medio de la linea tee-green (los dos margenes son iguales) en vez de
+    // en el tee, y no se desperdicia media pantalla en pasto vacio detras
+    // del tee. Techo de seguridad ante coordenadas mal cargadas (p.ej. un
+    // tipeo que deja el green a varios km).
     const puntosConocidos: [number, number][] = [[greenLat, greenLng]];
     if (greenFrontLat != null && greenFrontLng != null) puntosConocidos.push([greenFrontLat, greenFrontLng]);
     if (greenBackLat != null && greenBackLng != null) puntosConocidos.push([greenBackLat, greenBackLng]);
@@ -201,50 +191,13 @@ const HoleMap: React.FC<HoleMapProps> = ({
     const effectiveRadiusKm = Math.min(farthestDistKm + BUFFER_KM, SAFETY_CAP_KM);
 
     const farPoint = destination(teePoint, effectiveRadiusKm, bearingToGreen, { units: 'kilometers' });
-    const nearPoint = destination(teePoint, effectiveRadiusKm, bearingToGreen + 180, { units: 'kilometers' });
+    const nearPoint = destination(teePoint, BUFFER_KM, bearingToGreen + 180, { units: 'kilometers' });
     const [farLng, farLat] = farPoint.geometry.coordinates;
     const [nearLng, nearLat] = nearPoint.geometry.coordinates;
     const bounds = L.latLngBounds([[farLat, farLng], [nearLat, nearLng]]);
 
-    // Este fitBounds (y el getBoundsZoom de abajo) tienen que correr ANTES
-    // de agrandar el contenedor para la rotacion: ambos miden el tamano
-    // *actual* del contenedor, y Leaflet no deja pasarle un tamano distinto
-    // a mano. Ademas esto tiene que pasar ANTES de agregar capas vectoriales
-    // (circleMarker, polyline): sin una vista valida, el renderer interno de
-    // Leaflet (_clipPoints) explota leyendo bounds en pixeles que todavia no
-    // existen.
     map.fitBounds(bounds, { padding: [40, 40], animate: false });
-    const encuadreCentro = map.getCenter();
     const zoomMinimo = map.getBoundsZoom(bounds, false, L.point(40, 40));
-    // Arranca un escalon mas cerca que el encuadre "todo el hoyo" calculado
-    // arriba, para que el mapa no se vea tan chico/alejado de entrada. Ese
-    // encuadre (zoomMinimo) se conserva como piso: en pantalla completa se
-    // puede alejar hasta ahi pero no mas; en la vista chica, que no puede
-    // zoomear, este termina siendo directamente el unico zoom que se ve.
-    const zoomInicial = Math.min(zoomMinimo + 1, 19);
-
-    // Leaflet no puede rotar tiles: en cambio se rota el propio contenedor
-    // via CSS (solo en la vista chica; en pantalla completa mapRotationDeg
-    // es 0 y el contenedor se queda con el reset simple de mas arriba). Para
-    // que la rotacion no deje bordes sin cubrir en las esquinas, el
-    // contenedor pasa a ser un cuadrado tan grande como la diagonal del area
-    // realmente visible (con un margen chico), centrado y rotado sobre si
-    // mismo — cualquier angulo de rotacion sigue cubriendo el area visible
-    // por completo. El costo es pedir mas teselas de las que se ven en
-    // pantalla (~2-2.3x el area visible segun el aspect ratio).
-    if (mapRotationDeg !== 0) {
-      const rect = el.getBoundingClientRect();
-      const ladoRotado = Math.sqrt(rect.width ** 2 + rect.height ** 2) * 1.05;
-      el.style.position = 'absolute';
-      el.style.top = '50%';
-      el.style.left = '50%';
-      el.style.width = `${ladoRotado}px`;
-      el.style.height = `${ladoRotado}px`;
-      el.style.transform = `translate(-50%, -50%) rotate(${-mapRotationDeg}deg)`;
-    }
-
-    map.invalidateSize({ animate: false });
-    map.setView(encuadreCentro, zoomInicial, { animate: false });
     // Limite duro: se puede acercar el zoom para ver detalle del green, pero
     // no alejarse ni panear mas alla del cuadro del hoyo calculado arriba.
     map.setMinZoom(zoomMinimo);
@@ -295,7 +248,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([teeLat, teeLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, 22px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Tee</div>`,
+        html: `<div style="transform:translate(-50%, 22px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Tee</div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
@@ -314,7 +267,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+        html: `<div style="transform:translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
           <svg width="16" height="22" viewBox="0 0 16 22" style="display:block;">
             <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
             <path d="M8 2 L15 5.5 L8 9 Z" fill="#ef4444" />
@@ -327,7 +280,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Centro</div>`,
+        html: `<div style="transform:translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Centro</div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
@@ -362,7 +315,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([greenFrontLat as number, greenFrontLng as number], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, -20px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Frente</div>`,
+          html: `<div style="transform:translate(-50%, -20px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Frente</div>`,
           iconSize: [0, 0],
         }),
         interactive: false,
@@ -380,7 +333,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([greenBackLat as number, greenBackLng as number], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, 12px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Fondo</div>`,
+          html: `<div style="transform:translate(-50%, 12px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Fondo</div>`,
           iconSize: [0, 0],
         }),
         interactive: false,
@@ -394,7 +347,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([flagLat, flagLng], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+          html: `<div style="transform:translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
             <svg width="16" height="22" viewBox="0 0 16 22" style="display:block;">
               <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
               <path d="M8 2 L15 5.5 L8 9 Z" fill="${FLAG_COLOR}" />
@@ -407,7 +360,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([flagLat, flagLng], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, -40px);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Bandera</div>`,
+          html: `<div style="transform:translate(-50%, -40px);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Bandera</div>`,
           iconSize: [0, 0],
         }),
         interactive: false,
@@ -468,7 +421,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
       const labelPoint = destination(origenPoint, radioKm, rumbo, { units: 'kilometers' });
       const [labelLng, labelLat] = labelPoint.geometry.coordinates;
-      L.marker([labelLat, labelLng], { icon: etiquetaTexto(String(yd), rotationRef.current), interactive: false }).addTo(layer);
+      L.marker([labelLat, labelLng], { icon: etiquetaTexto(String(yd)), interactive: false }).addTo(layer);
     });
 
     if (!userPosition) return;
@@ -497,7 +450,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([latitude, longitude], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${rotationRef.current}deg) translate(-50%,-50%);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
+        html: `<div style="transform:translate(-50%,-50%);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
           <svg width="26" height="26" viewBox="0 0 26 26" style="display:block;">
             <circle cx="13" cy="13" r="12" fill="${USER_COLOR}" stroke="#ffffff" stroke-width="2.5" />
             <circle cx="13" cy="9.5" r="3" fill="#ffffff" />
@@ -543,11 +496,9 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* El tamano/posicion/rotacion de este div los pisa el primer efecto de
-          arriba via style inline: arranca a pantalla completa del wrapper,
-          y pasa a ser un cuadrado sobredimensionado y rotado (ver comentario
-          sobre la rotacion por CSS en ese efecto). El wrapper de afuera
-          tiene overflow-hidden para recortarlo de vuelta al tamano visible. */}
+      {/* leaflet-rotate maneja la rotacion internamente (tiles + capas), asi
+          que este div se queda simple a pantalla completa del wrapper — el
+          primer efecto de arriba solo le toca el touch-action inline. */}
       <div ref={containerRef} className="h-full w-full" />
 
       {/* top-20 para no chocar con el boton de cerrar (X) de la vista de pantalla completa;
