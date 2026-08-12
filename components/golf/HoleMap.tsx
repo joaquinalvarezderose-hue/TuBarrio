@@ -62,6 +62,24 @@ const BUFFER_KM = 0.05;
 // hoyo mas largo sembrado (604 yardas / ~552m) mas el margen de arriba da
 // ~602m, bastante por debajo de este techo.
 const SAFETY_CAP_KM = 0.75;
+// Que tanto de la pantalla (medido en su alto, que es el eje al que el
+// hoyo queda alineado tras rotar) ocupa el tramo tee->green al abrir el
+// mapa. 0.65 = punto medio del 60%-70% pedido.
+const HOLE_FILL_FRACTION = 0.65;
+// Tope de alejamiento: no se puede zoomear afuera mas alla del punto en el
+// que el AREA DE PANEO (mas ancha que el hoyo, ver PAN_MARGIN_FACTOR) ya
+// entra entera en pantalla.
+const HOLE_FILL_FRACTION_FLOOR = 0.95;
+// Margen extra (proporcional al largo tee->green) que se le suma de cada
+// lado al area en la que se puede panear, mas alla del encuadre ajustado
+// inicial — para que arrastrar el mapa realmente lo despegue/descentre de
+// la linea punteada en vez de "rebotar" de vuelta al toque.
+const PAN_MARGIN_FACTOR = 0.6;
+// Zoom de referencia arbitrario para medir distancias en pixeles via
+// map.project(): el resultado de zoomToFitSpan() no depende de cual se
+// elija (project()/getScaleZoom() son matematicamente exactos en
+// cualquier zoom), asi que no hace falta que el mapa ya tenga vista propia.
+const REF_ZOOM = 15;
 const RING_COLOR = '#3b82f6';
 const TEE_COLOR = '#2563eb';
 const GREEN_COLOR = '#4a9c40';
@@ -176,16 +194,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
       bearing: -bearingToGreen,
       rotateControl: false,
       touchRotate: false,
+      // Sin esto, Leaflet redondea el zoom a numeros enteros (cada nivel es
+      // el doble/mitad del anterior) — demasiado grosero para pegarle a un
+      // porcentaje de pantalla puntual como el que calcula zoomParaOcupar()
+      // mas abajo. Con zoomSnap:0 el zoom queda continuo (Leaflet renderiza
+      // tiles en zoom fraccionario sin problema).
+      zoomSnap: 0,
     });
     mapRef.current = map;
-
-    // Con `rotate` activo, leaflet-rotate calcula getBoundsZoom() a partir de
-    // getPixelOrigin() — que Leaflet tira como excepcion ("Set map center
-    // and zoom first") si el mapa nunca tuvo una vista. fitBounds() de mas
-    // abajo es justamente lo que le da esa primera vista, asi que hay que
-    // darle una vista provisoria (cualquiera) antes, solo para dejarlo
-    // "cargado"; fitBounds la pisa enseguida con el encuadre real.
-    map.setView([teeLat, teeLng], 15, { animate: false });
 
     // Encuadre acotado a la geometria real del hoyo: un margen chico detras
     // del tee hasta el punto conocido mas lejano (green/frente/fondo/
@@ -209,13 +225,49 @@ const HoleMap: React.FC<HoleMapProps> = ({
     const [farLng, farLat] = farPoint.geometry.coordinates;
     const [nearLng, nearLat] = nearPoint.geometry.coordinates;
     const bounds = L.latLngBounds([[farLat, farLng], [nearLat, nearLng]]);
+    const centro = bounds.getCenter();
 
-    map.fitBounds(bounds, { padding: [40, 40], animate: false });
-    const zoomMinimo = map.getBoundsZoom(bounds, false, L.point(40, 40));
+    // Area de paneo: el mismo eje tee->green, pero con un margen extra de
+    // cada lado (PAN_MARGIN_FACTOR) — mas ancha que el encuadre inicial a
+    // proposito, para que arrastrar el mapa lo despegue de verdad de la
+    // linea punteada en vez de que el freno de `maxBounds` lo empuje de
+    // vuelta al centro apenas se suelta el dedo.
+    const panMarginKm = (effectiveRadiusKm + BUFFER_KM) * PAN_MARGIN_FACTOR;
+    const panFarPoint = destination(teePoint, effectiveRadiusKm + panMarginKm, bearingToGreen, { units: 'kilometers' });
+    const panNearPoint = destination(teePoint, BUFFER_KM + panMarginKm, bearingToGreen + 180, { units: 'kilometers' });
+    const [panFarLng, panFarLat] = panFarPoint.geometry.coordinates;
+    const [panNearLng, panNearLat] = panNearPoint.geometry.coordinates;
+    const panBounds = L.latLngBounds([[panFarLat, panFarLng], [panNearLat, panNearLng]]);
+
+    // Zoom exacto para que el tramo entre `lejos` y `cerca` ocupe
+    // `targetFraction` del alto del contenedor — se mide en pixeles via
+    // map.project() (matematicamente exacto en cualquier zoom, no depende
+    // de que el mapa ya tenga vista) y se convierte con getScaleZoom().
+    function zoomParaOcupar(lejos: [number, number], cerca: [number, number], targetFraction: number): number {
+      const pLejos = map.project(lejos, REF_ZOOM);
+      const pCerca = map.project(cerca, REF_ZOOM);
+      const spanPx = pLejos.distanceTo(pCerca);
+      if (spanPx === 0) return REF_ZOOM;
+      const alturaPx = el.clientHeight || map.getSize().y || 1;
+      const scale = (alturaPx * targetFraction) / spanPx;
+      return map.getScaleZoom(scale, REF_ZOOM);
+    }
+
+    // El encuadre inicial apunta directo al tramo tee->green (la linea
+    // punteada, lo que el ojo realmente mide) — no al `bounds` con margen
+    // de arriba, que ya incluye el BUFFER_KM de "aire" de cada lado y
+    // terminaria dejando el hoyo mas chico que el 60%-70% pedido.
+    const zoomInicial = zoomParaOcupar([teeLat, teeLng], [greenLat, greenLng], HOLE_FILL_FRACTION);
+    // El piso de zoom (que tan lejos se puede alejar) si usa el area de
+    // paneo con margen: ahi el objetivo es ver todo el contexto alrededor,
+    // no la linea exacta.
+    const zoomMinimo = zoomParaOcupar([panFarLat, panFarLng], [panNearLat, panNearLng], HOLE_FILL_FRACTION_FLOOR);
+
+    map.setView(centro, zoomInicial, { animate: false });
     // Se puede acercar el zoom para ver detalle del green, pero no alejarse
-    // mas alla del cuadro del hoyo calculado arriba.
+    // mas alla del area de paneo calculada arriba.
     map.setMinZoom(zoomMinimo);
-    map.setMaxBounds(bounds);
+    map.setMaxBounds(panBounds);
 
     if (MAPBOX_TOKEN) {
       L.tileLayer(
