@@ -166,8 +166,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
       scrollWheelZoom: false,
       // Rumbo fijo por codigo: sin control visible (rotateControl) ni gesto
       // de dos dedos (touchRotate) para rotarlo a mano, en ninguna vista.
+      // OJO con el signo: `bearing` es el angulo que gira el CONTENIDO (en
+      // sentido horario), no "hacia donde mirar" — pasarle bearingToGreen
+      // tal cual rota el mapa en la MISMA direccion en la que el green ya
+      // esta respecto al tee, duplicando el angulo en vez de cancelarlo
+      // (a un rumbo de 45° terminaba mostrando el hoyo prácticamente
+      // horizontal: 45°+45°=90°). Hay que rotar para el lado contrario.
       rotate: true,
-      bearing: bearingToGreen,
+      bearing: -bearingToGreen,
       rotateControl: false,
       touchRotate: false,
     });
