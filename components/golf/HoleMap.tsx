@@ -173,6 +173,14 @@ const HoleMap: React.FC<HoleMapProps> = ({
     });
     mapRef.current = map;
 
+    // Con `rotate` activo, leaflet-rotate calcula getBoundsZoom() a partir de
+    // getPixelOrigin() — que Leaflet tira como excepcion ("Set map center
+    // and zoom first") si el mapa nunca tuvo una vista. fitBounds() de mas
+    // abajo es justamente lo que le da esa primera vista, asi que hay que
+    // darle una vista provisoria (cualquiera) antes, solo para dejarlo
+    // "cargado"; fitBounds la pisa enseguida con el encuadre real.
+    map.setView([teeLat, teeLng], 15, { animate: false });
+
     // Encuadre acotado a la geometria real del hoyo: un margen chico detras
     // del tee hasta el punto conocido mas lejano (green/frente/fondo/
     // bandera) mas ese mismo margen — asi el centro del encuadre cae en el
@@ -198,8 +206,8 @@ const HoleMap: React.FC<HoleMapProps> = ({
 
     map.fitBounds(bounds, { padding: [40, 40], animate: false });
     const zoomMinimo = map.getBoundsZoom(bounds, false, L.point(40, 40));
-    // Limite duro: se puede acercar el zoom para ver detalle del green, pero
-    // no alejarse ni panear mas alla del cuadro del hoyo calculado arriba.
+    // Se puede acercar el zoom para ver detalle del green, pero no alejarse
+    // mas alla del cuadro del hoyo calculado arriba.
     map.setMinZoom(zoomMinimo);
     map.setMaxBounds(bounds);
 
