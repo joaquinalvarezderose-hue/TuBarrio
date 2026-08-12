@@ -148,17 +148,24 @@ const HoleMap: React.FC<HoleMapProps> = ({
     el.style.width = '100%';
     el.style.height = '100%';
     el.style.transform = '';
+    // Sin esto, el navegador puede tomar un pellizco sobre el mapa como zoom
+    // nativo de la pagina entera (Leaflet no llega a interceptar el gesto
+    // cuando touchZoom esta apagado). `pan-y` en la vista chica deja pasar el
+    // scroll vertical de la pagina pero bloquea el pellizco/doble-tap-zoom;
+    // `none` en pantalla completa porque ahi Leaflet maneja todos los gestos.
+    el.style.touchAction = interactive ? 'none' : 'pan-y';
 
     const map = L.map(el, {
-      zoomControl: false,
+      // Zoom control (+/-) solo tiene sentido donde se puede zoomear de
+      // verdad: pantalla completa.
+      zoomControl: interactive,
       attributionControl: false,
-      // El arrastre libre se saca siempre: con el encuadre acotado al hoyo
-      // (mas abajo) y la rotacion fija tee->green, ya no hace falta poder
-      // panear, y evita que el arrastre se sienta "desalineado" respecto a
-      // lo que se ve (Leaflet sigue calculando el drag en el espacio sin
-      // rotar). El zoom (para ver el green de cerca) se mantiene disponible
-      // solo en la vista interactiva (pantalla completa).
-      dragging: false,
+      // El arrastre y el zoom real solo se habilitan en la vista interactiva
+      // (pantalla completa): ahi el mapa deja de rotarse (ver mas abajo)
+      // para que el drag de Leaflet, que se calcula en el espacio sin rotar,
+      // coincida 1:1 con el gesto del usuario. La vista chica queda fija
+      // (no compite con el scroll de la pagina que la rodea).
+      dragging: interactive,
       touchZoom: interactive,
       doubleClickZoom: interactive,
       scrollWheelZoom: false,
@@ -171,12 +178,17 @@ const HoleMap: React.FC<HoleMapProps> = ({
     // arma con el punto conocido mas lejano (green/frente/fondo/bandera) mas
     // un margen fijo, con un techo de seguridad ante coordenadas mal
     // cargadas — asi el cuadro nunca se abre mas de lo que el hoyo requiere.
-    // Este mismo rumbo es el angulo que rota visualmente el contenedor mas
-    // abajo, para que el green quede siempre "hacia arriba".
     const teePoint = point([teeLng, teeLat]);
     const greenPoint = point([greenLng, greenLat]);
     const bearingToGreen = bearing(teePoint, greenPoint);
-    rotationRef.current = bearingToGreen;
+    // Rotacion visual del mapa: en pantalla completa queda norte-arriba (0)
+    // para que el arrastre se sienta natural; en la vista chica, que no se
+    // arrastra, se mantiene el truco de rotar el contenedor por CSS para que
+    // el green quede siempre "hacia arriba". `bearingToGreen` en si (sin
+    // pasar por esta variable) se sigue usando abajo tal cual para encuadrar
+    // el rectangulo angosto del hoyo — eso es geometria, no rotacion visual.
+    const mapRotationDeg = interactive ? 0 : bearingToGreen;
+    rotationRef.current = mapRotationDeg;
 
     const puntosConocidos: [number, number][] = [[greenLat, greenLng]];
     if (greenFrontLat != null && greenFrontLng != null) puntosConocidos.push([greenFrontLat, greenFrontLng]);
@@ -203,27 +215,36 @@ const HoleMap: React.FC<HoleMapProps> = ({
     // existen.
     map.fitBounds(bounds, { padding: [40, 40], animate: false });
     const encuadreCentro = map.getCenter();
-    const encuadreZoom = map.getZoom();
     const zoomMinimo = map.getBoundsZoom(bounds, false, L.point(40, 40));
+    // Arranca un escalon mas cerca que el encuadre "todo el hoyo" calculado
+    // arriba, para que el mapa no se vea tan chico/alejado de entrada. Ese
+    // encuadre (zoomMinimo) se conserva como piso: en pantalla completa se
+    // puede alejar hasta ahi pero no mas; en la vista chica, que no puede
+    // zoomear, este termina siendo directamente el unico zoom que se ve.
+    const zoomInicial = Math.min(zoomMinimo + 1, 19);
 
     // Leaflet no puede rotar tiles: en cambio se rota el propio contenedor
-    // via CSS. Para que la rotacion no deje bordes sin cubrir en las
-    // esquinas, el contenedor pasa a ser un cuadrado tan grande como la
-    // diagonal del area realmente visible (con un margen chico), centrado y
-    // rotado sobre si mismo — cualquier angulo de rotacion sigue cubriendo
-    // el area visible por completo. El costo es pedir mas teselas de las que
-    // se ven en pantalla (~2-2.3x el area visible segun el aspect ratio).
-    const rect = el.getBoundingClientRect();
-    const ladoRotado = Math.sqrt(rect.width ** 2 + rect.height ** 2) * 1.05;
-    el.style.position = 'absolute';
-    el.style.top = '50%';
-    el.style.left = '50%';
-    el.style.width = `${ladoRotado}px`;
-    el.style.height = `${ladoRotado}px`;
-    el.style.transform = `translate(-50%, -50%) rotate(${-bearingToGreen}deg)`;
+    // via CSS (solo en la vista chica; en pantalla completa mapRotationDeg
+    // es 0 y el contenedor se queda con el reset simple de mas arriba). Para
+    // que la rotacion no deje bordes sin cubrir en las esquinas, el
+    // contenedor pasa a ser un cuadrado tan grande como la diagonal del area
+    // realmente visible (con un margen chico), centrado y rotado sobre si
+    // mismo — cualquier angulo de rotacion sigue cubriendo el area visible
+    // por completo. El costo es pedir mas teselas de las que se ven en
+    // pantalla (~2-2.3x el area visible segun el aspect ratio).
+    if (mapRotationDeg !== 0) {
+      const rect = el.getBoundingClientRect();
+      const ladoRotado = Math.sqrt(rect.width ** 2 + rect.height ** 2) * 1.05;
+      el.style.position = 'absolute';
+      el.style.top = '50%';
+      el.style.left = '50%';
+      el.style.width = `${ladoRotado}px`;
+      el.style.height = `${ladoRotado}px`;
+      el.style.transform = `translate(-50%, -50%) rotate(${-mapRotationDeg}deg)`;
+    }
 
     map.invalidateSize({ animate: false });
-    map.setView(encuadreCentro, encuadreZoom, { animate: false });
+    map.setView(encuadreCentro, zoomInicial, { animate: false });
     // Limite duro: se puede acercar el zoom para ver detalle del green, pero
     // no alejarse ni panear mas alla del cuadro del hoyo calculado arriba.
     map.setMinZoom(zoomMinimo);
@@ -274,7 +295,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([teeLat, teeLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-50%, 22px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Tee</div>`,
+        html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, 22px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Tee</div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
@@ -293,7 +314,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+        html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
           <svg width="16" height="22" viewBox="0 0 16 22" style="display:block;">
             <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
             <path d="M8 2 L15 5.5 L8 9 Z" fill="#ef4444" />
@@ -306,7 +327,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
     L.marker([greenLat, greenLng], {
       icon: L.divIcon({
         className: '',
-        html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Centro</div>`,
+        html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, -40px);color:#fff;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Centro</div>`,
         iconSize: [0, 0],
       }),
       interactive: false,
@@ -341,7 +362,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([greenFrontLat as number, greenFrontLng as number], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-50%, -20px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Frente</div>`,
+          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, -20px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Frente</div>`,
           iconSize: [0, 0],
         }),
         interactive: false,
@@ -359,7 +380,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([greenBackLat as number, greenBackLng as number], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-50%, 12px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Fondo</div>`,
+          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, 12px);color:#fff;font-size:11px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Fondo</div>`,
           iconSize: [0, 0],
         }),
         interactive: false,
@@ -373,7 +394,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([flagLat, flagLng], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
+          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-8px, -21px);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));">
             <svg width="16" height="22" viewBox="0 0 16 22" style="display:block;">
               <line x1="8" y1="21" x2="8" y2="2" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" />
               <path d="M8 2 L15 5.5 L8 9 Z" fill="${FLAG_COLOR}" />
@@ -386,7 +407,7 @@ const HoleMap: React.FC<HoleMapProps> = ({
       L.marker([flagLat, flagLng], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="transform:rotate(${bearingToGreen}deg) translate(-50%, -40px);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Bandera</div>`,
+          html: `<div style="transform:rotate(${mapRotationDeg}deg) translate(-50%, -40px);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.85),0 0 6px rgba(0,0,0,0.5);">Bandera</div>`,
           iconSize: [0, 0],
         }),
         interactive: false,
