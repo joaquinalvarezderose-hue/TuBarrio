@@ -66,10 +66,18 @@ const SAFETY_CAP_KM = 0.75;
 // hoyo queda alineado tras rotar) ocupa el tramo tee->green al abrir el
 // mapa. 0.65 = punto medio del 60%-70% pedido.
 const HOLE_FILL_FRACTION = 0.65;
-// Tope de alejamiento: no se puede zoomear afuera mas alla del punto en el
-// que el AREA DE PANEO (mas ancha que el hoyo, ver PAN_MARGIN_FACTOR) ya
-// entra entera en pantalla.
-const HOLE_FILL_FRACTION_FLOOR = 0.95;
+// Tope de alejamiento, pensado al reves de lo que parece: en vez de "hasta
+// donde entra toda el area de paneo en pantalla", es "que tan mas grande
+// que la pantalla se exige que siga siendo esa area en el punto mas
+// alejado". El tamano en pixeles del area de paneo (fija en el mundo real)
+// encoge a medida que se aleja el zoom — si en el piso ya mide MENOS que
+// la pantalla (fill<1, como el 0.95 que tenia antes), el margen para
+// arrastrar sin rebotar es CERO exactamente ahi, y va empeorando a medida
+// que te acercas a ese piso desde zooms mas cercanos ("depende de cuanto
+// zoom tenga"). Con fill>1 el area de paneo queda mas grande que la
+// pantalla en cualquier zoom permitido, asi que siempre queda margen real
+// para descentrarse.
+const HOLE_FILL_FRACTION_FLOOR = 1.4;
 // Margen extra (proporcional al largo tee->green) que se le suma de cada
 // lado al area en la que se puede panear, mas alla del encuadre ajustado
 // inicial — para que arrastrar el mapa realmente lo despegue/descentre de
@@ -258,9 +266,10 @@ const HoleMap: React.FC<HoleMapProps> = ({
     // de arriba, que ya incluye el BUFFER_KM de "aire" de cada lado y
     // terminaria dejando el hoyo mas chico que el 60%-70% pedido.
     const zoomInicial = zoomParaOcupar([teeLat, teeLng], [greenLat, greenLng], HOLE_FILL_FRACTION);
-    // El piso de zoom (que tan lejos se puede alejar) si usa el area de
-    // paneo con margen: ahi el objetivo es ver todo el contexto alrededor,
-    // no la linea exacta.
+    // El piso de zoom (que tan lejos se puede alejar) usa el area de paneo,
+    // exigiendole que se quede mas grande que la pantalla (fraction>1 — ver
+    // comentario en HOLE_FILL_FRACTION_FLOOR) para que siempre haya margen
+    // real de arrastre, en vez de "hasta donde entra toda entera".
     const zoomMinimo = zoomParaOcupar([panFarLat, panFarLng], [panNearLat, panNearLng], HOLE_FILL_FRACTION_FLOOR);
 
     map.setView(centro, zoomInicial, { animate: false });
