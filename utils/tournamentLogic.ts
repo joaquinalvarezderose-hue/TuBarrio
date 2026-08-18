@@ -66,12 +66,15 @@ export const calculateStandings = (players: PlayerStats[], results: MatchScore[]
 
     let s1 = 0;
     let s2 = 0;
-    match.sets.forEach(set => {
+    // Games ganados/perdidos: solo de los sets 1 y 2. El 3er set (si existe) es
+    // siempre el super tie-break a 10, no games reales.
+    match.sets.slice(0, 2).forEach(set => {
       p1.gamesWon += set.p1;
       p1.gamesLost += set.p2;
       p2.gamesWon += set.p2;
       p2.gamesLost += set.p1;
-
+    });
+    match.sets.forEach(set => {
       if (set.p1 > set.p2) s1++;
       else s2++;
     });

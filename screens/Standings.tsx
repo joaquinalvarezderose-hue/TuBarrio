@@ -648,7 +648,9 @@ const Standings: React.FC = () => {
  };
 
  for (const row of scopedHistoryRows) {
- const sets = Array.isArray(row.sets_json) ? row.sets_json : [];
+ // Solo los 2 primeros sets cuentan para games: el 3er elemento es siempre
+ // el super tie-break a 10 (o relleno 0-0), nunca games reales.
+ const sets = Array.isArray(row.sets_json) ? row.sets_json.slice(0, 2) : [];
  const gamesJ1 = sets.reduce((sum, s) => sum + Number(s?.p1 || 0), 0);
  const gamesJ2 = sets.reduce((sum, s) => sum + Number(s?.p2 || 0), 0);
  addHistory(row.jugador1_perfil_id, row.puntos_jugador1, row.sets_jugador1, row.sets_jugador2, gamesJ1, gamesJ2);
