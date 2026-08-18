@@ -7,6 +7,7 @@ import RankingCategorias from '../components/RankingCategorias';
 import SponsorBanner from '../components/SponsorBanner';
 import { SkeletonImageCard } from '../components/Skeleton';
 import { formatTournamentDate } from '../utils/tournamentDate';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 const normalizeStatus = (status?: string) => String(status || 'RECRUITING').trim().toUpperCase();
 const OPEN_SIGNUP_STATUSES = new Set(['RECRUITING', 'INSCRIPCION_ABIERTA']);
@@ -134,24 +135,36 @@ const Tournaments: React.FC = () => {
  const navigate = useNavigate();
  const [view, setView] = useState<'hub' | 'available' | 'my' | 'ranking'>('hub');
 
+ const { authUser, loading: authLoading } = useCurrentUser();
+
  const [registeredIds, setRegisteredIds] = useState<number[]>([]);
  // Torneos en los que el usuario está inscripto (datos completos, cargados directamente)
  const [myTorneos, setMyTorneos] = useState<Torneo[]>([]);
  const [statusByTournamentId, setStatusByTournamentId] = useState<Record<number, string>>({});
+ // Un torneo puede tener varias categorías/grupos en torneo_estado: true si AL MENOS
+ // una sigue con inscripción abierta, independiente del estado más avanzado del resto.
+ const [hasOpenSignupByTournamentId, setHasOpenSignupByTournamentId] = useState<Record<number, boolean>>({});
  const [capacityByTournamentId, setCapacityByTournamentId] = useState<
  Record<number, { current: number; max: number | null }>
  >({});
  const [torneos, setTorneos] = useState<Torneo[]>([]);
  const [cargandoTorneos, setCargandoTorneos] = useState(true);
+ const [cargandoRegistros, setCargandoRegistros] = useState(true);
+ const [cargandoLifecycle, setCargandoLifecycle] = useState(true);
  const [torneosError, setTorneosError] = useState<string | null>(null);
  const [usingFallbackData, setUsingFallbackData] = useState(false);
  const [historialTorneos, setHistorialTorneos] = useState<TorneoHistorialItem[]>([]);
  const [mySubView, setMySubView] = useState<'activos' | 'finalizados'>('activos');
 
  useEffect(() => {
+ // Esperar a que useCurrentUser() resuelva la sesión antes de consultar: disparar
+ // esto mientras authLoading todavía es true puede correr sin el JWT adjunto al
+ // cliente de Supabase y traer resultados incompletos por RLS.
+ if (authLoading) return;
+
  const loadRegistrations = async () => {
- const { data: authData } = await supabase.auth.getUser();
- const authUserId = authData?.user?.id;
+ setCargandoRegistros(true);
+ const authUserId = authUser?.id;
  const userId = String(authUserId || 'anon');
  const cacheKey = `registered_tournaments_${userId}`;
  const saved = localStorage.getItem(cacheKey);
@@ -226,13 +239,16 @@ const jugadorIds = (jugadoresData || [])
  } catch (err) {
  console.error('Error cargando inscripciones desde Supabase', err);
  setRegisteredIds(localIds);
+ } finally {
+ setCargandoRegistros(false);
  }
  };
  loadRegistrations();
- }, []);
+ }, [authLoading, authUser?.id]);
 
  useEffect(() => {
  const loadTournamentLifecycle = async () => {
+ setCargandoLifecycle(true);
  try {
  const [{ data: estadoData, error: estadoError }, { data: configData, error: configError }] = await Promise.all([
  supabase.from('torneo_estado').select('torneo_id, estado, current_participantes'),
@@ -269,6 +285,17 @@ const jugadorIds = (jugadoresData || [])
  }
  });
 
+ // Un torneo puede tener varias filas (una por categoría/grupo). No alcanza con
+ // mirar el estado más avanzado: si CUALQUIER categoría sigue reclutando, el
+ // torneo debe seguir apareciendo en "Disponibles" aunque otra ya haya cerrado.
+ const nextHasOpenSignup: Record<number, boolean> = {};
+ (estadoData || []).forEach((row: any) => {
+ const id = Number(row.torneo_id);
+ if (isTournamentOpenForSignup(row.estado)) {
+ nextHasOpenSignup[id] = true;
+ }
+ });
+
  const nextCapacity: Record<number, { current: number; max: number | null }> = {};
  const allIds = new Set<number>();
  Object.keys(sumCurrentByTorneo).forEach((k) => allIds.add(Number(k)));
@@ -288,9 +315,12 @@ const jugadorIds = (jugadoresData || [])
  });
 
  setStatusByTournamentId(nextStatus);
+ setHasOpenSignupByTournamentId(nextHasOpenSignup);
  setCapacityByTournamentId(nextCapacity);
  } catch (err) {
  console.error('No se pudo cargar el estado de torneos desde Supabase', err);
+ } finally {
+ setCargandoLifecycle(false);
  }
  };
 
@@ -298,15 +328,25 @@ const jugadorIds = (jugadoresData || [])
  }, []);
 
  useEffect(() => {
+ const fetchTorneosOnce = () =>
+ supabase
+ .from('torneos')
+ .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago, precio_expensas, precio_transferencia, premios, deporte')
+ .order('id', { ascending: true });
+
  const cargarTorneos = async () => {
  setCargandoTorneos(true);
  setTorneosError(null);
  setUsingFallbackData(false);
  try {
- const { data, error } = await supabase
- .from('torneos')
- .select('id, titulo, subtitulo, fecha_inicio, fecha_fin, imagen_url, activo, alias_pago, whatsapp_pago, precio_expensas, precio_transferencia, premios, deporte')
- .order('id', { ascending: true });
+ let { data, error } = await fetchTorneosOnce();
+ if (error) {
+ // Un solo hiccup de red no debería tirar directo a datos de respaldo
+ // vencidos: reintentar una vez más antes de resignarse al fallback.
+ console.warn('Fallo el primer intento de cargar torneos, reintentando...', error);
+ await new Promise((resolve) => setTimeout(resolve, 800));
+ ({ data, error } = await fetchTorneosOnce());
+ }
  if (error) throw error;
  const activos = ((data || []) as Torneo[]).filter((t) => t.activo !== false);
 
@@ -332,9 +372,10 @@ const jugadorIds = (jugadoresData || [])
  }, []);
 
  useEffect(() => {
+ if (authLoading) return;
+
  const loadHistorial = async () => {
- const { data: authData } = await supabase.auth.getUser();
- const userId = authData?.user?.id;
+ const userId = authUser?.id;
  if (!userId) return;
 
  // Torneos donde el usuario participó (como jugador registrado)
@@ -442,7 +483,7 @@ const jugadorIds = (jugadoresData || [])
  };
 
  loadHistorial();
- }, []);
+ }, [authLoading, authUser?.id]);
 
  // Convierte una fila de DB al objeto que esperan las sub-pantallas del torneo
  const toNavTorneo = (t: Torneo) => ({
@@ -469,11 +510,16 @@ const jugadorIds = (jugadoresData || [])
  return [...myTorneos, ...fromGeneral];
  })();
 
+ // Espera a que las tres fuentes (torneos, inscripciones propias y estado/lifecycle)
+ // hayan resuelto antes de derivar la lista: si se muestra apenas resuelve `torneos`
+ // pero `registeredIds` todavía está vacío, aparecen momentáneamente torneos en los
+ // que el usuario ya está inscripto, que luego "desaparecen" cuando esos datos llegan.
+ const cargandoDisponibles = cargandoTorneos || cargandoRegistros || cargandoLifecycle;
+
  const availableTournaments = torneos.filter((t: Torneo) => {
  if (registeredIds.includes(t.id)) return false;
- const status = statusByTournamentId[t.id];
- if (!status) return true;
- return isTournamentOpenForSignup(status);
+ if (!(t.id in statusByTournamentId)) return true;
+ return hasOpenSignupByTournamentId[t.id] === true;
  });
 
  const goToTournamentDetails = (t: Torneo) => {
@@ -517,7 +563,7 @@ const jugadorIds = (jugadoresData || [])
  </div>
  )}
 
- {availableTournaments.length === 0 && (
+ {!cargandoDisponibles && availableTournaments.length === 0 && (
  <div className="px-4 md:px-8 pb-4">
  <div className="rounded-xl bg-white p-4 border border-gray-100 text-sm text-gray-600 ">
  No hay torneos en estado de inscripcion abierta en este momento.
@@ -525,7 +571,7 @@ const jugadorIds = (jugadoresData || [])
  </div>
  )}
 
- {cargandoTorneos && (
+ {cargandoDisponibles && (
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-8 pt-0">
  {Array.from({ length: 3 }).map((_, i) => (
  <SkeletonImageCard key={i} />
