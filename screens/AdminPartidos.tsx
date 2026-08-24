@@ -11,6 +11,8 @@ type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
 const getGrupoCategoria = (g: GrupoOption) => g.categoria;
 const getGrupoGrupo = (g: GrupoOption) => g.grupo;
 
+const DOBLE_WO_SENTINEL = '__DOBLE_WO__';
+
 type SetInput = { p1: string; p2: string };
 const EMPTY_SETS: SetInput[] = [{ p1: '', p2: '' }, { p1: '', p2: '' }, { p1: '', p2: '' }];
 
@@ -195,6 +197,26 @@ const AdminPartidos: React.FC = () => {
 
   const confirmWo = async () => {
     if (!woModalPartido || !woPerdedorId) return;
+
+    if (woPerdedorId === DOBLE_WO_SENTINEL) {
+      setSubmitting(true);
+      const { data, error } = await supabase.rpc('admin_marcar_doble_wo', {
+        p_partido_id: woModalPartido.id,
+      });
+      setSubmitting(false);
+
+      if (error) {
+        console.error('[AdminPartidos] admin_marcar_doble_wo error:', error);
+        setFeedback(`Error: ${error.message}`);
+        return;
+      }
+
+      setFeedback(String(data));
+      closeWoModal();
+      loadPartidos();
+      return;
+    }
+
     const ganadorId = woPerdedorId === woModalPartido.jugador1_id
       ? woModalPartido.jugador2_id
       : woModalPartido.jugador1_id;
@@ -462,6 +484,15 @@ const AdminPartidos: React.FC = () => {
                   onChange={() => setWoPerdedorId(woModalPartido.jugador2_id || '')}
                 />
                 {woModalPartido.jugador2_nombre}
+              </label>
+              <label className="flex items-center gap-2 text-sm border-t border-slate-100 pt-2 mt-1">
+                <input
+                  type="radio"
+                  name="wo_perdedor"
+                  checked={woPerdedorId === DOBLE_WO_SENTINEL}
+                  onChange={() => setWoPerdedorId(DOBLE_WO_SENTINEL)}
+                />
+                Ninguno de los dos puede jugar (doble W.O.)
               </label>
             </div>
 

@@ -690,6 +690,7 @@ export type Database = {
           calle: string | null
           created_at: string | null
           email: string | null
+          es_placeholder: boolean
           handicap: number | null
           id: string
           localidad: string | null
@@ -706,6 +707,7 @@ export type Database = {
           calle?: string | null
           created_at?: string | null
           email?: string | null
+          es_placeholder?: boolean
           handicap?: number | null
           id?: string
           localidad?: string | null
@@ -722,6 +724,7 @@ export type Database = {
           calle?: string | null
           created_at?: string | null
           email?: string | null
+          es_placeholder?: boolean
           handicap?: number | null
           id?: string
           localidad?: string | null
@@ -2545,6 +2548,15 @@ export type Database = {
           success: boolean
         }[]
       }
+      admin_crear_jugador_placeholder: {
+        Args: {
+          p_categoria: string
+          p_nombre: string
+          p_torneo_id: number
+          p_whatsapp?: string
+        }
+        Returns: string
+      }
       admin_forzar_resultado_partido: {
         Args: {
           p_ganador_id: string
@@ -2554,12 +2566,24 @@ export type Database = {
         }
         Returns: string
       }
+      admin_marcar_doble_wo: {
+        Args: { p_motivo?: string; p_partido_id: string }
+        Returns: string
+      }
+      admin_marcar_doble_wo_equipo: {
+        Args: { p_motivo?: string; p_partido_id: string }
+        Returns: string
+      }
       admin_marcar_wo: {
         Args: { p_ganador_id: string; p_partido_id: string }
         Returns: string
       }
       admin_marcar_wo_equipo: {
         Args: { p_equipo_ganador_id: string; p_partido_id: string }
+        Returns: string
+      }
+      admin_reemplazar_jugador_placeholder: {
+        Args: { p_placeholder_perfil_id: string; p_real_perfil_id: string }
         Returns: string
       }
       admin_resetear_disputa: {

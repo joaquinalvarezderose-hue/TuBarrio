@@ -6,6 +6,8 @@ import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
 import { supabase } from '../services/supabaseClient';
 import { Skeleton } from '../components/Skeleton';
 
+const DOBLE_WO_SENTINEL = '__DOBLE_WO__';
+
 type TorneoInfo = {
   id: number;
   titulo: string;
@@ -186,6 +188,16 @@ const OrganizadorTorneoDetail: React.FC = () => {
 
   const confirmWo = async () => {
     if (!woModalPartido || !woPerdedorId) return;
+    if (woPerdedorId === DOBLE_WO_SENTINEL) {
+      setWoModalPartido(null);
+      setWoPerdedorId('');
+      if (modalidad === 'dobles') {
+        await withFeedback(actions.marcarDobleWOEquipo(woModalPartido.id));
+      } else {
+        await withFeedback(actions.marcarDobleWO(woModalPartido.id));
+      }
+      return;
+    }
     const ganadorId = woPerdedorId === woModalPartido.jugador1_id ? woModalPartido.jugador2_id : woModalPartido.jugador1_id;
     const ganadorEquipoId = woPerdedorId === woModalPartido.equipo1_id ? woModalPartido.equipo2_id : woModalPartido.equipo1_id;
     setWoModalPartido(null);
@@ -437,6 +449,15 @@ const OrganizadorTorneoDetail: React.FC = () => {
                   onChange={() => setWoPerdedorId((modalidad === 'dobles' ? woModalPartido.equipo2_id : woModalPartido.jugador2_id) || '')}
                 />
                 {woModalPartido.nombre2}
+              </label>
+              <label className="flex items-center gap-2 text-sm border-t border-slate-100 pt-2 mt-1">
+                <input
+                  type="radio"
+                  name="wo_perdedor"
+                  checked={woPerdedorId === DOBLE_WO_SENTINEL}
+                  onChange={() => setWoPerdedorId(DOBLE_WO_SENTINEL)}
+                />
+                Ninguno de los dos puede jugar (doble W.O.)
               </label>
             </div>
 

@@ -116,6 +116,20 @@ export function useTorneoAdminActions(torneoId: number | null) {
     }));
   }, [run]);
 
+  const marcarDobleWO = useCallback((partidoId: string, motivo?: string) => {
+    return run(() => supabase.rpc('admin_marcar_doble_wo', {
+      p_partido_id: partidoId,
+      p_motivo: motivo ?? null,
+    }));
+  }, [run]);
+
+  const marcarDobleWOEquipo = useCallback((partidoId: string, motivo?: string) => {
+    return run(() => supabase.rpc('admin_marcar_doble_wo_equipo', {
+      p_partido_id: partidoId,
+      p_motivo: motivo ?? null,
+    }));
+  }, [run]);
+
   const resetearDisputa = useCallback((partidoId: string, motivo?: string) => {
     return run(() => supabase.rpc('admin_resetear_disputa', {
       p_partido_id: partidoId,
@@ -135,6 +149,8 @@ export function useTorneoAdminActions(torneoId: number | null) {
     eliminarEquipoDobles,
     forzarResultado,
     marcarWOEquipo,
+    marcarDobleWO,
+    marcarDobleWOEquipo,
     resetearDisputa,
   };
 }

@@ -11,8 +11,17 @@ type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
 const getGrupoCategoria = (g: GrupoOption) => g.categoria;
 const getGrupoGrupo = (g: GrupoOption) => g.grupo;
-type UnpairedPlayer = { perfil_id: string; nombre: string; whatsapp: string | null };
-type EquipoRow = { id: string; nombre1: string; nombre2: string; grupo: string | null };
+type UnpairedPlayer = { perfil_id: string; nombre: string; whatsapp: string | null; esPlaceholder: boolean };
+type EquipoRow = {
+  id: string;
+  nombre1: string;
+  nombre2: string;
+  grupo: string | null;
+  jugador1Id: string;
+  jugador2Id: string;
+  esPlaceholder1: boolean;
+  esPlaceholder2: boolean;
+};
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +45,9 @@ const AdminPanel: React.FC = () => {
   const [pairingMessage, setPairingMessage] = useState<string | null>(null);
   const [pairingError, setPairingError] = useState<string | null>(null);
   const [pairingRefreshKey, setPairingRefreshKey] = useState(0);
+  const [placeholderNombre, setPlaceholderNombre] = useState('');
+  const [placeholderWhatsapp, setPlaceholderWhatsapp] = useState('');
+  const [replacementSelections, setReplacementSelections] = useState<Record<string, string>>({});
 
   // Gestion de organizadores (asignar/revocar el rol organizador)
   const [orgSearch, setOrgSearch] = useState('');
@@ -188,7 +200,7 @@ const AdminPanel: React.FC = () => {
       if (allNeededIds.length > 0) {
         const { data: perfilesData, error: perfilesError } = await supabase
           .from('perfiles')
-          .select('id, nombre_completo, whatsapp')
+          .select('id, nombre_completo, whatsapp, es_placeholder')
           .in('id', allNeededIds);
         if (perfilesError) {
           console.error('[AdminPanel] load perfiles pairing error:', perfilesError);
@@ -197,12 +209,13 @@ const AdminPanel: React.FC = () => {
       }
       const nameById = Object.fromEntries(perfiles.map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
       const whatsappById = Object.fromEntries(perfiles.map((p: any) => [p.id, p.whatsapp ? String(p.whatsapp) : null]));
+      const placeholderById = Object.fromEntries(perfiles.map((p: any) => [p.id, Boolean(p.es_placeholder)]));
 
       if (cancelled) return;
       setUnpairedPlayers(
         inscriptoIds
           .filter((id) => !teamedIds.has(id))
-          .map((id) => ({ perfil_id: id, nombre: nameById[id] || 'Jugador', whatsapp: whatsappById[id] || null }))
+          .map((id) => ({ perfil_id: id, nombre: nameById[id] || 'Jugador', whatsapp: whatsappById[id] || null, esPlaceholder: Boolean(placeholderById[id]) }))
       );
       setPairedTeams(
         equiposRows.map((e: any) => ({
@@ -210,6 +223,10 @@ const AdminPanel: React.FC = () => {
           nombre1: nameById[e.jugador1_id] || 'Jugador',
           nombre2: nameById[e.jugador2_id] || 'Jugador',
           grupo: e.grupo ? String(e.grupo) : null,
+          jugador1Id: String(e.jugador1_id),
+          jugador2Id: String(e.jugador2_id),
+          esPlaceholder1: Boolean(placeholderById[e.jugador1_id]),
+          esPlaceholder2: Boolean(placeholderById[e.jugador2_id]),
         }))
       );
     })();
@@ -259,6 +276,60 @@ const AdminPanel: React.FC = () => {
       setPairingRefreshKey((v) => v + 1);
     } catch (error: any) {
       setPairingError(error?.message || 'No se pudo deshacer la pareja.');
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleCrearPlaceholder = async () => {
+    if (!activeTorneo || !pairingCategoria || !placeholderNombre.trim()) return;
+    setPairingLoading(true);
+    setPairingError(null);
+    setPairingMessage(null);
+    try {
+      const { error } = await supabase.rpc('admin_crear_jugador_placeholder', {
+        p_torneo_id: activeTorneo,
+        p_categoria: pairingCategoria,
+        p_nombre: placeholderNombre.trim(),
+        p_whatsapp: placeholderWhatsapp.trim() || null,
+      });
+      if (error) throw error;
+      setPairingMessage(`"${placeholderNombre.trim()}" agregado sin cuenta. Ya podes emparejarlo.`);
+      setPlaceholderNombre('');
+      setPlaceholderWhatsapp('');
+      setPairingRefreshKey((v) => v + 1);
+    } catch (error: any) {
+      setPairingError(error?.message || 'No se pudo agregar el jugador sin cuenta.');
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleReemplazarPlaceholder = async (placeholderPerfilId: string) => {
+    const realPerfilId = replacementSelections[placeholderPerfilId];
+    if (!realPerfilId) return;
+    setPairingLoading(true);
+    setPairingError(null);
+    setPairingMessage(null);
+    try {
+      const { data, error } = await supabase.rpc('admin_reemplazar_jugador_placeholder', {
+        p_placeholder_perfil_id: placeholderPerfilId,
+        p_real_perfil_id: realPerfilId,
+      });
+      if (error) throw error;
+      if (data !== 'OK') {
+        setPairingError(String(data) || 'No se pudo reemplazar el jugador.');
+        return;
+      }
+      setPairingMessage('Jugador reemplazado por su cuenta real.');
+      setReplacementSelections((prev) => {
+        const next = { ...prev };
+        delete next[placeholderPerfilId];
+        return next;
+      });
+      setPairingRefreshKey((v) => v + 1);
+    } catch (error: any) {
+      setPairingError(error?.message || 'No se pudo reemplazar el jugador.');
     } finally {
       setPairingLoading(false);
     }
@@ -663,6 +734,36 @@ const AdminPanel: React.FC = () => {
 
                   <div className="border border-slate-200 rounded-lg p-4 space-y-3">
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Agregar jugador sin cuenta
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Para alguien que no va a crear cuenta propia (o todavia no se registro). Despues se puede reemplazar por su cuenta real.
+                    </p>
+                    <input
+                      type="text"
+                      value={placeholderNombre}
+                      onChange={(e) => setPlaceholderNombre(e.target.value)}
+                      placeholder="Nombre y apellido"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                    <input
+                      type="text"
+                      value={placeholderWhatsapp}
+                      onChange={(e) => setPlaceholderWhatsapp(e.target.value)}
+                      placeholder="WhatsApp (opcional)"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                    <button
+                      onClick={handleCrearPlaceholder}
+                      disabled={pairingLoading || !placeholderNombre.trim()}
+                      className="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                    >
+                      {pairingLoading ? 'Procesando...' : 'Agregar jugador sin cuenta'}
+                    </button>
+                  </div>
+
+                  <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
                       Crear pareja ({unpairedPlayers.length} sin pareja)
                     </p>
                     <select
@@ -673,7 +774,7 @@ const AdminPanel: React.FC = () => {
                       <option value="">Jugador 1...</option>
                       {unpairedPlayers.map((p) => (
                         <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer2}>
-                          {p.nombre}
+                          {p.nombre}{p.esPlaceholder ? ' (sin cuenta)' : ''}
                         </option>
                       ))}
                     </select>
@@ -685,7 +786,7 @@ const AdminPanel: React.FC = () => {
                       <option value="">Jugador 2...</option>
                       {unpairedPlayers.map((p) => (
                         <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer1}>
-                          {p.nombre}
+                          {p.nombre}{p.esPlaceholder ? ' (sin cuenta)' : ''}
                         </option>
                       ))}
                     </select>
@@ -704,19 +805,53 @@ const AdminPanel: React.FC = () => {
                         Parejas formadas ({pairedTeams.length})
                       </p>
                       <div className="space-y-2">
-                        {pairedTeams.map((t) => (
-                          <div key={t.id} className="flex items-center justify-between gap-3 text-sm border-b border-slate-100 last:border-0 pb-2 last:pb-0">
-                            <span className="font-medium text-slate-900">{t.nombre1} / {t.nombre2}</span>
-                            <button
-                              onClick={() => handleDeleteEquipo(t.id)}
-                              disabled={pairingLoading || Boolean(t.grupo)}
-                              title={t.grupo ? 'Ya paso por el sorteo, no se puede deshacer' : 'Deshacer pareja'}
-                              className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              Deshacer
-                            </button>
-                          </div>
-                        ))}
+                        {pairedTeams.map((t) => {
+                          const placeholders = [
+                            t.esPlaceholder1 ? { id: t.jugador1Id, nombre: t.nombre1 } : null,
+                            t.esPlaceholder2 ? { id: t.jugador2Id, nombre: t.nombre2 } : null,
+                          ].filter((x): x is { id: string; nombre: string } => x !== null);
+                          const realOptions = unpairedPlayers.filter((p) => !p.esPlaceholder);
+                          return (
+                            <div key={t.id} className="border-b border-slate-100 last:border-0 pb-2 last:pb-0 space-y-2">
+                              <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="font-medium text-slate-900">
+                                  {t.nombre1}{t.esPlaceholder1 ? ' (sin cuenta)' : ''} / {t.nombre2}{t.esPlaceholder2 ? ' (sin cuenta)' : ''}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteEquipo(t.id)}
+                                  disabled={pairingLoading || Boolean(t.grupo)}
+                                  title={t.grupo ? 'Ya paso por el sorteo, no se puede deshacer' : 'Deshacer pareja'}
+                                  className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  Deshacer
+                                </button>
+                              </div>
+                              {placeholders.map((ph) => (
+                                <div key={ph.id} className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                  <select
+                                    value={replacementSelections[ph.id] || ''}
+                                    onChange={(e) =>
+                                      setReplacementSelections((prev) => ({ ...prev, [ph.id]: e.target.value }))
+                                    }
+                                    className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white"
+                                  >
+                                    <option value="">Reemplazar "{ph.nombre}" por...</option>
+                                    {realOptions.map((p) => (
+                                      <option key={p.perfil_id} value={p.perfil_id}>{p.nombre}</option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={() => handleReemplazarPlaceholder(ph.id)}
+                                    disabled={pairingLoading || !replacementSelections[ph.id]}
+                                    className="text-xs font-bold text-amber-700 hover:text-amber-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  >
+                                    Confirmar
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
