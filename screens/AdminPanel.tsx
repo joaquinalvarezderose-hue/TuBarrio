@@ -6,6 +6,7 @@ import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
 import { useRankingCategorias } from '../hooks/useRankingCategorias';
 import { TournamentPreviewScope } from '../types/tournamentPreview';
 import { Skeleton } from '../components/Skeleton';
+import { WhatsAppE164Schema, COUNTRY_CODES, normalizeWhatsApp } from '../lib/schemas';
 
 type TorneoOption = { id: number; titulo: string };
 type GrupoOption = { torneo_id: number; categoria: string; grupo: string };
@@ -46,7 +47,8 @@ const AdminPanel: React.FC = () => {
   const [pairingError, setPairingError] = useState<string | null>(null);
   const [pairingRefreshKey, setPairingRefreshKey] = useState(0);
   const [placeholderNombre, setPlaceholderNombre] = useState('');
-  const [placeholderWhatsapp, setPlaceholderWhatsapp] = useState('');
+  const [placeholderWaDialCode, setPlaceholderWaDialCode] = useState('+549');
+  const [placeholderWaLocal, setPlaceholderWaLocal] = useState('');
   const [replacementSelections, setReplacementSelections] = useState<Record<string, string>>({});
 
   // Gestion de organizadores (asignar/revocar el rol organizador)
@@ -283,20 +285,28 @@ const AdminPanel: React.FC = () => {
 
   const handleCrearPlaceholder = async () => {
     if (!activeTorneo || !pairingCategoria || !placeholderNombre.trim()) return;
-    setPairingLoading(true);
     setPairingError(null);
     setPairingMessage(null);
+    const combinedWa = normalizeWhatsApp(placeholderWaDialCode, placeholderWaLocal);
+    if (combinedWa) {
+      const parsed = WhatsAppE164Schema.safeParse(combinedWa);
+      if (!parsed.success) {
+        setPairingError(parsed.error.issues[0]?.message ?? 'WhatsApp inválido');
+        return;
+      }
+    }
+    setPairingLoading(true);
     try {
       const { error } = await supabase.rpc('admin_crear_jugador_placeholder', {
         p_torneo_id: activeTorneo,
         p_categoria: pairingCategoria,
         p_nombre: placeholderNombre.trim(),
-        p_whatsapp: placeholderWhatsapp.trim() || null,
+        p_whatsapp: combinedWa || null,
       });
       if (error) throw error;
       setPairingMessage(`"${placeholderNombre.trim()}" agregado sin cuenta. Ya podes emparejarlo.`);
       setPlaceholderNombre('');
-      setPlaceholderWhatsapp('');
+      setPlaceholderWaLocal('');
       setPairingRefreshKey((v) => v + 1);
     } catch (error: any) {
       setPairingError(error?.message || 'No se pudo agregar el jugador sin cuenta.');
@@ -746,13 +756,24 @@ const AdminPanel: React.FC = () => {
                       placeholder="Nombre y apellido"
                       className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
                     />
-                    <input
-                      type="text"
-                      value={placeholderWhatsapp}
-                      onChange={(e) => setPlaceholderWhatsapp(e.target.value)}
-                      placeholder="WhatsApp (opcional)"
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
-                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={placeholderWaDialCode}
+                        onChange={(e) => setPlaceholderWaDialCode(e.target.value)}
+                        className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white"
+                      >
+                        {COUNTRY_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>{c.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={placeholderWaLocal}
+                        onChange={(e) => setPlaceholderWaLocal(e.target.value)}
+                        placeholder={`WhatsApp opcional, ej: ${COUNTRY_CODES.find((c) => c.code === placeholderWaDialCode)?.placeholder || ''}`}
+                        className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </div>
                     <button
                       onClick={handleCrearPlaceholder}
                       disabled={pairingLoading || !placeholderNombre.trim()}
