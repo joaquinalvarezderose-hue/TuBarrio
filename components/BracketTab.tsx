@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { Database } from '../types/database.types';
 
@@ -228,11 +228,52 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  loadBracketMatches();
  }, [torneo_id, categoria, currentUserId]);
 
- // Lookup map for matches by ID (used for bracket connections)
- const matchById = useMemo(() => {
- const map: Record<string, BracketMatch> = {};
- matches.forEach(m => { map[m.id] = m; });
- return map;
+ // Horizontal scroll hint (flecha que invita a deslizar hacia la derecha, igual que en la tabla de posiciones)
+ const scrollRef = useRef<HTMLDivElement>(null);
+ const [canScrollRight, setCanScrollRight] = useState(false);
+ const updateScrollHint = useCallback(() => {
+ const el = scrollRef.current;
+ if (!el) return;
+ setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+ }, []);
+ useEffect(() => {
+ updateScrollHint();
+ window.addEventListener('resize', updateScrollHint);
+ return () => window.removeEventListener('resize', updateScrollHint);
+ }, [updateScrollHint, matches.length]);
+
+ // Líneas que unen cada partido con el siguiente (llaves), calculadas a partir
+ // de la posición real de las tarjetas en pantalla para que se adapten a
+ // cualquier alto de tarjeta (con o sin sets, W.O., etc.)
+ const bracketAreaRef = useRef<HTMLDivElement>(null);
+ const matchRefs = useRef<Record<string, HTMLDivElement | null>>({});
+ const [connectors, setConnectors] = useState<{ id: string; d: string }[]>([]);
+
+ useLayoutEffect(() => {
+ const computeConnectors = () => {
+ const container = bracketAreaRef.current;
+ if (!container) return;
+ const containerRect = container.getBoundingClientRect();
+ const next: { id: string; d: string }[] = [];
+ matches.forEach((match) => {
+ if (!match.siguiente_partido_id) return;
+ const fromEl = matchRefs.current[match.id];
+ const toEl = matchRefs.current[match.siguiente_partido_id];
+ if (!fromEl || !toEl) return;
+ const fromRect = fromEl.getBoundingClientRect();
+ const toRect = toEl.getBoundingClientRect();
+ const x1 = fromRect.right - containerRect.left;
+ const y1 = fromRect.top + fromRect.height / 2 - containerRect.top;
+ const x2 = toRect.left - containerRect.left;
+ const y2 = toRect.top + toRect.height / 2 - containerRect.top;
+ const midX = (x1 + x2) / 2;
+ next.push({ id: match.id, d: `M ${x1} ${y1} H ${midX} V ${y2} H ${x2}` });
+ });
+ setConnectors(next);
+ };
+ computeConnectors();
+ window.addEventListener('resize', computeConnectors);
+ return () => window.removeEventListener('resize', computeConnectors);
  }, [matches]);
 
  // Group matches by round
@@ -320,8 +361,18 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  .sort((a, b) => a - b);
 
  return (
- <div className="overflow-x-auto pb-4">
- <div className="flex gap-6 min-w-fit" style={{ minHeight: '300px' }}>
+ <div>
+ <div
+ ref={scrollRef}
+ onScroll={updateScrollHint}
+ className="overflow-x-auto no-scrollbar pb-4 relative flex"
+ >
+ <div ref={bracketAreaRef} className="flex gap-6 min-w-fit relative shrink-0" style={{ minHeight: '300px' }}>
+ <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
+ {connectors.map((c) => (
+ <path key={c.id} d={c.d} fill="none" stroke="#c3ddc9" strokeWidth="2" />
+ ))}
+ </svg>
  {sortedRounds.map((ronda) => {
  const roundMatches = matchesByRound[ronda];
  const isFinal = ronda === totalRounds;
@@ -352,16 +403,10 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  match.jugador1_id === comparisonId || match.jugador2_id === comparisonId
  );
 
- // Bracket connection: find the sibling match feeding into the same next match
- const nextMatch = match.siguiente_partido_id ? matchById[match.siguiente_partido_id] : null;
- const siblingMatch = match.siguiente_partido_id
- ? matches.find(m => m.siguiente_partido_id === match.siguiente_partido_id && m.id !== match.id)
- : null;
- const nextRoundName = nextMatch ? getRoundName(nextMatch.ronda) : null;
-
  return (
  <div
  key={match.id}
+ ref={(el) => { matchRefs.current[match.id] = el; }}
  onClick={() => onMatchClick?.(match)}
  className={`relative rounded-lg shadow-md overflow-hidden border-2 transition-all ${
  onMatchClick ? 'cursor-pointer active:scale-[0.98]' : ''
@@ -455,11 +500,11 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  </span>
  </div>
  )}
- {!isFinalized && (
+ {!isFinalized && (isMyMatch || match.estado === 'en_curso') && (
  <div className={`px-4 py-1.5 border-t border-gray-100 flex items-center justify-between ${isMyMatch ? 'bg-primary/10' : 'bg-gray-50 '}`}>
- <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
- {match.estado === 'en_curso' ? '⏱ En curso' : '📅 Por jugar'}
- </span>
+ {match.estado === 'en_curso' ? (
+ <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">⏱ En curso</span>
+ ) : <span />}
  {isMyMatch && (
  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/20 text-green-700">
  Mi partido
@@ -467,20 +512,6 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  )}
  </div>
  )}
-
- {/* Bracket connection footer */}
- {nextRoundName && (
- <div className="px-4 py-2 bg-[#f5faf6] border-t border-[#dbe6de] ">
- <p className="text-[10px] font-bold text-[#61896b] uppercase tracking-wide">
- → {nextRoundName}
- </p>
- {siblingMatch && (siblingMatch.jugador1_nombre || siblingMatch.jugador2_nombre) && (
- <p className="text-[10px] text-[#61896b]/70 mt-0.5 truncate">
- vs. ganador de {siblingMatch.jugador1_nombre || 'A definir'} / {siblingMatch.jugador2_nombre || 'A definir'}
- </p>
- )}
- </div>
- )}
  </div>
  );
  })}
@@ -488,6 +519,15 @@ const BracketTab: React.FC<BracketTabProps> = ({ torneo_id, categoria, onMatchCl
  </div>
  );
  })}
+ </div>
+ <div
+ aria-hidden="true"
+ className={`sticky right-0 shrink-0 pointer-events-none w-10 flex items-center justify-end bg-gradient-to-l from-background-light via-background-light/80 to-transparent transition-opacity duration-300 ${
+ canScrollRight ? 'opacity-100' : 'opacity-0'
+ }`}
+ >
+ <span className="material-symbols-outlined text-lg text-slate-400 animate-bounce-x">chevron_right</span>
+ </div>
  </div>
 
  {/* Champion Banner - only show after the true Final is played */}
