@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { toWhatsAppLink } from '../utils/whatsapp';
 import { Skeleton } from '../components/Skeleton';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -157,7 +158,13 @@ const CoordinarPartidoSingles: React.FC = () => {
   const location = useLocation();
   const state = location.state as CoordinarPartidoState | null;
 
-  const [currentUserId, setCurrentUserId] = useState('');
+  // Fuente única de verdad para el usuario autenticado (ver hooks/useCurrentUser.ts):
+  // usa el JWT validado contra el servidor, no localStorage['app_user']. Con el
+  // fallback anterior a localStorage, un currentUserId desincronizado del auth.uid()
+  // real de la sesión hacía que el upsert a partido_disponibilidad violara RLS
+  // ("perfil_id = auth.uid()" fallaba en el WITH CHECK).
+  const { authUser, loading: authLoading } = useCurrentUser();
+  const currentUserId = authUser?.id ?? '';
 
   // Disponibilidad
   const [mySlots, setMySlots] = useState<Slot[]>([]);
@@ -237,28 +244,17 @@ const CoordinarPartidoSingles: React.FC = () => {
     }
   }, [state?.partido?.id]);
 
-  // ── Init: resolver userId ──────────────────────────────────────────────────
+  // ── Init: disparar carga de datos una vez resuelto el usuario ──────────────
 
   useEffect(() => {
-    const init = async () => {
-      let uid = '';
-      try {
-        const { data } = await supabase.auth.getUser();
-        uid = data?.user?.id ?? '';
-      } catch { /* ignorar */ }
-
-      if (!uid) {
-        try {
-          const stored = localStorage.getItem('app_user');
-          uid = stored ? (JSON.parse(stored)?.id ?? '') : '';
-        } catch { /* ignorar */ }
-      }
-
-      setCurrentUserId(uid);
-      if (uid) fetchData(uid);
-    };
-    init();
-  }, [fetchData]);
+    if (currentUserId) {
+      fetchData(currentUserId);
+    } else if (!authLoading) {
+      // useCurrentUser terminó de resolver y no hay sesión válida: no hay nada
+      // que cargar (la guarda de ruta en App.tsx debería redirigir a /login).
+      setLoading(false);
+    }
+  }, [currentUserId, authLoading, fetchData]);
 
   // ── Toggle slot en el editor ───────────────────────────────────────────────
 
@@ -672,7 +668,10 @@ const CoordinarPartidoDobles: React.FC = () => {
   const location = useLocation();
   const state = location.state as CoordinarPartidoState | null;
 
-  const [currentUserId, setCurrentUserId] = useState('');
+  // Ver comentario equivalente en CoordinarPartidoSingles: fuente única de verdad
+  // para el usuario autenticado, sin fallback a localStorage['app_user'].
+  const { authUser, loading: authLoading } = useCurrentUser();
+  const currentUserId = authUser?.id ?? '';
 
   const [mySlots, setMySlots] = useState<Slot[]>([]);
   const [mySubmitted, setMySubmitted] = useState(false);
@@ -770,28 +769,15 @@ const CoordinarPartidoDobles: React.FC = () => {
     }
   }, [state?.partido?.id, otherParticipants]);
 
-  // ── Init: resolver userId ──────────────────────────────────────────────────
+  // ── Init: disparar carga de datos una vez resuelto el usuario ──────────────
 
   useEffect(() => {
-    const init = async () => {
-      let uid = '';
-      try {
-        const { data } = await supabase.auth.getUser();
-        uid = data?.user?.id ?? '';
-      } catch { /* ignorar */ }
-
-      if (!uid) {
-        try {
-          const stored = localStorage.getItem('app_user');
-          uid = stored ? (JSON.parse(stored)?.id ?? '') : '';
-        } catch { /* ignorar */ }
-      }
-
-      setCurrentUserId(uid);
-      if (uid) fetchData(uid);
-    };
-    init();
-  }, [fetchData]);
+    if (currentUserId) {
+      fetchData(currentUserId);
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [currentUserId, authLoading, fetchData]);
 
   // ── Toggle slot en el editor ───────────────────────────────────────────────
 
