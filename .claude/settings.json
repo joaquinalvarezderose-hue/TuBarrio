@@ -8,7 +8,10 @@
       "Bash(node -e ' *)",
       "mcp__claude_ai_Supabase__apply_migration",
       "Bash(node -e \"const d=require\\('C:/Users/Joaquin/.claude/projects/c--Users-Joaquin-Documents-GitHub-TuBarrio/ab53f2da-342b-4677-b4ee-9554d5f7a836/tool-results/toolu_01SR7FhWop6z5KaENXmhJWjk.json'\\); process.stdout.write\\(JSON.parse\\(d[0].text\\).types\\);\")",
-      "mcp__claude_ai_Supabase__get_advisors"
+      "mcp__claude_ai_Supabase__get_advisors",
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Supabase__generate_typescript_types",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
