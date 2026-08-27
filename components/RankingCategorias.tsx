@@ -134,11 +134,6 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                           >
                             {row.posicion}
                           </span>
-                          {row.tiebreakerReason && (
-                            <span className="text-[8px] font-bold px-1 py-px rounded bg-amber-100 text-amber-700 leading-none whitespace-nowrap">
-                              {row.tiebreakerReason}
-                            </span>
-                          )}
                         </div>
 
                         {/* Jugador */}
