@@ -31,6 +31,76 @@ export const TIEBREAKER_CRITERIA = [
   '5° Diferencia de games (ganados − perdidos)',
 ] as const;
 
+// Construye un lookup de resultados directos (H2H) a partir de pares ganador/perdedor.
+// Reutilizado por Standings.tsx y useRankingCategorias.ts para que ambas pantallas
+// desempaten empates de puntos con exactamente el mismo criterio.
+export const buildH2HLookup = (pairs: { winnerId: string; loserId: string }[]) => {
+  const wins = new Map<string, Set<string>>();
+  for (const { winnerId, loserId } of pairs) {
+    if (!winnerId || !loserId) continue;
+    if (!wins.has(winnerId)) wins.set(winnerId, new Set());
+    wins.get(winnerId)!.add(loserId);
+  }
+  return (idA: string, idB: string): 'A' | 'B' | null => {
+    if (wins.get(idA)?.has(idB)) return 'A';
+    if (wins.get(idB)?.has(idA)) return 'B';
+    return null;
+  };
+};
+
+export type TiebreakRow = {
+  id: string;
+  pts: number;
+  setsWon: number;
+  setsLost: number;
+  gamesWon: number;
+  gamesLost: number;
+};
+
+// Ordena por el criterio de TIEBREAKER_CRITERIA (pts -> dif sets -> sets ganados ->
+// H2H -> dif games) y anota en cada fila, salvo la primera de cada empate, que
+// criterio la desempato respecto de la fila anterior con los mismos puntos.
+export const sortByTiebreak = <T extends TiebreakRow>(
+  rows: T[],
+  getH2H: (idA: string, idB: string) => 'A' | 'B' | null
+): (T & { tiebreakerReason: string | null })[] => {
+  const sorted = [...rows].sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+
+    const diffA = a.setsWon - a.setsLost;
+    const diffB = b.setsWon - b.setsLost;
+    if (diffB !== diffA) return diffB - diffA;
+
+    if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
+
+    const h2h = getH2H(a.id, b.id);
+    if (h2h === 'A') return -1;
+    if (h2h === 'B') return 1;
+
+    const gamesDiffA = a.gamesWon - a.gamesLost;
+    const gamesDiffB = b.gamesWon - b.gamesLost;
+    return gamesDiffB - gamesDiffA;
+  });
+
+  return sorted.map((row, idx) => {
+    if (idx === 0) return { ...row, tiebreakerReason: null };
+    const prev = sorted[idx - 1];
+    if (prev.pts !== row.pts) return { ...row, tiebreakerReason: null };
+
+    const diffPrev = prev.setsWon - prev.setsLost;
+    const diffCur = row.setsWon - row.setsLost;
+    let reason: string | null;
+    if (diffPrev !== diffCur) {
+      reason = 'Dif. Sets';
+    } else if (prev.setsWon !== row.setsWon) {
+      reason = 'Sets Gan.';
+    } else {
+      reason = getH2H(prev.id, row.id) ? 'H2H' : 'Dif. Games';
+    }
+    return { ...row, tiebreakerReason: reason };
+  });
+};
+
 export const calculateStandings = (players: PlayerStats[], results: MatchScore[]) => {
   const standings = players.map(p => ({
     ...p,

@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
-import { PlayerStats, TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
+import { PlayerStats, TIEBREAKER_CRITERIA, buildH2HLookup, sortByTiebreak } from '../utils/tournamentLogic';
 import { supabase } from '../services/supabaseClient';
 import { fixtureCache } from '../services/fixtureCache';
 import BracketTab from '../components/BracketTab';
@@ -792,59 +792,21 @@ const Standings: React.FC = () => {
  if (source.length === 0) return [];
 
  // Construir mapa de resultados directos desde el historial
- // h2hWins[winnerId] = Set de losers
- const h2hWins = new Map<string, Set<string>>();
- for (const row of rawHistorial) {
- const winner = row.ganador_perfil_id;
- const j1 = row.jugador1_perfil_id;
- const j2 = row.jugador2_perfil_id;
- if (!winner || !j1 || !j2) continue;
- const loser = winner === j1 ? j2 : j1;
- if (!h2hWins.has(winner)) h2hWins.set(winner, new Set());
- h2hWins.get(winner)!.add(loser);
- }
-
- const getH2H = (idA: string, idB: string): 'A' | 'B' | null => {
- if (h2hWins.get(idA)?.has(idB)) return 'A';
- if (h2hWins.get(idB)?.has(idA)) return 'B';
- return null;
- };
+ const h2hPairs = rawHistorial
+  .filter((row) => row.ganador_perfil_id && row.jugador1_perfil_id && row.jugador2_perfil_id)
+  .map((row) => ({
+   winnerId: row.ganador_perfil_id as string,
+   loserId: row.ganador_perfil_id === row.jugador1_perfil_id ? (row.jugador2_perfil_id as string) : (row.jugador1_perfil_id as string),
+  }));
+ const getH2H = buildH2HLookup(h2hPairs);
 
  // Orden de desempate: pts → dif.sets → sets ganados → H2H → dif. games
- const sorted = [...source].sort((a: any, b: any) => {
- if (b.pts !== a.pts) return b.pts - a.pts;
- const diffA = a.setsWon - a.setsLost;
- const diffB = b.setsWon - b.setsLost;
- if (diffB !== diffA) return diffB - diffA;
- if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
- const h2h = getH2H(a.id, b.id);
- if (h2h === 'A') return -1;
- if (h2h === 'B') return 1;
- const gamesDiffA = (a.gamesWon || 0) - (a.gamesLost || 0);
- const gamesDiffB = (b.gamesWon || 0) - (b.gamesLost || 0);
- return gamesDiffB - gamesDiffA;
- });
+ const sorted = sortByTiebreak(
+  source.map((p: any) => ({ ...p, gamesWon: p.gamesWon || 0, gamesLost: p.gamesLost || 0 })),
+  getH2H
+ );
 
- // Anotar el criterio de desempate aplicado entre cada jugador y el anterior con igual pts
- return sorted.map((p: any, idx: number) => {
- const gamesDiff = (p.gamesWon || 0) - (p.gamesLost || 0);
- if (idx === 0) return { ...p, gamesDiff, tiebreakerReason: null as string | null };
- const prev = sorted[idx - 1];
- if (prev.pts !== p.pts) return { ...p, gamesDiff, tiebreakerReason: null as string | null };
- // Mismo pts — identificar qué criterio los separó
- const diffP = prev.setsWon - prev.setsLost;
- const diffC = p.setsWon - p.setsLost;
- let reason: string | null = null;
- if (diffP !== diffC) {
- reason = 'Dif. Sets';
- } else if (prev.setsWon !== p.setsWon) {
- reason = 'Sets Gan.';
- } else {
- const h2h = getH2H(prev.id, p.id);
- reason = h2h ? 'H2H' : 'Dif. Games';
- }
- return { ...p, gamesDiff, tiebreakerReason: reason };
- });
+ return sorted.map((p: any) => ({ ...p, gamesDiff: (p.gamesWon || 0) - (p.gamesLost || 0) }));
  }, [dbRows, rawHistorial]);
 
  const tableScrollRef = useRef<HTMLDivElement>(null);

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useRankingCategorias } from '../hooks/useRankingCategorias';
+import { TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
 import Logo from './Logo';
 
 type Props = {
@@ -125,7 +126,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                         } ${row.posicion === 1 ? 'bg-amber-50/30' : ''}`}
                       >
                         {/* Posición */}
-                        <div className="flex justify-center">
+                        <div className="flex flex-col items-center justify-center gap-0.5">
                           <span
                             className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
                               posStyle ? `${posStyle.bg} ${posStyle.text}` : 'bg-gray-100 text-gray-500'
@@ -133,6 +134,11 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                           >
                             {row.posicion}
                           </span>
+                          {row.tiebreakerReason && (
+                            <span className="text-[8px] font-bold px-1 py-px rounded bg-amber-100 text-amber-700 leading-none whitespace-nowrap">
+                              {row.tiebreakerReason}
+                            </span>
+                          )}
                         </div>
 
                         {/* Jugador */}
@@ -198,6 +204,29 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
                   el nivel de cada jugador dentro de su categoría durante la temporada, para ubicar
                   a los mejores jugadores de cada categoría.
                 </p>
+              </div>
+            )}
+
+            {/* Criterios de desempate */}
+            {categorias.length > 0 && (
+              <div className="mt-4 rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-4 pt-3 pb-2">
+                  Criterios de desempate
+                </p>
+                <div className="divide-y divide-gray-50">
+                  {TIEBREAKER_CRITERIA.map((criterion, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-2">
+                      <span className="text-[10px] font-bold text-gray-400 w-4 shrink-0">{i + 1}</span>
+                      <span className="text-xs text-gray-500">{criterion.replace(/^\d+°\s/, '')}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-2.5 bg-amber-50 border-t border-amber-100">
+                  <p className="text-[10px] text-amber-700 leading-relaxed">
+                    La insignia junto a la posición indica qué criterio desempató a dos jugadores con
+                    los mismos puntos (mismo criterio que la Tabla de Posiciones).
+                  </p>
+                </div>
               </div>
             )}
           </>

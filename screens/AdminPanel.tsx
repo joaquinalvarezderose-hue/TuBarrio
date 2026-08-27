@@ -930,7 +930,14 @@ const AdminPanel: React.FC = () => {
                           idx !== rankingRowsActivos.length - 1 ? 'border-b border-slate-100' : ''
                         }`}
                       >
-                        <span className="text-center text-xs font-bold text-slate-500">{row.posicion}</span>
+                        <div className="flex flex-col items-center justify-center gap-0.5">
+                          <span className="text-center text-xs font-bold text-slate-500">{row.posicion}</span>
+                          {row.tiebreakerReason && (
+                            <span className="text-[8px] font-bold px-1 py-px rounded bg-amber-100 text-amber-700 leading-none whitespace-nowrap">
+                              {row.tiebreakerReason}
+                            </span>
+                          )}
+                        </div>
                         <span className="font-medium text-slate-900 truncate pr-2">{row.nombre_completo ?? 'Jugador'}</span>
                         <span className="text-center text-slate-600">{row.partidos_jugados}</span>
                         <span className="text-center text-slate-600">{row.victorias}</span>
@@ -940,6 +947,9 @@ const AdminPanel: React.FC = () => {
                     ))
                   )}
                 </div>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  Desempate en caso de igualdad de puntos: dif. de sets → sets ganados → resultado directo (H2H) → dif. de games. Mismo criterio que la Tabla de Posiciones.
+                </p>
               </div>
             )}
           </div>

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { buildH2HLookup, sortByTiebreak } from '../utils/tournamentLogic';
+
+export type Enfrentamiento = { oponente_perfil_id: string; gano: boolean };
 
 export type RankingRow = {
   categoria: string;
@@ -9,8 +12,45 @@ export type RankingRow = {
   victorias: number;
   derrotas: number;
   puntos: number;
+  sets_ganados: number;
+  sets_perdidos: number;
+  games_ganados: number;
+  games_perdidos: number;
+  enfrentamientos: Enfrentamiento[];
   posicion: number;
+  tiebreakerReason: string | null;
 };
+
+// Reordena las filas de una categoria con el mismo criterio de desempate que
+// la Tabla de Posiciones (ver utils/tournamentLogic.ts::sortByTiebreak):
+// pts -> dif. sets -> sets ganados -> H2H -> dif. games. El H2H se arma a
+// partir de "enfrentamientos", que ya viene resuelto por la vista (incluye
+// dobles: cada jugador contra cada integrante del equipo rival).
+function reorderCategoria(catRows: RankingRow[]): RankingRow[] {
+  const pairs = catRows.flatMap((r) =>
+    (r.enfrentamientos ?? [])
+      .filter((e) => e.gano)
+      .map((e) => ({ winnerId: r.perfil_id, loserId: e.oponente_perfil_id }))
+  );
+  const getH2H = buildH2HLookup(pairs);
+  const sorted = sortByTiebreak(
+    catRows.map((r) => ({
+      id: r.perfil_id,
+      pts: r.puntos,
+      setsWon: r.sets_ganados,
+      setsLost: r.sets_perdidos,
+      gamesWon: r.games_ganados,
+      gamesLost: r.games_perdidos,
+    })),
+    getH2H
+  );
+  const byId = new Map(catRows.map((r) => [r.perfil_id, r]));
+  return sorted.map((s, idx) => ({
+    ...byId.get(s.id)!,
+    posicion: idx + 1,
+    tiebreakerReason: s.tiebreakerReason,
+  }));
+}
 
 /**
  * Fetch compartido de ranking_categorias_view, usado por RankingCategorias.tsx
@@ -42,8 +82,7 @@ export function useRankingCategorias(options?: { enabled?: boolean }) {
       const { data, error: err } = await supabase
         .from('ranking_categorias_view')
         .select('*')
-        .order('categoria', { ascending: true })
-        .order('posicion', { ascending: true });
+        .order('categoria', { ascending: true });
 
       if (cancelled) return;
       if (err) {
@@ -53,8 +92,9 @@ export function useRankingCategorias(options?: { enabled?: boolean }) {
         return;
       }
 
-      const allRows = (data ?? []) as RankingRow[];
-      const cats = Array.from(new Set(allRows.map((r) => r.categoria))).filter(Boolean);
+      const rawRows = (data ?? []) as RankingRow[];
+      const cats = Array.from(new Set(rawRows.map((r) => r.categoria))).filter(Boolean);
+      const allRows = cats.flatMap((cat) => reorderCategoria(rawRows.filter((r) => r.categoria === cat)));
       setRows(allRows);
       setCategorias(cats);
       setCategoriaActiva((prev) => (prev && cats.includes(prev) ? prev : cats[0] ?? ''));
