@@ -96,11 +96,20 @@ export function useTorneoAdminActions(torneoId: number | null) {
   }, [run]);
 
   const forzarResultado = useCallback((
+    modalidad: Modalidad,
     partidoId: string,
     ganadorId: string,
     setsJson: Array<{ p1: number; p2: number }>,
     motivo?: string
   ) => {
+    if (modalidad === 'dobles') {
+      return run(() => supabase.rpc('admin_forzar_resultado_partido_equipo', {
+        p_partido_id: partidoId,
+        p_equipo_ganador_id: ganadorId,
+        p_sets_json: setsJson,
+        p_motivo: motivo ?? null,
+      }));
+    }
     return run(() => supabase.rpc('admin_forzar_resultado_partido', {
       p_partido_id: partidoId,
       p_ganador_id: ganadorId,

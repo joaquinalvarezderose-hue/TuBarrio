@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -304,13 +304,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "torneos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inscripciones_torneo_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
           },
           {
             foreignKeyName: "inscripciones_torneo_torneo_id_fkey"
@@ -672,13 +665,6 @@ export type Database = {
             foreignKeyName: "partidos_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
-          },
-          {
-            foreignKeyName: "partidos_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -902,13 +888,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "torneos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rondas_golf_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
           },
           {
             foreignKeyName: "rondas_golf_torneo_id_fkey"
@@ -1173,13 +1152,6 @@ export type Database = {
             foreignKeyName: "torneo_configuracion_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: true
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
-          },
-          {
-            foreignKeyName: "torneo_configuracion_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: true
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -1291,13 +1263,6 @@ export type Database = {
             foreignKeyName: "torneo_equipos_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
-          },
-          {
-            foreignKeyName: "torneo_equipos_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -1366,13 +1331,6 @@ export type Database = {
             foreignKeyName: "torneo_estado_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
-          },
-          {
-            foreignKeyName: "torneo_estado_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -1426,13 +1384,6 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "torneos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "torneo_golf_config_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: true
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
           },
           {
             foreignKeyName: "torneo_golf_config_torneo_id_fkey"
@@ -1512,13 +1463,6 @@ export type Database = {
             foreignKeyName: "torneo_grupos_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
-          },
-          {
-            foreignKeyName: "torneo_grupos_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -1591,13 +1535,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "torneos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "torneo_jugadores_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
           },
           {
             foreignKeyName: "torneo_jugadores_torneo_id_fkey"
@@ -1803,13 +1740,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "torneos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "torneo_partidos_historial_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
           },
           {
             foreignKeyName: "torneo_partidos_historial_torneo_id_fkey"
@@ -2023,13 +1953,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "torneos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "torneo_propuestas_partido_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
           },
           {
             foreignKeyName: "torneo_propuestas_partido_torneo_id_fkey"
@@ -2307,13 +2230,6 @@ export type Database = {
             foreignKeyName: "torneo_propuestas_partido_torneo_id_fkey"
             columns: ["torneo_id"]
             isOneToOne: false
-            referencedRelation: "v_admin_grupos_posiciones"
-            referencedColumns: ["torneo_id"]
-          },
-          {
-            foreignKeyName: "torneo_propuestas_partido_torneo_id_fkey"
-            columns: ["torneo_id"]
-            isOneToOne: false
             referencedRelation: "v_admin_llaves_playoffs"
             referencedColumns: ["torneo_id"]
           },
@@ -2337,22 +2253,7 @@ export type Database = {
           torneo_id: number | null
           torneo_titulo: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "torneo_jugadores_perfil_id_fkey"
-            columns: ["perfil_id"]
-            isOneToOne: false
-            referencedRelation: "perfiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "torneo_jugadores_perfil_id_fkey"
-            columns: ["perfil_id"]
-            isOneToOne: false
-            referencedRelation: "perfiles_publicos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       v_admin_llaves_playoffs: {
         Row: {
@@ -2560,6 +2461,15 @@ export type Database = {
       admin_forzar_resultado_partido: {
         Args: {
           p_ganador_id: string
+          p_motivo?: string
+          p_partido_id: string
+          p_sets_json: Json
+        }
+        Returns: string
+      }
+      admin_forzar_resultado_partido_equipo: {
+        Args: {
+          p_equipo_ganador_id: string
           p_motivo?: string
           p_partido_id: string
           p_sets_json: Json

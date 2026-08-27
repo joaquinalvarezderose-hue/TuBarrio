@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
 import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
-import { useTorneoAdminActions } from '../hooks/useTorneoAdminActions';
+import { useTorneoAdminActions, type Modalidad } from '../hooks/useTorneoAdminActions';
 import { Skeleton } from '../components/Skeleton';
 
 type TorneoOption = { id: number; titulo: string };
@@ -42,6 +42,8 @@ type PartidoRow = {
   jugador1_id: string | null;
   jugador2_id: string | null;
   ganador_id: string | null;
+  equipo1_id: string | null;
+  equipo2_id: string | null;
   jugador1_nombre: string;
   jugador2_nombre: string;
 };
@@ -55,6 +57,7 @@ const AdminPartidos: React.FC = () => {
   const [activeTorneo, setActiveTorneo] = useState<number | null>(null);
   const [activeCategoria, setActiveCategoria] = useState<string>('');
   const [activeGrupo, setActiveGrupo] = useState<string>('');
+  const [modalidad, setModalidad] = useState<Modalidad>('singles');
 
   const [partidos, setPartidos] = useState<PartidoRow[]>([]);
   const [loadingPartidos, setLoadingPartidos] = useState(false);
@@ -64,7 +67,7 @@ const AdminPartidos: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const { forzarResultado } = useTorneoAdminActions(activeTorneo);
+  const { forzarResultado, marcarWOEquipo, marcarDobleWOEquipo } = useTorneoAdminActions(activeTorneo);
   const [resultadoModalPartido, setResultadoModalPartido] = useState<PartidoRow | null>(null);
   const [resultadoSets, setResultadoSets] = useState<SetInput[]>(EMPTY_SETS);
   const [resultadoMotivo, setResultadoMotivo] = useState('');
@@ -119,6 +122,24 @@ const AdminPartidos: React.FC = () => {
     return () => { cancelled = true; };
   }, [perfil, activeTorneo]);
 
+  useEffect(() => {
+    if (perfil?.rol !== 'admin' || !activeTorneo) {
+      setModalidad('singles');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('torneo_configuracion')
+        .select('modalidad')
+        .eq('torneo_id', activeTorneo)
+        .maybeSingle();
+      if (cancelled) return;
+      setModalidad(data?.modalidad === 'dobles' ? 'dobles' : 'singles');
+    })();
+    return () => { cancelled = true; };
+  }, [perfil, activeTorneo]);
+
   const { categorias, gruposDeCategoria } = useCategoriaGrupoOptions(
     gruposPosiciones,
     getGrupoCategoria,
@@ -146,6 +167,60 @@ const AdminPartidos: React.FC = () => {
       return;
     }
     setLoadingPartidos(true);
+
+    if (modalidad === 'dobles') {
+      const { data, error } = await supabase
+        .from('partidos')
+        .select(`
+          id, jornada, estado, resultado, es_wo, equipo_ganador_id,
+          equipo1_id, equipo2_id,
+          eq1:torneo_equipos!partidos_equipo1_id_fkey(jugador1_id, jugador2_id),
+          eq2:torneo_equipos!partidos_equipo2_id_fkey(jugador1_id, jugador2_id)
+        `)
+        .eq('torneo_id', activeTorneo)
+        .eq('categoria', activeCategoria)
+        .eq('grupo', activeGrupo)
+        .order('jornada', { ascending: true });
+
+      setLoadingPartidos(false);
+      if (error) {
+        console.error('[AdminPartidos] load partidos error:', error);
+        setFeedback('No se pudieron cargar los partidos.');
+        return;
+      }
+
+      const rowsRaw = data ?? [];
+      const jugadorIds = Array.from(new Set(
+        rowsRaw.flatMap((p: any) => [p.eq1?.jugador1_id, p.eq1?.jugador2_id, p.eq2?.jugador1_id, p.eq2?.jugador2_id]).filter(Boolean)
+      ));
+      const { data: perfilesData } = await supabase
+        .from('perfiles')
+        .select('id, nombre_completo')
+        .in('id', jugadorIds.length > 0 ? jugadorIds : ['00000000-0000-0000-0000-000000000000']);
+      const nombreById = Object.fromEntries((perfilesData ?? []).map((p: any) => [p.id, p.nombre_completo || 'Jugador']));
+
+      const nombreEquipo = (eq: any) => eq
+        ? `${nombreById[eq.jugador1_id] || 'Jugador'} / ${nombreById[eq.jugador2_id] || 'Jugador'}`
+        : 'Sin asignar';
+
+      const rows: PartidoRow[] = rowsRaw.map((p: any) => ({
+        id: p.id,
+        jornada: p.jornada,
+        estado: p.estado,
+        resultado: p.resultado,
+        es_wo: !!p.es_wo,
+        jugador1_id: null,
+        jugador2_id: null,
+        ganador_id: p.equipo_ganador_id,
+        equipo1_id: p.equipo1_id,
+        equipo2_id: p.equipo2_id,
+        jugador1_nombre: nombreEquipo(p.eq1),
+        jugador2_nombre: nombreEquipo(p.eq2),
+      }));
+      setPartidos(rows);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('partidos')
       .select(`
@@ -174,11 +249,13 @@ const AdminPartidos: React.FC = () => {
       jugador1_id: p.jugador1_id,
       jugador2_id: p.jugador2_id,
       ganador_id: p.ganador_id,
+      equipo1_id: null,
+      equipo2_id: null,
       jugador1_nombre: p.jugador1?.nombre_completo || 'Sin asignar',
       jugador2_nombre: p.jugador2?.nombre_completo || 'Sin asignar',
     }));
     setPartidos(rows);
-  }, [perfil, activeTorneo, activeCategoria, activeGrupo]);
+  }, [perfil, activeTorneo, activeCategoria, activeGrupo, modalidad]);
 
   useEffect(() => {
     loadPartidos();
@@ -200,6 +277,19 @@ const AdminPartidos: React.FC = () => {
 
     if (woPerdedorId === DOBLE_WO_SENTINEL) {
       setSubmitting(true);
+      if (modalidad === 'dobles') {
+        const result = await marcarDobleWOEquipo(woModalPartido.id);
+        setSubmitting(false);
+        if (!result.ok) {
+          setFeedback(`Error: ${result.error}`);
+          return;
+        }
+        setFeedback(String(result.data));
+        closeWoModal();
+        loadPartidos();
+        return;
+      }
+
       const { data, error } = await supabase.rpc('admin_marcar_doble_wo', {
         p_partido_id: woModalPartido.id,
       });
@@ -212,6 +302,27 @@ const AdminPartidos: React.FC = () => {
       }
 
       setFeedback(String(data));
+      closeWoModal();
+      loadPartidos();
+      return;
+    }
+
+    if (modalidad === 'dobles') {
+      const ganadorEquipoId = woPerdedorId === woModalPartido.equipo1_id
+        ? woModalPartido.equipo2_id
+        : woModalPartido.equipo1_id;
+      if (!ganadorEquipoId) return;
+
+      setSubmitting(true);
+      const result = await marcarWOEquipo(woModalPartido.id, ganadorEquipoId);
+      setSubmitting(false);
+
+      if (!result.ok) {
+        setFeedback(`Error: ${result.error}`);
+        return;
+      }
+
+      setFeedback(String(result.data));
       closeWoModal();
       loadPartidos();
       return;
@@ -274,7 +385,9 @@ const AdminPartidos: React.FC = () => {
     && resultadoSetsJugador1 !== resultadoSetsJugador2
     && (resultadoSetsJugador1 >= 2 || resultadoSetsJugador2 >= 2);
   const resultadoGanadorId = resultadoGanadorClaro && resultadoModalPartido
-    ? (resultadoSetsJugador1 > resultadoSetsJugador2 ? resultadoModalPartido.jugador1_id : resultadoModalPartido.jugador2_id)
+    ? (modalidad === 'dobles'
+      ? (resultadoSetsJugador1 > resultadoSetsJugador2 ? resultadoModalPartido.equipo1_id : resultadoModalPartido.equipo2_id)
+      : (resultadoSetsJugador1 > resultadoSetsJugador2 ? resultadoModalPartido.jugador1_id : resultadoModalPartido.jugador2_id))
     : null;
   const resultadoTieneEntradas = resultadoSets.some((s) => s.p1.trim() !== '' || s.p2.trim() !== '');
 
@@ -283,6 +396,7 @@ const AdminPartidos: React.FC = () => {
 
     setSubmitting(true);
     const result = await forzarResultado(
+      modalidad,
       resultadoModalPartido.id,
       resultadoGanadorId,
       resultadoSetsJson,
@@ -430,14 +544,14 @@ const AdminPartidos: React.FC = () => {
                     <div className="shrink-0 flex flex-col gap-1.5">
                       <button
                         onClick={() => openResultadoModal(p)}
-                        disabled={!p.jugador1_id || !p.jugador2_id}
+                        disabled={modalidad === 'dobles' ? (!p.equipo1_id || !p.equipo2_id) : (!p.jugador1_id || !p.jugador2_id)}
                         className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg disabled:opacity-40 transition"
                       >
                         Cargar resultado
                       </button>
                       <button
                         onClick={() => openWoModal(p)}
-                        disabled={!p.jugador1_id || !p.jugador2_id}
+                        disabled={modalidad === 'dobles' ? (!p.equipo1_id || !p.equipo2_id) : (!p.jugador1_id || !p.jugador2_id)}
                         className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 px-3 rounded-lg disabled:opacity-40 transition"
                       >
                         Marcar W.O.
@@ -471,8 +585,8 @@ const AdminPartidos: React.FC = () => {
                 <input
                   type="radio"
                   name="wo_perdedor"
-                  checked={woPerdedorId === woModalPartido.jugador1_id}
-                  onChange={() => setWoPerdedorId(woModalPartido.jugador1_id || '')}
+                  checked={woPerdedorId === (modalidad === 'dobles' ? woModalPartido.equipo1_id : woModalPartido.jugador1_id)}
+                  onChange={() => setWoPerdedorId((modalidad === 'dobles' ? woModalPartido.equipo1_id : woModalPartido.jugador1_id) || '')}
                 />
                 {woModalPartido.jugador1_nombre}
               </label>
@@ -480,8 +594,8 @@ const AdminPartidos: React.FC = () => {
                 <input
                   type="radio"
                   name="wo_perdedor"
-                  checked={woPerdedorId === woModalPartido.jugador2_id}
-                  onChange={() => setWoPerdedorId(woModalPartido.jugador2_id || '')}
+                  checked={woPerdedorId === (modalidad === 'dobles' ? woModalPartido.equipo2_id : woModalPartido.jugador2_id)}
+                  onChange={() => setWoPerdedorId((modalidad === 'dobles' ? woModalPartido.equipo2_id : woModalPartido.jugador2_id) || '')}
                 />
                 {woModalPartido.jugador2_nombre}
               </label>
