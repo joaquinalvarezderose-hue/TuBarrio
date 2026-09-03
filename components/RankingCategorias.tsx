@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useRankingCategorias } from '../hooks/useRankingCategorias';
+import { useRankingCategorias, rankingBucketKey, Genero } from '../hooks/useRankingCategorias';
 import { TIEBREAKER_CRITERIA } from '../utils/tournamentLogic';
 import Logo from './Logo';
 
@@ -13,12 +13,23 @@ const POSITION_STYLES: Record<number, { bg: string; text: string; label: string 
   3: { bg: 'bg-orange-100', text: 'text-orange-700', label: '3°' },
 };
 
+const GENERO_BADGE_STYLES: Record<Genero, string> = {
+  femenino: 'bg-pink-100 text-pink-700',
+  masculino: 'bg-blue-100 text-blue-700',
+  mixto: 'bg-gray-100 text-gray-600',
+};
+
 const RankingCategorias: React.FC<Props> = ({ onBack }) => {
-  const { rows, categorias, categoriaActiva, setCategoriaActiva, loading, error } = useRankingCategorias();
+  const { rows, buckets, categoriaActiva, setCategoriaActiva, loading, error } = useRankingCategorias();
 
   const rowsActivos = useMemo(
-    () => rows.filter((r) => r.categoria === categoriaActiva),
+    () => rows.filter((r) => rankingBucketKey(r) === categoriaActiva),
     [rows, categoriaActiva]
+  );
+
+  const bucketActivo = useMemo(
+    () => buckets.find((b) => b.key === categoriaActiva) ?? null,
+    [buckets, categoriaActiva]
   );
 
   return (
@@ -70,26 +81,41 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
         {!loading && !error && (
           <>
             {/* Tabs de categorías */}
-            {categorias.length > 0 && (
-              <div className="flex gap-1 overflow-x-auto pb-1 mb-5 -mx-1 px-1 scrollbar-hide">
-                {categorias.map((cat) => (
+            {buckets.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 -mx-1 px-1 scrollbar-hide">
+                {buckets.map((b) => (
                   <button
-                    key={cat}
-                    onClick={() => setCategoriaActiva(cat)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                      categoriaActiva === cat
+                    key={b.key}
+                    onClick={() => setCategoriaActiva(b.key)}
+                    className={`flex-shrink-0 text-left leading-tight px-4 py-2 rounded-2xl text-sm font-semibold transition-all ${
+                      categoriaActiva === b.key
                         ? 'bg-[#13ec49] text-[#111813] shadow-sm shadow-[#13ec49]/30'
                         : 'bg-white text-[#61896b] border border-gray-200 hover:border-[#4a9c40]'
                     }`}
                   >
-                    {cat}
+                    <span className="block">{b.categoria}</span>
+                    <span className={`block text-[10px] font-medium ${categoriaActiva === b.key ? 'opacity-80' : 'opacity-60'}`}>
+                      {b.generoLabel} · {b.modalidadLabel}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
 
+            {/* Badge de la categoría activa: genero + modalidad bien visibles */}
+            {bucketActivo && (
+              <div className="flex items-center gap-2 mb-5">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${GENERO_BADGE_STYLES[bucketActivo.genero]}`}>
+                  {bucketActivo.generoLabel}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                  {bucketActivo.modalidadLabel}
+                </span>
+              </div>
+            )}
+
             {/* Sin categorías */}
-            {categorias.length === 0 && (
+            {buckets.length === 0 && (
               <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
                 <span className="material-symbols-outlined text-6xl text-gray-300 mb-4 block">leaderboard</span>
                 <p className="text-gray-500 font-medium text-lg">Todavía no se disputó ningún partido.</p>
@@ -98,7 +124,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             )}
 
             {/* Tabla de ranking */}
-            {categorias.length > 0 && (
+            {buckets.length > 0 && (
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Encabezado de tabla */}
                 <div className="grid grid-cols-[2.5rem_1fr_2.5rem_3rem] items-center px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -160,7 +186,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             )}
 
             {/* Leyenda de puntos */}
-            {categorias.length > 0 && (
+            {buckets.length > 0 && (
               <div className="mt-4 rounded-2xl bg-white border border-gray-100 px-4 py-3 shadow-sm">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Sistema de puntos</p>
                 <div className="flex gap-4 flex-wrap">
@@ -189,7 +215,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             )}
 
             {/* Explicación del propósito del ranking */}
-            {categorias.length > 0 && (
+            {buckets.length > 0 && (
               <div className="mt-4 rounded-2xl bg-white border border-gray-100 px-4 py-3 shadow-sm">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
                   ¿Para qué sirve este ranking?
@@ -203,7 +229,7 @@ const RankingCategorias: React.FC<Props> = ({ onBack }) => {
             )}
 
             {/* Criterios de desempate */}
-            {categorias.length > 0 && (
+            {buckets.length > 0 && (
               <div className="mt-4 rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-4 pt-3 pb-2">
                   Criterios de desempate

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { supabase } from '../services/supabaseClient';
 import { useCategoriaGrupoOptions } from '../hooks/useCategoriaGrupoOptions';
-import { useRankingCategorias } from '../hooks/useRankingCategorias';
+import { useRankingCategorias, rankingBucketKey } from '../hooks/useRankingCategorias';
 import { TournamentPreviewScope } from '../types/tournamentPreview';
 import { Skeleton } from '../components/Skeleton';
 import { WhatsAppE164Schema, COUNTRY_CODES, normalizeWhatsApp } from '../lib/schemas';
@@ -348,14 +348,14 @@ const AdminPanel: React.FC = () => {
   // Ranking global cross-torneo por categoria (independiente del selector de preview de arriba).
   const {
     rows: rankingRows,
-    categorias: rankingCategorias,
+    buckets: rankingBuckets,
     categoriaActiva: rankingCategoriaActiva,
     setCategoriaActiva: setRankingCategoriaActiva,
     loading: rankingLoading,
   } = useRankingCategorias({ enabled: perfil?.rol === 'admin' });
 
   const rankingRowsActivos = useMemo(
-    () => rankingRows.filter((r) => r.categoria === rankingCategoriaActiva),
+    () => rankingRows.filter((r) => rankingBucketKey(r) === rankingCategoriaActiva),
     [rankingRows, rankingCategoriaActiva]
   );
 
@@ -890,22 +890,23 @@ const AdminPanel: React.FC = () => {
                 <Skeleton className="h-8 w-full" />
                 <Skeleton className="h-32 w-full" />
               </div>
-            ) : rankingCategorias.length === 0 ? (
+            ) : rankingBuckets.length === 0 ? (
               <p className="text-sm text-slate-400">Todavía no hay partidos registrados.</p>
             ) : (
               <div className="space-y-3">
                 <div className="flex gap-1.5 overflow-x-auto pb-1">
-                  {rankingCategorias.map((cat) => (
+                  {rankingBuckets.map((b) => (
                     <button
-                      key={cat}
-                      onClick={() => setRankingCategoriaActiva(cat)}
-                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                        rankingCategoriaActiva === cat
+                      key={b.key}
+                      onClick={() => setRankingCategoriaActiva(b.key)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-colors text-left leading-tight ${
+                        rankingCategoriaActiva === b.key
                           ? 'bg-emerald-100 text-emerald-700'
                           : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      {cat}
+                      <span className="block">{b.categoria}</span>
+                      <span className="block text-[9px] font-semibold opacity-70">{b.generoLabel} · {b.modalidadLabel}</span>
                     </button>
                   ))}
                 </div>

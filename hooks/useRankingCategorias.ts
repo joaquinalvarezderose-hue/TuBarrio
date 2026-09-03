@@ -4,8 +4,13 @@ import { buildH2HLookup, sortByTiebreak } from '../utils/tournamentLogic';
 
 export type Enfrentamiento = { oponente_perfil_id: string; gano: boolean };
 
+export type Genero = 'masculino' | 'femenino' | 'mixto';
+export type Modalidad = 'singles' | 'dobles';
+
 export type RankingRow = {
   categoria: string;
+  genero: Genero;
+  modalidad: Modalidad;
   perfil_id: string;
   nombre_completo: string | null;
   partidos_jugados: number;
@@ -20,6 +25,44 @@ export type RankingRow = {
   posicion: number;
   tiebreakerReason: string | null;
 };
+
+// categoria por si sola no es unica (dos torneos distintos pueden usar el
+// mismo texto de categoria, ej. "General" en un torneo de prueba singles y
+// otro de dobles) -- el bucket real de ranking es categoria+genero+modalidad.
+export function rankingBucketKey(row: Pick<RankingRow, 'categoria' | 'genero' | 'modalidad'>): string {
+  return `${row.categoria}__${row.genero}__${row.modalidad}`;
+}
+
+const GENERO_LABEL: Record<Genero, string> = {
+  masculino: 'Caballeros',
+  femenino: 'Damas',
+  mixto: 'Mixto',
+};
+
+const MODALIDAD_LABEL: Record<Modalidad, string> = {
+  singles: 'Singles',
+  dobles: 'Dobles',
+};
+
+export type RankingBucket = {
+  key: string;
+  categoria: string;
+  genero: Genero;
+  modalidad: Modalidad;
+  generoLabel: string;
+  modalidadLabel: string;
+};
+
+export function describeBucket(row: Pick<RankingRow, 'categoria' | 'genero' | 'modalidad'>): RankingBucket {
+  return {
+    key: rankingBucketKey(row),
+    categoria: row.categoria,
+    genero: row.genero,
+    modalidad: row.modalidad,
+    generoLabel: GENERO_LABEL[row.genero] ?? row.genero,
+    modalidadLabel: MODALIDAD_LABEL[row.modalidad] ?? row.modalidad,
+  };
+}
 
 // Reordena las filas de una categoria con el mismo criterio de desempate que
 // la Tabla de Posiciones (ver utils/tournamentLogic.ts::sortByTiebreak):
@@ -68,7 +111,7 @@ export function useRankingCategorias(options?: { enabled?: boolean }) {
   const enabled = options?.enabled ?? true;
 
   const [rows, setRows] = useState<RankingRow[]>([]);
-  const [categorias, setCategorias] = useState<string[]>([]);
+  const [buckets, setBuckets] = useState<RankingBucket[]>([]);
   const [categoriaActiva, setCategoriaActiva] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,11 +136,18 @@ export function useRankingCategorias(options?: { enabled?: boolean }) {
       }
 
       const rawRows = (data ?? []) as RankingRow[];
-      const cats = Array.from(new Set(rawRows.map((r) => r.categoria))).filter(Boolean);
-      const allRows = cats.flatMap((cat) => reorderCategoria(rawRows.filter((r) => r.categoria === cat)));
+      const bucketMap = new Map<string, RankingBucket>();
+      rawRows.forEach((r) => {
+        const bucket = describeBucket(r);
+        if (!bucketMap.has(bucket.key)) bucketMap.set(bucket.key, bucket);
+      });
+      const bucketList = Array.from(bucketMap.values()).sort(
+        (a, b) => a.categoria.localeCompare(b.categoria) || a.generoLabel.localeCompare(b.generoLabel) || a.modalidadLabel.localeCompare(b.modalidadLabel)
+      );
+      const allRows = bucketList.flatMap((b) => reorderCategoria(rawRows.filter((r) => rankingBucketKey(r) === b.key)));
       setRows(allRows);
-      setCategorias(cats);
-      setCategoriaActiva((prev) => (prev && cats.includes(prev) ? prev : cats[0] ?? ''));
+      setBuckets(bucketList);
+      setCategoriaActiva((prev) => (prev && bucketList.some((b) => b.key === prev) ? prev : bucketList[0]?.key ?? ''));
       setLoading(false);
     })();
     return () => {
@@ -105,5 +155,5 @@ export function useRankingCategorias(options?: { enabled?: boolean }) {
     };
   }, [enabled]);
 
-  return { rows, categorias, categoriaActiva, setCategoriaActiva, loading, error };
+  return { rows, buckets, categoriaActiva, setCategoriaActiva, loading, error };
 }

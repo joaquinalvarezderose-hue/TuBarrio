@@ -11,6 +11,7 @@ interface FormState {
   fecha_fin: string;
   imagen_url: string;
   modalidad: 'singles' | 'dobles';
+  genero: 'masculino' | 'femenino' | 'mixto';
   max_participantes_por_grupo: string;
   min_participantes_por_grupo: string;
   numero_grupos: string;
@@ -31,6 +32,7 @@ const emptyForm: FormState = {
   fecha_fin: '',
   imagen_url: '',
   modalidad: 'singles',
+  genero: 'mixto',
   max_participantes_por_grupo: '4',
   min_participantes_por_grupo: '2',
   numero_grupos: '',
@@ -87,6 +89,7 @@ const OrganizadorTorneoForm: React.FC = () => {
         fecha_fin: torneo.fecha_fin ?? '',
         imagen_url: torneo.imagen_url ?? '',
         modalidad: config?.modalidad === 'dobles' ? 'dobles' : 'singles',
+        genero: torneo.genero === 'masculino' || torneo.genero === 'femenino' ? torneo.genero : 'mixto',
         max_participantes_por_grupo: String(config?.max_participantes_por_grupo ?? 4),
         min_participantes_por_grupo: String(config?.min_participantes_por_grupo ?? 2),
         numero_grupos: config?.numero_grupos != null ? String(config.numero_grupos) : '',
@@ -138,6 +141,7 @@ const OrganizadorTorneoForm: React.FC = () => {
         p_fecha_inicio: form.fecha_inicio || null,
         p_fecha_fin: form.fecha_fin || null,
         p_imagen_url: form.imagen_url || null,
+        p_genero: form.genero,
         ...configParams,
       });
       setSubmitting(false);
@@ -156,6 +160,7 @@ const OrganizadorTorneoForm: React.FC = () => {
       p_fecha_fin: form.fecha_fin || null,
       p_imagen_url: form.imagen_url || null,
       p_modalidad: form.modalidad,
+      p_genero: form.genero,
       ...configParams,
     });
     setSubmitting(false);
@@ -253,19 +258,34 @@ const OrganizadorTorneoForm: React.FC = () => {
             />
           </div>
 
-          {!isEditing && (
+          <div className="grid grid-cols-2 gap-3">
+            {!isEditing && (
+              <div>
+                <label className="text-xs font-semibold text-slate-500">Modalidad</label>
+                <select
+                  value={form.modalidad}
+                  onChange={(e) => update('modalidad', e.target.value as 'singles' | 'dobles')}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1 bg-white"
+                >
+                  <option value="singles">Singles</option>
+                  <option value="dobles">Dobles</option>
+                </select>
+              </div>
+            )}
             <div>
-              <label className="text-xs font-semibold text-slate-500">Modalidad</label>
+              <label className="text-xs font-semibold text-slate-500">Género</label>
               <select
-                value={form.modalidad}
-                onChange={(e) => update('modalidad', e.target.value as 'singles' | 'dobles')}
+                value={form.genero}
+                onChange={(e) => update('genero', e.target.value as 'masculino' | 'femenino' | 'mixto')}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mt-1 bg-white"
               >
-                <option value="singles">Singles</option>
-                <option value="dobles">Dobles</option>
+                <option value="masculino">Caballeros</option>
+                <option value="femenino">Damas</option>
+                <option value="mixto">Mixto</option>
               </select>
+              <p className="text-[10px] text-slate-400 mt-1">Se usa para distinguir categorías en el Ranking.</p>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">

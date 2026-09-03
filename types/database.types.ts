@@ -1973,6 +1973,7 @@ export type Database = {
           deporte: string
           fecha_fin: string | null
           fecha_inicio: string | null
+          genero: string
           id: number
           imagen_url: string | null
           precio_expensas: number
@@ -1992,6 +1993,7 @@ export type Database = {
           deporte?: string
           fecha_fin?: string | null
           fecha_inicio?: string | null
+          genero?: string
           id?: number
           imagen_url?: string | null
           precio_expensas?: number
@@ -2011,6 +2013,7 @@ export type Database = {
           deporte?: string
           fecha_fin?: string | null
           fecha_inicio?: string | null
+          genero?: string
           id?: number
           imagen_url?: string | null
           precio_expensas?: number
@@ -2130,6 +2133,8 @@ export type Database = {
         Row: {
           categoria: string | null
           derrotas: number | null
+          genero: string | null
+          modalidad: string | null
           nombre_completo: string | null
           partidos_jugados: number | null
           perfil_id: string | null
@@ -2409,6 +2414,7 @@ export type Database = {
           p_crear_playoffs_eliminacion_directa?: boolean
           p_fecha_fin?: string
           p_fecha_inicio?: string
+          p_genero?: string
           p_imagen_url?: string
           p_incluir_mejores_terceros?: boolean
           p_max_participantes_por_grupo?: number
@@ -2600,6 +2606,7 @@ export type Database = {
           p_crear_playoffs_eliminacion_directa?: boolean
           p_fecha_fin?: string
           p_fecha_inicio?: string
+          p_genero?: string
           p_imagen_url?: string
           p_incluir_mejores_terceros?: boolean
           p_max_participantes_por_grupo?: number
