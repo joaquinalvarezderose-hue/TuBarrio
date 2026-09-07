@@ -91,6 +91,7 @@ const AdminPartidos: React.FC = () => {
       const { data, error } = await supabase
         .from('torneos')
         .select('id, titulo')
+        .eq('mostrar_en_panel_admin', true)
         .order('created_at', { ascending: false });
       if (cancelled) return;
       if (error) {
