@@ -27,6 +27,9 @@ type EquipoRow = {
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
   const { perfil, loading, authUser } = useCurrentUser();
+  const isAdmin = perfil?.rol === 'admin';
+  const isViewer = perfil?.rol === 'viewer';
+  const canView = isAdmin || isViewer;
 
   const [torneos, setTorneos] = useState<TorneoOption[]>([]);
   const [gruposPosiciones, setGruposPosiciones] = useState<GrupoOption[]>([]);
@@ -67,14 +70,14 @@ const AdminPanel: React.FC = () => {
 
   // Redirect non-admins away once the profile is known
   useEffect(() => {
-    if (!loading && perfil && perfil.rol !== 'admin') {
+    if (!loading && perfil && !(perfil.rol === 'admin' || perfil.rol === 'viewer')) {
       navigate('/tournaments', { replace: true });
     }
   }, [loading, perfil, navigate]);
 
   // Load tournaments for the preview selector
   useEffect(() => {
-    if (perfil?.rol !== 'admin') return;
+    if (!canView) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -95,7 +98,7 @@ const AdminPanel: React.FC = () => {
 
   // Load groups/categories for the selected tournament from the pre-flattened admin view
   useEffect(() => {
-    if (perfil?.rol !== 'admin' || !activeTorneo) return;
+    if (!canView || !activeTorneo) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -114,7 +117,7 @@ const AdminPanel: React.FC = () => {
 
   // Resuelve la modalidad del torneo seleccionado, para mostrar (o no) el armado de parejas
   useEffect(() => {
-    if (perfil?.rol !== 'admin' || !activeTorneo) {
+    if (!canView || !activeTorneo) {
       setActiveTorneoModalidad('singles');
       return;
     }
@@ -139,7 +142,7 @@ const AdminPanel: React.FC = () => {
   // Categorias con inscriptos aprobados para el torneo (armado de parejas ocurre antes del sorteo,
   // por eso se lee de inscripciones_torneo y no de v_admin_grupos_posiciones)
   useEffect(() => {
-    if (perfil?.rol !== 'admin' || !activeTorneo || activeTorneoModalidad !== 'dobles') {
+    if (!canView || !activeTorneo || activeTorneoModalidad !== 'dobles') {
       setPairingCategorias([]);
       return;
     }
@@ -164,7 +167,7 @@ const AdminPanel: React.FC = () => {
 
   // Inscriptos sin pareja + parejas ya formadas, para la categoria seleccionada
   useEffect(() => {
-    if (perfil?.rol !== 'admin' || !activeTorneo || activeTorneoModalidad !== 'dobles' || !pairingCategoria) {
+    if (!canView || !activeTorneo || activeTorneoModalidad !== 'dobles' || !pairingCategoria) {
       setUnpairedPlayers([]);
       setPairedTeams([]);
       return;
@@ -352,7 +355,7 @@ const AdminPanel: React.FC = () => {
     categoriaActiva: rankingCategoriaActiva,
     setCategoriaActiva: setRankingCategoriaActiva,
     loading: rankingLoading,
-  } = useRankingCategorias({ enabled: perfil?.rol === 'admin' });
+  } = useRankingCategorias({ enabled: canView });
 
   const rankingRowsActivos = useMemo(
     () => rankingRows.filter((r) => rankingBucketKey(r) === rankingCategoriaActiva),
@@ -368,14 +371,14 @@ const AdminPanel: React.FC = () => {
 
   // Keep categoria/grupo selects pointed at a valid option as the data loads/changes
   useEffect(() => {
-    if (perfil?.rol !== 'admin') return;
+    if (!canView) return;
     if (categorias.length > 0 && !categorias.includes(activeCategoria)) {
       setActiveCategoria(categorias[0]);
     }
   }, [perfil, categorias, activeCategoria]);
 
   useEffect(() => {
-    if (perfil?.rol !== 'admin') return;
+    if (!canView) return;
     if (gruposDeCategoria.length > 0 && !gruposDeCategoria.includes(previewGrupo)) {
       setPreviewGrupo(gruposDeCategoria[0]);
     }
@@ -423,7 +426,7 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  if (perfil.rol !== 'admin') {
+  if (!canView) {
     return null;
   }
 
@@ -497,8 +500,12 @@ const AdminPanel: React.FC = () => {
           ‹
         </button>
         <h1 className="font-black text-slate-900 text-lg uppercase tracking-wide">Panel Admin</h1>
-        <span className="ml-auto text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-          Admin
+        <span
+          className={`ml-auto text-xs font-bold px-3 py-1 rounded-full ${
+            isViewer ? 'bg-slate-100 text-slate-600' : 'bg-emerald-100 text-emerald-700'
+          }`}
+        >
+          {isViewer ? 'Visualizador' : 'Admin'}
         </span>
       </div>
 
@@ -518,7 +525,7 @@ const AdminPanel: React.FC = () => {
                 </p>
                 <p>
                   <span className="text-slate-500">Rol:</span>{' '}
-                  <span className="font-medium text-emerald-700">Admin</span>
+                  <span className="font-medium text-emerald-700">{isViewer ? 'Visualizador' : 'Admin'}</span>
                 </p>
                 <p>
                   <span className="text-slate-500">WhatsApp:</span>{' '}
@@ -541,40 +548,42 @@ const AdminPanel: React.FC = () => {
                 </p>
                 <p className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                  <span>Permisos de admin</span>
+                  <span>{isViewer ? 'Acceso de solo lectura' : 'Permisos de admin'}</span>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-600 uppercase mb-3">Acciones</h3>
-            <button
-              onClick={() => navigate('/tournaments')}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Ir a Torneos
-            </button>
-            <button
-              onClick={() => navigate('/admin/partidos')}
-              className="w-full mt-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Gestionar Partidos (W.O.)
-            </button>
-            <button
-              onClick={() => navigate('/organizador')}
-              className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Mis Torneos (crear / administrar)
-            </button>
-            <button
-              onClick={() => navigate('/golf/canchas')}
-              className="w-full mt-2 bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Canchas de Golf (alta de hoyos)
-            </button>
-          </div>
+          {/* Quick Actions: navegan a otras pantallas de gestion, fuera del alcance de un viewer */}
+          {isAdmin && (
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-600 uppercase mb-3">Acciones</h3>
+              <button
+                onClick={() => navigate('/tournaments')}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Ir a Torneos
+              </button>
+              <button
+                onClick={() => navigate('/admin/partidos')}
+                className="w-full mt-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Gestionar Partidos (W.O.)
+              </button>
+              <button
+                onClick={() => navigate('/organizador')}
+                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Mis Torneos (crear / administrar)
+              </button>
+              <button
+                onClick={() => navigate('/golf/canchas')}
+                className="w-full mt-2 bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Canchas de Golf (alta de hoyos)
+              </button>
+            </div>
+          )}
 
           {/* Gestion de organizadores */}
           <div className="mt-6 pt-6 border-t border-slate-200">
@@ -582,6 +591,7 @@ const AdminPanel: React.FC = () => {
             <p className="text-xs text-slate-500 mb-3">
               Un organizador puede crear y administrar sus propios torneos (partidos, sorteos, inscripciones),
               pero no puede designar otros administradores ni tocar torneos ajenos.
+              {isViewer && ' Como visualizador, podes ver esta seccion pero no asignar ni quitar roles.'}
             </p>
 
             <div className="flex gap-2 mb-3">
@@ -616,7 +626,9 @@ const AdminPanel: React.FC = () => {
                       <p className="font-semibold text-slate-900 text-sm truncate">{u.nombre_completo || 'Sin nombre'}</p>
                       <p className="text-xs text-slate-500 truncate">{u.email} · rol: {u.rol || 'jugador'}</p>
                     </div>
-                    {u.rol === 'admin' ? (
+                    {!isAdmin ? (
+                      <span className="text-xs text-slate-400 shrink-0">{u.rol || 'jugador'}</span>
+                    ) : u.rol === 'admin' ? (
                       <span className="text-xs text-slate-400 shrink-0">admin</span>
                     ) : u.rol === 'organizador' ? (
                       <button
@@ -742,83 +754,87 @@ const AdminPanel: React.FC = () => {
                   {pairingMessage && <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm font-medium text-emerald-700">{pairingMessage}</div>}
                   {pairingError && <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-sm font-medium text-red-700">{pairingError}</div>}
 
-                  <div className="border border-slate-200 rounded-lg p-4 space-y-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Agregar jugador sin cuenta
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Para alguien que no va a crear cuenta propia (o todavia no se registro). Despues se puede reemplazar por su cuenta real.
-                    </p>
-                    <input
-                      type="text"
-                      value={placeholderNombre}
-                      onChange={(e) => setPlaceholderNombre(e.target.value)}
-                      placeholder="Nombre y apellido"
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
-                    />
-                    <div className="flex gap-2">
-                      <select
-                        value={placeholderWaDialCode}
-                        onChange={(e) => setPlaceholderWaDialCode(e.target.value)}
-                        className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white"
-                      >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={c.code} value={c.code}>{c.label}</option>
-                        ))}
-                      </select>
+                  {isAdmin && (
+                    <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Agregar jugador sin cuenta
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        Para alguien que no va a crear cuenta propia (o todavia no se registro). Despues se puede reemplazar por su cuenta real.
+                      </p>
                       <input
                         type="text"
-                        value={placeholderWaLocal}
-                        onChange={(e) => setPlaceholderWaLocal(e.target.value)}
-                        placeholder={`WhatsApp opcional, ej: ${COUNTRY_CODES.find((c) => c.code === placeholderWaDialCode)?.placeholder || ''}`}
-                        className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                        value={placeholderNombre}
+                        onChange={(e) => setPlaceholderNombre(e.target.value)}
+                        placeholder="Nombre y apellido"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
                       />
+                      <div className="flex gap-2">
+                        <select
+                          value={placeholderWaDialCode}
+                          onChange={(e) => setPlaceholderWaDialCode(e.target.value)}
+                          className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white"
+                        >
+                          {COUNTRY_CODES.map((c) => (
+                            <option key={c.code} value={c.code}>{c.label}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={placeholderWaLocal}
+                          onChange={(e) => setPlaceholderWaLocal(e.target.value)}
+                          placeholder={`WhatsApp opcional, ej: ${COUNTRY_CODES.find((c) => c.code === placeholderWaDialCode)?.placeholder || ''}`}
+                          className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                        />
+                      </div>
+                      <button
+                        onClick={handleCrearPlaceholder}
+                        disabled={pairingLoading || !placeholderNombre.trim()}
+                        className="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                      >
+                        {pairingLoading ? 'Procesando...' : 'Agregar jugador sin cuenta'}
+                      </button>
                     </div>
-                    <button
-                      onClick={handleCrearPlaceholder}
-                      disabled={pairingLoading || !placeholderNombre.trim()}
-                      className="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
-                    >
-                      {pairingLoading ? 'Procesando...' : 'Agregar jugador sin cuenta'}
-                    </button>
-                  </div>
+                  )}
 
-                  <div className="border border-slate-200 rounded-lg p-4 space-y-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Crear pareja ({unpairedPlayers.length} sin pareja)
-                    </p>
-                    <select
-                      value={selectedPlayer1}
-                      onChange={(e) => setSelectedPlayer1(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
-                    >
-                      <option value="">Jugador 1...</option>
-                      {unpairedPlayers.map((p) => (
-                        <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer2}>
-                          {p.nombre}{p.esPlaceholder ? ' (sin cuenta)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={selectedPlayer2}
-                      onChange={(e) => setSelectedPlayer2(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
-                    >
-                      <option value="">Jugador 2...</option>
-                      {unpairedPlayers.map((p) => (
-                        <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer1}>
-                          {p.nombre}{p.esPlaceholder ? ' (sin cuenta)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={handleCreateEquipo}
-                      disabled={pairingLoading || !selectedPlayer1 || !selectedPlayer2}
-                      className="w-full bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
-                    >
-                      {pairingLoading ? 'Procesando...' : 'Crear Pareja'}
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Crear pareja ({unpairedPlayers.length} sin pareja)
+                      </p>
+                      <select
+                        value={selectedPlayer1}
+                        onChange={(e) => setSelectedPlayer1(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                      >
+                        <option value="">Jugador 1...</option>
+                        {unpairedPlayers.map((p) => (
+                          <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer2}>
+                            {p.nombre}{p.esPlaceholder ? ' (sin cuenta)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={selectedPlayer2}
+                        onChange={(e) => setSelectedPlayer2(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                      >
+                        <option value="">Jugador 2...</option>
+                        {unpairedPlayers.map((p) => (
+                          <option key={p.perfil_id} value={p.perfil_id} disabled={p.perfil_id === selectedPlayer1}>
+                            {p.nombre}{p.esPlaceholder ? ' (sin cuenta)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleCreateEquipo}
+                        disabled={pairingLoading || !selectedPlayer1 || !selectedPlayer2}
+                        className="w-full bg-[#4a9c40] hover:bg-[#3d8b33] text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                      >
+                        {pairingLoading ? 'Procesando...' : 'Crear Pareja'}
+                      </button>
+                    </div>
+                  )}
 
                   {pairedTeams.length > 0 && (
                     <div className="border border-slate-200 rounded-lg p-4">
@@ -838,16 +854,18 @@ const AdminPanel: React.FC = () => {
                                 <span className="font-medium text-slate-900">
                                   {t.nombre1}{t.esPlaceholder1 ? ' (sin cuenta)' : ''} / {t.nombre2}{t.esPlaceholder2 ? ' (sin cuenta)' : ''}
                                 </span>
-                                <button
-                                  onClick={() => handleDeleteEquipo(t.id)}
-                                  disabled={pairingLoading || Boolean(t.grupo)}
-                                  title={t.grupo ? 'Ya paso por el sorteo, no se puede deshacer' : 'Deshacer pareja'}
-                                  className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                  Deshacer
-                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleDeleteEquipo(t.id)}
+                                    disabled={pairingLoading || Boolean(t.grupo)}
+                                    title={t.grupo ? 'Ya paso por el sorteo, no se puede deshacer' : 'Deshacer pareja'}
+                                    className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  >
+                                    Deshacer
+                                  </button>
+                                )}
                               </div>
-                              {placeholders.map((ph) => (
+                              {isAdmin && placeholders.map((ph) => (
                                 <div key={ph.id} className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                                   <select
                                     value={replacementSelections[ph.id] || ''}
